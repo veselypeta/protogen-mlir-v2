@@ -1,5 +1,6 @@
 #include "PCC/PCCDialect.h"
 #include "PCC/PCCOps.h"
+#include <models/Expr.h>
 
 using namespace mlir;
 using namespace mlir::pcc;

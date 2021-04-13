@@ -36,6 +36,11 @@ set(LLVM_LIT_ARGS "-sv" CACHE STRING "lit default options")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(sanitizers)
 
+# murphi-lib
+add_library(murphi-lib SHARED IMPORTED)
+set_property(TARGET murphi-lib PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/murphi-lib/build/libmurphi.dylib)
+include_directories(murphi-lib/include)
+
 add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(test)

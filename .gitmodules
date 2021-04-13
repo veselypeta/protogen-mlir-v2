@@ -1,3 +1,6 @@
 [submodule "llvm-project"]
 	path = llvm-project
 	url = https://github.com/llvm/llvm-project
+[submodule "murphi-lib"]
+	path = murphi-lib
+	url = https://github.com/veselypeta/murphi-lib.git
