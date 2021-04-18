@@ -36,6 +36,34 @@ set(LLVM_LIT_ARGS "-sv" CACHE STRING "lit default options")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(sanitizers)
 
+# ANTLR4 Stuff ----- 
+
+# required if linking to static library
+add_definitions(-DANTLR4CPP_STATIC)
+
+# add external build for antlrcpp
+include(ExternalAntlr4Cpp)
+
+# add antrl4cpp artifacts to project environment
+include_directories(${ANTLR4_INCLUDE_DIRS})
+
+# set variable pointing to the antlr tool that supports C++
+# this is not required if the jar file can be found under PATH environment
+set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/antlr-4.9.2-complete.jar)
+
+# add macros to generate ANTLR Cpp code from grammar
+find_package(ANTLR REQUIRED)
+
+# Call macro to add lexer and grammar to your build dependencies.
+antlr_target(ProtoCC ProtoCC.g4 VISITOR)
+
+# include generated files in project environment
+include_directories(${ANTLR_ProtoCC_OUTPUT_DIR})
+message(STATUS "Including ANTLR4 headers from: ${ANTLR_ProtoCC_OUTPUT_DIR}")
+message(STATUS "ANTLR is found = ${ANTLR_FOUND} and path to jar file is ${ANTLR_EXECUTABLE}")
+
+# --- END ANTLR
+
 # murphi-lib
 add_library(murphi-lib SHARED IMPORTED)
 set_property(TARGET murphi-lib PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/murphi-lib/build/libmurphi.dylib)
