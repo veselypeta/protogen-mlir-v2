@@ -9,5 +9,6 @@ add_mlir_dialect_library(
     DEPENDS
     MLIRPCCOpsIncGen
 
-    LINK_LIBS PUBLIC MLIRIR
+    LINK_LIBS PUBLIC MLIRIR 
+    PRIVATE antlr4_static
 )
