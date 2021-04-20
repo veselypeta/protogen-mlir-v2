@@ -5,6 +5,14 @@ project(protogen-mlir LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/703bd9caab50b139428cea1aaff9974ebee5742e.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 find_package(MLIR REQUIRED CONFIG)
 
 set(MLIR_DIR ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/lib/cmake/mlir)
