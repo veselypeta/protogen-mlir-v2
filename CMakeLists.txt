@@ -5,8 +5,6 @@ project(protogen-mlir LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
-
-
 set(MLIR_DIR ${PROJECT_SOURCE_DIR}/llvm-project/build/lib/cmake/mlir)
 set(LLVM_DIR ${PROJECT_SOURCE_DIR}/llvm-project/build/lib/cmake/llvm)
 set(LLVM_EXTERNAL_LIT ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/bin/llvm-lit)
@@ -56,15 +54,16 @@ set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/antlr-4.9.2-complete.jar )
 find_package(ANTLR REQUIRED)
 
 # Call macro to add lexer and grammar to your build dependencies.
-ANTLR_TARGET(ProtoCC ProtoCC.g4 VISITOR)
+antlr_target(ProtoCC ProtoCC.g4 VISITOR)
 
 # include generated files in project environment
 include_directories(${ANTLR_ProtoCC_OUTPUT_DIR})
 message(STATUS "Including ANTLR4 headers from: ${ANTLR_ProtoCC_OUTPUT_DIR}")
 message(STATUS "ANTLR is found = ${ANTLR_FOUND} and path to jar file is ${ANTLR_EXECUTABLE}")
 
-add_library(protocc-antlr4 STATIC ${ANTLR_ProtoCC_CXX_OUTPUTS})
-target_link_libraries(protocc-antlr4 antlr4_static)
+
+add_custom_target(protocc-antlr4 DEPENDS ${ANTLR_ProtoCC_OUTPUTS})
+
 # --- END ANTLR
 
 # murphi-lib

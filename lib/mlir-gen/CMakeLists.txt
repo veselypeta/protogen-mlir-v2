@@ -25,5 +25,6 @@ add_mlir_dialect_library(
     MLIRTranslation
     MLIRSupport
     antlr4_static
-    protocc-antlr4 
 )
+add_dependencies(mlir-gen antlr4_static)
+add_dependencies(mlir-gen protocc-antlr4)
