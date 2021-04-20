@@ -15,6 +15,15 @@ add_mlir_dialect_library(
     DEPENDS
     MLIRPCCOpsIncGen
 
-    LINK_LIBS PUBLIC MLIRIR 
-    PRIVATE antlr4_static
+    LINK_LIBS PRIVATE 
+    ${dialect_libs}
+    ${translation_libs}
+    ${LIBS}
+    MLIRIR
+    MLIRParser
+    MLIRPass
+    MLIRTranslation
+    MLIRSupport
+    antlr4_static
+    protocc-antlr4 
 )

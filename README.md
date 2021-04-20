@@ -5,9 +5,11 @@
 To build this project you first need to build `llvm` and `murphi-lib`, which are included as submodules.
 
 Requirements
+- Git
 - CMake
 - Ninja
 - clang
+- uuid-dev
 
 
 ### Build LLVM
