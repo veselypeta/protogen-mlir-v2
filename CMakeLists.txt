@@ -62,7 +62,11 @@ message(STATUS "Including ANTLR4 headers from: ${ANTLR_ProtoCC_OUTPUT_DIR}")
 message(STATUS "ANTLR is found = ${ANTLR_FOUND} and path to jar file is ${ANTLR_EXECUTABLE}")
 
 
-add_custom_target(protocc-antlr4 DEPENDS ${ANTLR_ProtoCC_OUTPUTS})
+add_custom_target(protocc-dep DEPENDS ${ANTLR_ProtoCC_OUTPUTS})
+add_library(protocc-antlr4 ${ANTLR_ProtoCC_CXX_OUTPUTS})
+add_dependencies(protocc-antlr4 protocc-dep)
+add_dependencies(protocc-antlr4 antlr4_static)
+
 
 # --- END ANTLR
 
