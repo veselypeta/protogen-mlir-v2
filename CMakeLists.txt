@@ -5,22 +5,13 @@ project(protogen-mlir LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/703bd9caab50b139428cea1aaff9974ebee5742e.zip
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-find_package(MLIR REQUIRED CONFIG)
-
-set(MLIR_DIR ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/lib/cmake/mlir)
-set(LLVM_DIR ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/lib/cmake/llvm)
+set(MLIR_DIR ${PROJECT_SOURCE_DIR}/llvm-project/build/lib/cmake/mlir)
+set(LLVM_DIR ${PROJECT_SOURCE_DIR}/llvm-project/build/lib/cmake/llvm)
 set(LLVM_EXTERNAL_LIT ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/bin/llvm-lit)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+find_package(MLIR REQUIRED CONFIG)
 
 set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
 set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
@@ -57,7 +48,7 @@ include_directories(${ANTLR4_INCLUDE_DIRS})
 
 # set variable pointing to the antlr tool that supports C++
 # this is not required if the jar file can be found under PATH environment
-set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/antlr-4.9.2-complete.jar)
+set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/antlr-4.9.2-complete.jar )
 
 # add macros to generate ANTLR Cpp code from grammar
 find_package(ANTLR REQUIRED)
@@ -69,6 +60,13 @@ antlr_target(ProtoCC ProtoCC.g4 VISITOR)
 include_directories(${ANTLR_ProtoCC_OUTPUT_DIR})
 message(STATUS "Including ANTLR4 headers from: ${ANTLR_ProtoCC_OUTPUT_DIR}")
 message(STATUS "ANTLR is found = ${ANTLR_FOUND} and path to jar file is ${ANTLR_EXECUTABLE}")
+
+
+add_custom_target(protocc-dep DEPENDS ${ANTLR_ProtoCC_OUTPUTS})
+add_library(protocc-antlr4 ${ANTLR_ProtoCC_CXX_OUTPUTS})
+add_dependencies(protocc-antlr4 protocc-dep)
+add_dependencies(protocc-antlr4 antlr4_static)
+
 
 # --- END ANTLR
 
