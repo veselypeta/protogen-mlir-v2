@@ -4,7 +4,7 @@
 
 To build this project you first need to build `llvm` and `murphi-lib`, which are included as submodules.
 ```
-$ git clone git@github.com:veselypeta/protogen-mlir-v2.git
+$ git clone https://github.com/veselypeta/protogen-mlir-v2.git
 $ cd protogen-mlir-v2
 $ git submodule init
 $ git submodule update

@@ -13,7 +13,7 @@ add_mlir_dialect_library(
     ${PROJECT_SOURCE_DIR}/include/PCC
 
     DEPENDS
-    MLIRPCCOpsIncGen
+    MLIRPCCIncGen
 
     LINK_LIBS PRIVATE 
     ${dialect_libs}

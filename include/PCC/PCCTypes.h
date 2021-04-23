@@ -1,22 +1,37 @@
 #pragma once
-#include "PCC/PCCDialect.h"
 #include "mlir/IR/Types.h"
+#include "PCC/PCCDialect.h"
+#include "PCC/PCCOps.h"
 
-namespace pcc
+namespace mlir
 {
 
-    class PCCType : public Type
+    namespace pcc
     {
-        void print(raw_ostream &os) const;
+        // Types
+        class IDType;
 
-        // Support method to enable LLVM-style type casting.
-        static bool classof(Type type)
+        // this is a common base for all PCC Types
+        class PCCType : public Type
         {
-            return llvm::isa<PCCDialect>(type.getDialect());
-        }
+            void print(raw_ostream &os) const;
 
-    protected:
-        using Type::Type;
-    }
+            // Support method to enable LLVM-style type casting.
+            static bool classof(Type type)
+            {
+                return llvm::isa<mlir::pcc::PCCDialect>(type.getDialect());
+            }
 
-} // namespace pcc
+        protected:
+            using Type::Type;
+        };
+
+        ///
+        class IDType : public Type::TypeBase<IDType, Type, TypeStorage>
+        {
+            using Base::Base;
+            static IDType get(MLIRContext *context) { return Base::get(context); }
+        };
+
+    } // namespace pcc
+} // namespace mlir
