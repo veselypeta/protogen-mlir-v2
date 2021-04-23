@@ -1,4 +1,5 @@
 #pragma once
-
 #include "mlir/IR/Dialect.h"
-#include "PCC/PCCOpsDialect.h.inc"
+
+// pull in the dialect definition
+#include "PCC/PCCDialect.h.inc"

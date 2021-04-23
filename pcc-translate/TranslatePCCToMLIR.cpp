@@ -1,7 +1,7 @@
 #include "TranslatePCCToMLIR.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Translation.h"
-#include "PCC/PCCDialect.h"
+#include "PCC/PCCOps.h"
 
 #include "mlir-gen/mlirGen.h"
 #include <iostream>

@@ -1,1 +1,1 @@
-add_mlir_dialect(PCCOps pcc)
+add_mlir_dialect(PCC pcc)

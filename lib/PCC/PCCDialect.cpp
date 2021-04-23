@@ -1,4 +1,3 @@
-#include "PCC/PCCDialect.h"
 #include "PCC/PCCOps.h"
 #include <models/Expr.h>
 
@@ -9,6 +8,10 @@ using namespace mlir::pcc;
 void PCCDialect::initialize(){
     addOperations<
     #define GET_OP_LIST
-    #include "PCC/PCCOps.cpp.inc"
+    #include "PCC/PCC.cpp.inc"
+    >();
+    addTypes<
+    #define GET_TYPEDEF_CLASSES
+    #include "PCC/PCCTypes.cpp.inc"
     >();
 }
