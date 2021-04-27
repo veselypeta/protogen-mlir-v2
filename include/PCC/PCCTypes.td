@@ -6,10 +6,17 @@ def PCCType : DialectType<PCC_Dialect, CPred<"$_self.isa<PCCType>()">,
     "PCCType", "::mlir::pcc::PCCType">;
 
 def IDType : DialectType<PCC_Dialect, CPred<"$_self.isa<IDType>()">,
-    "id", "::mlir::pcc::IDType">, BuildableType<"IDType::get($_builder.getContext())">; 
+    "id", "::mlir::pcc::IDType">, BuildableType<"IDType::get($_builder.getContext())">;
+
+def StateType : DialectType<PCC_Dialect, CPred<"$_self.isa<StateType>()">,
+    "state", "::mlir::pcc::StateType">, BuildableType<"StateType::get($_builder.getContext())">; 
 
 
 def NetworkType : DialectType<PCC_Dialect, CPred<"$_self.isa<NetworkType>()">,
     "network", "::mlir::pcc::NetworkType">, BuildableType<"NetworkType::get($_builder.getContext())">;
+
+
+def SetType : DialectType<PCC_Dialect, CPred<"$_self.isa<SetType()>">, 
+    "set", "::mlir::pcc::SetType">, BuildableType<"SetType::get($_builder.getContext())">;
 
 #endif //PCC_TYPES

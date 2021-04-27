@@ -13,6 +13,10 @@ using mlir::TypeStorageAllocator;
 using namespace mlir;
 using namespace mlir::pcc;
 
+//===----------------------------------------------------------------------===//
+// Type Printing
+//===----------------------------------------------------------------------===//
+
 // Type Printer for PCC Types
 // Uses the TypeSwitch Class to help printing types
 void PCCType::print(raw_ostream &os) const {
@@ -27,8 +31,26 @@ void PCCType::print(raw_ostream &os) const {
       .Case<NetworkType>([&](NetworkType netType) {
         os << "network<" << netType.getOrdering() << ">";
       })
+      .Case<StateType>([&](StateType stateType) {
+        os << "state<" << stateType.getState() << ">";
+      })
+      .Case<SetType>([&](SetType setType) {
+        os << "set<";
+        setType.getElementType().print(os);
+        os << "," << setType.getNumElements() << ">";
+      })
       .Default([](Type) { assert(0 && "unkown dialect type to print!"); });
 }
+
+void PCCDialect::printType(::mlir::Type type,
+                           ::mlir::DialectAsmPrinter &os) const {
+  type.cast<PCCType>().print(os.getStream());
+
+}
+
+//===----------------------------------------------------------------------===//
+// Type Parsing
+//===----------------------------------------------------------------------===//
 
 static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
   StringRef name;
@@ -37,7 +59,7 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
 
   MLIRContext *context = parser.getBuilder().getContext();
 
-  if (name.equals("clock")) {
+  if (name.equals("id")) {
     // odd comma syntax
     return result = IDType::get(context), success();
   } else if (name.equals("network")) {
@@ -52,6 +74,22 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
       ordertype = NetworkType::Ordering::ORDERED;
     } else if (order == "unordered") {
       ordertype = NetworkType::Ordering::UNORDERED;
+    } else if (name.equals("state")) {
+      std::string stateValue;
+      if (parser.parseLess() || parser.parseKeyword(stateValue) ||
+          parser.parseGreater()) {
+        return failure();
+      }
+      return result = StateType::get(context, stateValue), success();
+    } else if (name.equals("set")) {
+      PCCType elementType;
+      size_t count = 0;
+      if (parser.parseLess() || parser.parseType(elementType) ||
+          parser.parseComma() || parser.parseInteger(count) ||
+          parser.parseGreater()) {
+        return failure();
+      }
+      return result = SetType::get(elementType, count), success();
     } else {
       return parser.emitError(
                  parser.getNameLoc(),
@@ -72,11 +110,6 @@ Type PCCDialect::parseType(::mlir::DialectAsmParser &parser) const {
     return Type();
 
   return result;
-}
-
-void PCCDialect::printType(::mlir::Type type,
-                           ::mlir::DialectAsmPrinter &os) const {
-  type.print(os.getStream());
 }
 
 //===----------------------------------------------------------------------===//
@@ -110,7 +143,7 @@ struct NetworkTypeStorage : public mlir::TypeStorage {
 } // namespace pcc
 } // namespace mlir
 
-NetworkType NetworkType::get(MLIRContext *context,
+PCCType NetworkType::get(MLIRContext *context,
                              NetworkType::Ordering ordering) {
   return Base::get(context, ordering);
 }
@@ -121,4 +154,86 @@ std::string NetworkType::getOrdering() {
     return "unordered";
   }
   return "ordered";
+}
+
+//===----------------------------------------------------------------------===//
+// State Type
+//===----------------------------------------------------------------------===//
+namespace mlir {
+namespace pcc {
+namespace detail {
+struct StateTypeStorage : public mlir::TypeStorage {
+  using KeyTy = std::string;
+
+  StateTypeStorage(KeyTy value) : value{value} {}
+
+  // for comparison operations
+  bool operator==(const KeyTy &key) const { return key == value; }
+  // define a hash function for key type
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  static StateTypeStorage *construct(TypeStorageAllocator &allocator,
+                                     KeyTy key) {
+    return new (allocator.allocate<StateTypeStorage>()) StateTypeStorage(key);
+  }
+
+  KeyTy value;
+};
+} // namespace detail
+} // namespace pcc
+} // namespace mlir
+
+std::string StateType::getState() { return getImpl()->value; }
+
+StateType StateType::get(MLIRContext *context, std::string state) {
+  return Base::get(context, state);
+}
+
+//===----------------------------------------------------------------------===//
+// Set Type
+//===----------------------------------------------------------------------===//
+
+namespace mlir {
+namespace pcc {
+namespace detail {
+// Set Type Storage holds they PCCType in the set - and an int for the number of
+// elements in the set
+struct SetTypeStorage : public mlir::TypeStorage {
+  using KeyTy = std::pair<PCCType, size_t>;
+
+  SetTypeStorage(KeyTy value) : value{value} {}
+
+  // for comparison operations
+  bool operator==(const KeyTy &key) const { return key == value; }
+
+  static SetTypeStorage *construct(TypeStorageAllocator &allocator, KeyTy key) {
+    return new (allocator.allocate<SetTypeStorage>()) SetTypeStorage(key);
+  }
+
+  // define a hash function for key type
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  // Class holds the value
+  KeyTy value;
+};
+} // namespace detail
+} // namespace pcc
+} // namespace mlir
+
+SetType SetType::get(PCCType type, size_t count) {
+  return Base::get(type.getContext(), std::make_pair(type, count));
+}
+
+PCCType SetType::getElementType() { return getImpl()->value.first; }
+
+size_t SetType::getNumElements() { return getImpl()->value.second; }
+
+
+
+void PCCDialect::registerTypes() {
+  addTypes<IDType, NetworkType, StateType, SetType>();
 }

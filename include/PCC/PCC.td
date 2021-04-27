@@ -11,6 +11,10 @@ def PCC_Dialect : Dialect {
         TODO - add a description
     }];
     let cppNamespace = "::mlir::pcc";
+      let extraClassDeclaration = [{
+        /// Register all FIRRTL types.
+        void registerTypes();
+    }];
 }
 
 class PCC_Op<string mnemonic, list<OpTrait> traits = []> : Op<PCC_Dialect, mnemonic, traits>;
