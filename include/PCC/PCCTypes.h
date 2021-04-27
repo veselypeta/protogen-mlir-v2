@@ -67,7 +67,7 @@ public:
   using Base::Base;
   std::string getOrdering();
   typedef enum { ORDERED, UNORDERED } Ordering;
-  static PCCType get(MLIRContext *context, Ordering order);
+  static NetworkType get(MLIRContext *context, Ordering order);
 };
 
 //===----------------------------------------------------------------------===//

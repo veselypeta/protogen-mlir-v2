@@ -25,7 +25,7 @@ public:
 
     auto state = mlir::pcc::StateType::get(builder.getContext(), "I");
 
-    mlir::pcc::FooOp fooOp = builder.create<mlir::pcc::FooOp>(builder.getUnknownLoc(), state);
+    mlir::pcc::FooOp fooOp = builder.create<mlir::pcc::FooOp>(builder.getUnknownLoc(), net);
     theModule.push_back(fooOp);
     return theModule;
   }

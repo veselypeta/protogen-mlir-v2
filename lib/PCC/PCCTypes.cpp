@@ -143,7 +143,7 @@ struct NetworkTypeStorage : public mlir::TypeStorage {
 } // namespace pcc
 } // namespace mlir
 
-PCCType NetworkType::get(MLIRContext *context,
+NetworkType NetworkType::get(MLIRContext *context,
                              NetworkType::Ordering ordering) {
   return Base::get(context, ordering);
 }
@@ -233,6 +233,7 @@ PCCType SetType::getElementType() { return getImpl()->value.first; }
 size_t SetType::getNumElements() { return getImpl()->value.second; }
 
 
+// Register Newly Created types to the dialect
 
 void PCCDialect::registerTypes() {
   addTypes<IDType, NetworkType, StateType, SetType>();
