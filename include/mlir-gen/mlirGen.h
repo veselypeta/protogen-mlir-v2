@@ -1,7 +1,7 @@
 #pragma once
+#include "ProtoCCParser.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "ProtoCCParser.h"
 
 namespace mlir
 {
