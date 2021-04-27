@@ -14,6 +14,7 @@ namespace mlir
         // this is a common base for all PCC Types
         class PCCType : public Type
         {
+        public:
             void print(raw_ostream &os) const;
 
             // Support method to enable LLVM-style type casting.
@@ -26,9 +27,10 @@ namespace mlir
             using Type::Type;
         };
 
-        ///
-        class IDType : public Type::TypeBase<IDType, Type, TypeStorage>
+        /// ID Type inherits from common base class PCCType
+        class IDType : public PCCType::TypeBase<IDType, PCCType, DefaultTypeStorage>
         {
+        public:
             using Base::Base;
             static IDType get(MLIRContext *context) { return Base::get(context); }
         };
