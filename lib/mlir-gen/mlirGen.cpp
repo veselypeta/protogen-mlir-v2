@@ -1,4 +1,3 @@
-#include "mlir-gen/mlirGen.h"
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -6,11 +5,11 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
+#include "mlir/IR/Module.h"
 
-#include "PCC/PCCDialect.h"
 #include "PCC/PCCOps.h"
-#include "PCC/PCCTypes.h"
 
+#include "mlir-gen/mlirGen.h"
 namespace {
 class MLIRGenImpl {
 
