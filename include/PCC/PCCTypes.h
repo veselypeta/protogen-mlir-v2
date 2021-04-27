@@ -1,39 +1,50 @@
 #pragma once
-#include "mlir/IR/Types.h"
 #include "PCC/PCCDialect.h"
 #include "PCC/PCCOps.h"
+#include "mlir/IR/Types.h"
+#include <string>
 
-namespace mlir
-{
+namespace mlir {
 
-    namespace pcc
-    {
-        // Types
-        class IDType;
+namespace pcc {
+namespace detail {
+struct NetworkTypeStorage;
+} // namespace detail
 
-        // this is a common base for all PCC Types
-        class PCCType : public Type
-        {
-        public:
-            void print(raw_ostream &os) const;
+// Types
+class IDType;
+class NetworkType;
 
-            // Support method to enable LLVM-style type casting.
-            static bool classof(Type type)
-            {
-                return llvm::isa<mlir::pcc::PCCDialect>(type.getDialect());
-            }
+// this is a common base for all PCC Types
+class PCCType : public Type {
+public:
+  void print(raw_ostream &os) const;
 
-        protected:
-            using Type::Type;
-        };
+  // Support method to enable LLVM-style type casting.
+  static bool classof(Type type) {
+    return llvm::isa<mlir::pcc::PCCDialect>(type.getDialect());
+  }
 
-        /// ID Type inherits from common base class PCCType
-        class IDType : public PCCType::TypeBase<IDType, PCCType, DefaultTypeStorage>
-        {
-        public:
-            using Base::Base;
-            static IDType get(MLIRContext *context) { return Base::get(context); }
-        };
+protected:
+  using Type::Type;
+};
 
-    } // namespace pcc
+/// ID Type inherits from common base class PCCType
+class IDType : public PCCType::TypeBase<IDType, PCCType, DefaultTypeStorage> {
+public:
+  using Base::Base;
+  static IDType get(MLIRContext *context) { return Base::get(context); }
+};
+
+// Network Type inherits from common base class PCCType
+class NetworkType : public PCCType::TypeBase<NetworkType, PCCType,
+                                             detail::NetworkTypeStorage> {
+public:
+  using Base::Base;
+  std::string getOrdering();
+  typedef enum { ORDERED, UNORDERED } Ordering;
+  static NetworkType get(MLIRContext *context, Ordering order);
+};
+
+} // namespace pcc
 } // namespace mlir
