@@ -55,25 +55,25 @@ private:
   mlir::OpBuilder builder;
   std::string filename;
 
+  // used to hold underlying data for llvm::StringRef
   std::set<std::string> identStorage;
 
-  /// The symbol table maps a variable name to a value in the current scope.
-  /// Entering a function creates a new scope, and the function arguments are
-  /// added to the mapping. When the processing of a function is terminated, the
-  /// scope is destroyed and the mappings created in this scope are dropped.
+  // A symbol table is used to hold (ident -> mlir::Value) references
   llvm::ScopedHashTable<llvm::StringRef, mlir::Value> symbolTable;
   using SymbolTableScopeT =
       llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value>;
 
+  // return an mlir::Location object for builder operations
   mlir::Location loc(const antlr4::Token &tok) const {
-    return mlir::FileLineColLoc::get(builder.getContext(), "file",
+    return mlir::FileLineColLoc::get(builder.getContext(), filename,
                                      tok.getLine(),
                                      tok.getCharPositionInLine());
   }
 
   // Used to declare MLIR Values along with their identifiers
   mlir::LogicalResult declare(std::string ident, mlir::Value val) {
-    // save the string to the class so that it won't be deleted, StrRef does not own the data
+    // save the string to the class so that it won't be deleted, StrRef does not
+    // own the data
     identStorage.insert(ident);
     // get a reference to the stored data
     // find will always succeed because we have inserted into the storage class
@@ -88,9 +88,9 @@ private:
     return mlir::success();
   }
 
-  mlir::Value lookup(std::string ident){
+  mlir::Value lookup(std::string ident) {
     // Identifier must already be in the symbol table - otherwise error!
-    if(!symbolTable.count(ident)){
+    if (!symbolTable.count(ident)) {
       assert(0 && "attempting to lookup ident which is not declared!");
       return nullptr;
     }
