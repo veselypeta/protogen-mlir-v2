@@ -89,6 +89,7 @@ private:
   }
 
   mlir::Value lookup(std::string ident){
+    // Identifier must already be in the symbol table - otherwise error!
     if(!symbolTable.count(ident)){
       assert(0 && "attempting to lookup ident which is not declared!");
       return nullptr;
