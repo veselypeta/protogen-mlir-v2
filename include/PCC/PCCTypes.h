@@ -70,6 +70,7 @@ public:
   std::string getOrdering();
   typedef enum { ORDERED, UNORDERED } Ordering;
   static NetworkType get(MLIRContext *context, Ordering order);
+  static Ordering convertToOrder(llvm::StringRef order);
 };
 
 //===----------------------------------------------------------------------===//

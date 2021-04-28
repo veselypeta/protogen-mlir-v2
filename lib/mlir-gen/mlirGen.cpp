@@ -11,6 +11,7 @@
 
 #include "llvm/ADT/ScopedHashTable.h"
 
+#include <algorithm>
 #include <iostream>
 #include <set>
 #include <string>
@@ -36,8 +37,6 @@ public:
     if (mlir::failed(mlirGen(ctx))) {
       return nullptr;
     }
-
-    // initially create global scope
 
     // Verify the module after we have finished constructing it, this will check
     // the structural properties of the IR and invoke any specific verifiers we
@@ -104,6 +103,14 @@ private:
         return mlir::failure();
       }
     }
+
+    // recursively call mlir on init_hw
+    for (auto initHw : ctx->init_hw()) {
+      if (mlir::failed(mlirGen(initHw))) {
+        return mlir::failure();
+      }
+    }
+
     return mlir::success();
   }
 
@@ -117,6 +124,38 @@ private:
         constDeclLocation, constType, builder.getI64IntegerAttr(constValue));
 
     return declare(constId, constOp);
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Init_hwContext *ctx) {
+    // recursivelly call for each network block
+    if (mlir::failed(mlirGen(ctx->network_block())))
+      return mlir::failure();
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Network_blockContext *ctx) {
+    // skip if the recursive call is nullptr
+    if (ctx == nullptr)
+      return mlir::success();
+    for (auto network : ctx->network_element()) {
+      std::string networkId = network->ID()->getText();
+      mlir::Location netLoc = loc(*network->ID()->getSymbol());
+      std::string orderingStr = network->element_type()->getText();
+      // lowercase the string
+      std::transform(orderingStr.begin(), orderingStr.end(),
+                     orderingStr.begin(), ::tolower);
+      // construct the appropriate type - ordered/unordered
+      mlir::pcc::NetworkType netType = mlir::pcc::NetworkType::get(
+          builder.getContext(),
+          mlir::pcc::NetworkType::convertToOrder(orderingStr));
+
+      // TODO - construct and appropriate op
+      mlir::pcc::FooOp foo = builder.create<mlir::pcc::FooOp>(netLoc, netType);
+      // Declare the network op in the scope
+      if(failed(declare(networkId, foo)))
+        return mlir::failure();
+    }
+    return mlir::success();
   }
 };
 } // namespace

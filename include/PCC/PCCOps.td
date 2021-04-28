@@ -4,7 +4,10 @@
 def FooOp : PCC_Op<"foo"> {
     let summary = "foo op";
     let description = [{}];
-    let results = (outs PCCType);
+    let results = (outs PCCType:$results);
+    let assemblyFormat = [{
+        attr-dict `:` type($results)
+    }];
 }
 
 #endif // PCC_OPS

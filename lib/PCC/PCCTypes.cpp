@@ -200,6 +200,16 @@ std::string NetworkType::getOrdering() {
   return "ordered";
 }
 
+NetworkType::Ordering NetworkType::convertToOrder(llvm::StringRef order){
+  if(order == "ordered"){
+    return Ordering::ORDERED;
+  } else if (order == "unordered") {
+    return Ordering::UNORDERED;
+  }
+  assert(0 && "invalid ordering string was provided");
+  return Ordering::ORDERED;
+}
+
 //===----------------------------------------------------------------------===//
 // State Type
 //===----------------------------------------------------------------------===//
