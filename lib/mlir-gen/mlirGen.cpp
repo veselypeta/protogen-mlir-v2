@@ -71,6 +71,7 @@ private:
                                      tok.getCharPositionInLine());
   }
 
+  // Used to declare MLIR Values along with their identifiers
   mlir::LogicalResult declare(std::string ident, mlir::Value val) {
     // save the string to the class so that it won't be deleted, StrRef does not own the data
     identStorage.insert(ident);
@@ -85,6 +86,14 @@ private:
     }
     symbolTable.insert(identRef, val);
     return mlir::success();
+  }
+
+  mlir::Value lookup(std::string ident){
+    if(!symbolTable.count(ident)){
+      assert(0 && "attempting to lookup ident which is not declared!");
+      return nullptr;
+    }
+    return symbolTable.lookup(ident);
   }
 
   mlir::LogicalResult mlirGen(ProtoCCParser::DocumentContext *ctx) {
