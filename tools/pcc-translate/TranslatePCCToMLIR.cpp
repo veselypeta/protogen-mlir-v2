@@ -17,13 +17,11 @@ mlir::ModuleOp PCCMLIRGen(const llvm::MemoryBuffer *inputBuf,
                           mlir::MLIRContext *ctx) {
   // get the input filename
   llvm::StringRef filename = inputBuf->getBufferIdentifier();
-  std::string filenameStr(reinterpret_cast<const char *>(filename.bytes_begin()));
+  std::string filenameStr(filename.data());
 
   // read the file as a string
   llvm::StringRef strRef = inputBuf->getBuffer();
-  const unsigned char *s = strRef.bytes_begin();
-  auto ss = reinterpret_cast<const char *>(s);
-  std::string inputFileStr(ss);
+  std::string inputFileStr(strRef.data());
 
   // generate lexer and parser objects from the string
   antlr4::ANTLRInputStream input(inputFileStr);

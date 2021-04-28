@@ -10,6 +10,7 @@ namespace detail {
 struct NetworkTypeStorage;
 struct SetTypeStorage;
 struct StateTypeStorage;
+struct StructTypeStorage;
 } // namespace detail
 
 // Types
@@ -17,6 +18,7 @@ class IDType;
 class NetworkType;
 class SetType;
 class StateType;
+class StructType;
 
 //===----------------------------------------------------------------------===//
 // PCC Type
@@ -81,6 +83,26 @@ public:
   PCCType getElementType();
   size_t getNumElements();
   static SetType get(PCCType elemType, size_t count);
+};
+
+//===----------------------------------------------------------------------===//
+// Struct Type
+//===----------------------------------------------------------------------===//
+
+class StructType
+    : public PCCType::TypeBase<StructType, PCCType, detail::StructTypeStorage> {
+public:
+  using Base::Base;
+
+  /// Create an instance of a `StructType` with the given element types. There
+  /// *must* be atleast one element type.
+  static StructType get(llvm::ArrayRef<mlir::Type> elemTypes);
+
+  /// Returns the element types of this struct type.
+  llvm::ArrayRef<mlir::Type> getElementTypes();
+
+  /// Returns the number of element type held by this struct.
+  size_t getNumElementTypes() { return getElementTypes().size(); }
 };
 
 } // namespace pcc

@@ -19,4 +19,8 @@ def NetworkType : DialectType<PCC_Dialect, CPred<"$_self.isa<NetworkType>()">,
 def SetType : DialectType<PCC_Dialect, CPred<"$_self.isa<SetType()>">, 
     "set", "::mlir::pcc::SetType">, BuildableType<"SetType::get($_builder.getContext())">;
 
+// A struct type for representing PCC Objects i.e. cache/directory/msg types
+def StructType : DialectType<PCC_Dialect, CPred<"$_self.isa<StructType()>">, 
+    "struct", "::mlir::pcc::StructType">, BuildableType<"StructType::get($_builder.getContext())">;
+
 #endif //PCC_TYPES

@@ -23,23 +23,30 @@ public:
     // save the filename - used for location tracking
     filename = compFile;
 
-    // auto net = mlir::pcc::NetworkType::get(
-    //     builder.getContext(), mlir::pcc::NetworkType::Ordering::UNORDERED);
+    auto net = mlir::pcc::NetworkType::get(
+        builder.getContext(), mlir::pcc::NetworkType::Ordering::UNORDERED);
+
+    std::vector<mlir::Type> elems;
+    elems.push_back(net);
+    auto strctType = mlir::pcc::StructType::get(elems);
 
     // auto set = mlir::pcc::SetType::get(net, 5);
 
     // auto state = mlir::pcc::StateType::get(builder.getContext(), "I");
 
-    // mlir::pcc::FooOp fooOp =
-    // builder.create<mlir::pcc::FooOp>(loc(*ctx->const_decl()[0]->ID()->getSymbol()),
-    // net); theModule.push_back(fooOp); set the insertion point to the start of
-    // the module
+    mlir::pcc::FooOp fooOp =
+    builder.create<mlir::pcc::FooOp>(loc(*ctx->const_decl()[0]->ID()->getSymbol()),
+    strctType); 
+    theModule.push_back(fooOp); 
+
+
+    //set the insertion point to the start of the module
     builder.setInsertionPointToStart(theModule.getBody());
 
     // recursivelly call mlirGen
-    if (mlir::failed(mlirGen(ctx))){
-      return nullptr;
-    }
+    // if (mlir::failed(mlirGen(ctx))){
+    //   return nullptr;
+    // }
 
     // Verify the module after we have finished constructing it, this will check
     // the structural properties of the IR and invoke any specific verifiers we

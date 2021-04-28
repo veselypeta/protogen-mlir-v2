@@ -4,6 +4,7 @@
 #include "mlir/IR/Types.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include <iostream>
 #include <string>
 
 /// Types
@@ -37,7 +38,12 @@ void PCCType::print(raw_ostream &os) const {
       .Case<SetType>([&](SetType setType) {
         os << "set<";
         setType.getElementType().print(os);
-        os << "," << setType.getNumElements() << ">";
+        os << ", " << setType.getNumElements() << ">";
+      })
+      .Case<StructType>([&](StructType structType) {
+        os << "struct<";
+        llvm::interleaveComma(structType.getElementTypes(), os);
+        os << ">";
       })
       .Default([](Type) { assert(0 && "unkown dialect type to print!"); });
 }
@@ -45,7 +51,6 @@ void PCCType::print(raw_ostream &os) const {
 void PCCDialect::printType(::mlir::Type type,
                            ::mlir::DialectAsmPrinter &os) const {
   type.cast<PCCType>().print(os.getStream());
-
 }
 
 //===----------------------------------------------------------------------===//
@@ -62,11 +67,13 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
   if (name.equals("id")) {
     // odd comma syntax
     return result = IDType::get(context), success();
-  } else if (name.equals("network")) {
-    std::string order;
+  }
+  // END - ID Type Parsing
+  else if (name.equals("network")) {
+    llvm::StringRef order;
     NetworkType::Ordering ordertype;
     // <ordered> //
-    if (parser.parseLess() || parser.parseKeyword(order) ||
+    if (parser.parseLess() || parser.parseKeyword(&order) ||
         parser.parseGreater()) {
       return failure();
     }
@@ -74,22 +81,6 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
       ordertype = NetworkType::Ordering::ORDERED;
     } else if (order == "unordered") {
       ordertype = NetworkType::Ordering::UNORDERED;
-    } else if (name.equals("state")) {
-      std::string stateValue;
-      if (parser.parseLess() || parser.parseKeyword(stateValue) ||
-          parser.parseGreater()) {
-        return failure();
-      }
-      return result = StateType::get(context, stateValue), success();
-    } else if (name.equals("set")) {
-      PCCType elementType;
-      size_t count = 0;
-      if (parser.parseLess() || parser.parseType(elementType) ||
-          parser.parseComma() || parser.parseInteger(count) ||
-          parser.parseGreater()) {
-        return failure();
-      }
-      return result = SetType::get(elementType, count), success();
     } else {
       return parser.emitError(
                  parser.getNameLoc(),
@@ -100,6 +91,59 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
     }
 
     return result = NetworkType::get(context, ordertype), success();
+  }
+  // END - network Type Parsing
+  else if (name.equals("state")) {
+    llvm::StringRef stateValue;
+    if (parser.parseLess() || parser.parseKeyword(&stateValue) ||
+        parser.parseGreater()) {
+      return failure();
+    }
+
+    std::string stateValueStr(stateValue.data());
+    // HACK! - for some reason > is parsed into the stateValue StrRef - here i'm
+    // removing it
+    if (!stateValueStr.empty()) {
+      stateValueStr.erase(std::prev(stateValueStr.end()));
+    }
+    return result = StateType::get(context, stateValueStr), success();
+  }
+  // END - State Type Parsing
+  else if (name.equals("set")) {
+    PCCType elementType;
+    size_t count = 0;
+    if (parser.parseLess() || parser.parseType(elementType) ||
+        parser.parseComma() || parser.parseInteger(count) ||
+        parser.parseGreater()) {
+      return failure();
+    }
+    return result = SetType::get(elementType, count), success();
+  }
+  // END - struct Type Parsing
+  else if (name.equals("struct")) {
+    // parese `<`
+    if (parser.parseLess())
+      return failure();
+
+    SmallVector<mlir::Type, 1> elementTypes;
+    do {
+      // parse the current element type
+      mlir::Type elementType;
+      if (parser.parseType(elementType))
+        return failure();
+
+      // check what types can be in struct type -- todo
+
+      // add the parsed type to the vector
+      elementTypes.push_back(elementType);
+      // parse the optional `,`
+    } while (succeeded(parser.parseOptionalComma()));
+    {
+      // parse '>'
+      if (parser.parseGreater())
+        return failure();
+      return result = StructType::get(elementTypes), success();
+    }
   }
   return parser.emitError(parser.getNameLoc(), "unknown pcc type"), failure();
 }
@@ -232,9 +276,82 @@ PCCType SetType::getElementType() { return getImpl()->value.first; }
 
 size_t SetType::getNumElements() { return getImpl()->value.second; }
 
+//===----------------------------------------------------------------------===//
+// Struct Type
+//===----------------------------------------------------------------------===//
+namespace mlir {
+namespace pcc {
+namespace detail {
+// same as in Toy example
+struct StructTypeStorage : public mlir::TypeStorage {
+  /// The `KeyTy` is a required type that provides an interface for the storage
+  /// instance. This type will be used when uniquing an instance of the type
+  /// storage. For our struct type, we will unique each instance structurally on
+  /// the elements that it contains.
+  using KeyTy = llvm::ArrayRef<mlir::Type>;
+
+  /// A constructor for the type storage instance.
+  StructTypeStorage(llvm::ArrayRef<mlir::Type> elementTypes)
+      : elementTypes(elementTypes) {}
+
+  /// Define the comparison function for the key type with the current storage
+  /// instance. This is used when constructing a new instance to ensure that we
+  /// haven't already uniqued an instance of the given key.
+  bool operator==(const KeyTy &key) const { return key == elementTypes; }
+
+  /// Define a hash function for the key type. This is used when uniquing
+  /// instances of the storage, see the `StructType::get` method.
+  /// Note: This method isn't necessary as both llvm::ArrayRef and mlir::Type
+  /// have hash functions available, so we could just omit this entirely.
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  /// Define a construction function for the key type from a set of parameters.
+  /// These parameters will be provided when constructing the storage instance
+  /// itself.
+  /// Note: This method isn't necessary because KeyTy can be directly
+  /// constructed with the given parameters.
+  static KeyTy getKey(llvm::ArrayRef<mlir::Type> elementTypes) {
+    return KeyTy(elementTypes);
+  }
+
+  /// Define a construction method for creating a new instance of this storage.
+  /// This method takes an instance of a storage allocator, and an instance of a
+  /// `KeyTy`. The given allocator must be used for *all* necessary dynamic
+  /// allocations used to create the type storage and its internal.
+  static StructTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                      const KeyTy &key) {
+    // Copy the elements from the provided `KeyTy` into the allocator.
+    llvm::ArrayRef<mlir::Type> elementTypes = allocator.copyInto(key);
+
+    // Allocate the storage instance and construct it.
+    return new (allocator.allocate<StructTypeStorage>())
+        StructTypeStorage(elementTypes);
+  }
+
+  KeyTy elementTypes;
+};
+} // namespace detail
+} // namespace pcc
+} // namespace mlir
+
+StructType StructType::get(llvm::ArrayRef<mlir::Type> elementTypes) {
+  assert(!elementTypes.empty() && "expected at least 1 element type");
+
+  // Call into a helper 'get' method in 'TypeBase' to get a uniqued instance
+  // of this type. The first parameter is the context to unique in. The
+  // parameters after the context are forwarded to the storage instance.
+  mlir::MLIRContext *ctx = elementTypes.front().getContext();
+  return Base::get(ctx, elementTypes);
+}
+
+llvm::ArrayRef<mlir::Type> StructType::getElementTypes() {
+  return getImpl()->elementTypes;
+}
 
 // Register Newly Created types to the dialect
 
 void PCCDialect::registerTypes() {
-  addTypes<IDType, NetworkType, StateType, SetType>();
+  addTypes<IDType, NetworkType, StateType, SetType, StructType>();
 }
