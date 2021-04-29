@@ -62,8 +62,9 @@ private:
   // hold what type of Msg Types we have
   std::map<std::string, MsgMap> msgTypeMap;
 
-  // hold cache type info
-
+  // hold cache & directory type info
+  using MachMapT = std::map<std::string, std::map<std::string, mlir::Type>>;
+  MachMapT machMap;
   // used to hold underlying data for llvm::StringRef
   std::set<std::string> identStorage;
 
@@ -80,7 +81,7 @@ private:
   }
 
   // Used to declare MLIR Values along with their identifiers
-  mlir::LogicalResult declare(std::string ident, mlir::Value val) {
+  mlir::LogicalResult declare(std::string &ident, mlir::Value val) {
     // save the string to the class so that it won't be deleted, StrRef does not
     // own the data
     identStorage.insert(ident);
@@ -125,7 +126,8 @@ private:
 
   mlir::LogicalResult mlirGen(ProtoCCParser::Const_declContext *ctx) {
     std::string constId = ctx->ID()->getText();
-    int constValue = std::atoi(ctx->INT()->getText().c_str());
+    std::string intText = ctx->INT()->getText();
+    long constValue = strtol(ctx->INT()->getText().c_str(), nullptr, 10);
     mlir::IntegerType constType = builder.getI64Type();
     mlir::Location constDeclLocation = loc(*ctx->ID()->getSymbol());
 
@@ -315,7 +317,7 @@ private:
 
     // if INT easy, convert to integer
     if (ctx->INT())
-      return std::atoi(ctx->INT()->getText().c_str());
+      return strtol(ctx->INT()->getText().c_str(), nullptr, 10);
 
     // if ID we need to lookup in symbol table
     std::string constRef = ctx->ID()->getText();
@@ -339,26 +341,28 @@ private:
       auto cacheBlckCtx = ctx->cache_block();
       std::string cacheIdent = cacheBlckCtx->ID()->getText();
       mlir::Location cacheLoc = loc(*cacheBlckCtx->ID()->getSymbol());
-      // TODO - for now hold the data statically
       std::map<std::string, mlir::Type> cacheTypeMap;
       for (auto cacheDecl : cacheBlckCtx->declarations()) {
         auto declPair = mlirTypeGen(cacheDecl);
         cacheTypeMap.insert(declPair);
       }
+      // insert into the global map
+      machMap.insert(std::make_pair(cacheIdent, cacheTypeMap));
+      // get the individual elem types for struct construction
       std::vector<mlir::Type> elemTypes =
           getElemTypesFromMap(cacheTypeMap, /*reversed*/ false);
       auto cacheStruct = mlir::pcc::StructType::get(elemTypes);
+      // if we have a set decl then we add this additional step - skip otherwise
       if (cacheBlckCtx->objset_decl()) {
         size_t setSize =
             getIntFromValRange(cacheBlckCtx->objset_decl()->val_range());
         auto cacheSetType = mlir::pcc::SetType::get(cacheStruct, setSize);
-        builder.create<mlir::pcc::FooOp>(cacheLoc, cacheSetType);
-        return mlir::success();
+        auto fooOp = builder.create<mlir::pcc::FooOp>(cacheLoc, cacheSetType);
+        return declare(cacheIdent, fooOp);
       }
-      builder.create<mlir::pcc::FooOp>(cacheLoc, cacheStruct);
       return mlir::success();
     }
-    if (ctx->dir_block()){
+    if (ctx->dir_block()) {
       return mlir::success();
     }
     assert(0 && "machine type block not supported!");
