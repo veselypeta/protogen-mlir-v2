@@ -11,6 +11,7 @@ struct NetworkTypeStorage;
 struct SetTypeStorage;
 struct StateTypeStorage;
 struct StructTypeStorage;
+struct IntRangeTypeStorage;
 } // namespace detail
 
 // Types
@@ -19,6 +20,7 @@ class NetworkType;
 class SetType;
 class StateType;
 class StructType;
+class IntRangeType;
 
 //===----------------------------------------------------------------------===//
 // PCC Type
@@ -108,6 +110,23 @@ public:
 
 } // namespace pcc
 } // namespace mlir
+
+//===----------------------------------------------------------------------===//
+// IntRange Type
+//===----------------------------------------------------------------------===//
+namespace mlir{
+namespace pcc{
+class IntRangeType : public PCCType::TypeBase<IntRangeType, PCCType, detail::IntRangeTypeStorage>{
+public:
+  using Base::Base;
+  static IntRangeType get(MLIRContext *context, size_t startRange, size_t endRange);
+  size_t getStartRange();
+  size_t getEndRange();
+};
+}
+}
+
+
 
 namespace llvm {
 

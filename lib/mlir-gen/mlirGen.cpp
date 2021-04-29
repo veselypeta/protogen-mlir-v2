@@ -130,6 +130,9 @@ private:
     // recursivelly call for each network block
     if (mlir::failed(mlirGen(ctx->network_block())))
       return mlir::failure();
+    // recursivelly call for each message block
+    if (mlir::failed(mlirGen(ctx->message_block())))
+      return mlir::failure();
     return mlir::success();
   }
 
@@ -152,11 +155,71 @@ private:
       // TODO - construct and appropriate op
       mlir::pcc::FooOp foo = builder.create<mlir::pcc::FooOp>(netLoc, netType);
       // Declare the network op in the scope
-      if(failed(declare(networkId, foo)))
+      if (failed(declare(networkId, foo)))
         return mlir::failure();
     }
     return mlir::success();
   }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Message_blockContext *ctx){
+    // map decl ids to their MLIR type
+    static std::map<std::string, mlir::Type> msgDecls;
+    // skip if nullptr
+    if(ctx == nullptr)
+      return mlir::success();
+    std::string msgId = ctx->ID()->getText();
+    mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
+    for(auto msgDecCtx : ctx->declarations()){
+      if (msgDecCtx->int_decl())
+        mlirTypeGen(msgDecCtx->int_decl());
+      msgDecCtx->bool_decl();
+      msgDecCtx->state_decl();
+      msgDecCtx->data_decl();
+      msgDecCtx->id_decl();
+    }
+    return mlir::success();
+  }
+
+  mlir::pcc::PCCType mlirTypeGen(ProtoCCParser::Int_declContext *ctx){
+    // Integer declarations always define an integer range
+    // we find the start and stop of the integer range
+    std::string intDeclId = ctx->ID()->getText();
+
+    // get a reference to the start and end sub-range decls
+    auto startRange = ctx->range()->val_range()[0];
+    auto endRange = ctx->range()->val_range()[1];
+
+    // determine the value of each sub-range
+    size_t startRangeVal;
+    if(startRange->INT()){
+      startRangeVal = std::atoi(startRange->INT()->getText().c_str());
+    } else {
+      std::string constRef = startRange->ID()->getText();
+      // lookup the reference in the scope
+      mlir::Value value = lookup(constRef);
+      if(!value.getType().isa<mlir::IntegerType>())
+        assert(0 && "const ref lookup returned non integer type!");
+       startRangeVal = static_cast<mlir::ConstantOp>(value.getDefiningOp()).valueAttr().cast<mlir::IntegerAttr>().getInt();
+    }
+
+    size_t endRangeVal;
+    if(endRange->INT()){
+      endRangeVal = std::atoi(endRange->INT()->getText().c_str());
+    } else {
+      std::string constRef = endRange->ID()->getText();
+      // lookup the reference in the scope
+      mlir::Value value = lookup(constRef);
+      if(!value.getType().isa<mlir::IntegerType>())
+        assert(0 && "const ref lookup returned non integer type!");
+      endRangeVal = static_cast<mlir::ConstantOp>(value.getDefiningOp()).valueAttr().cast<mlir::IntegerAttr>().getInt();
+    }
+
+    // build the type - custom type with a sub-range
+    auto rangeType =  mlir::pcc::IntRangeType::get(builder.getContext(), startRangeVal, endRangeVal);
+    builder.create<mlir::pcc::FooOp>(loc(*startRange->INT()->getSymbol()), rangeType);
+    return rangeType;
+  }
+
 };
 } // namespace
 

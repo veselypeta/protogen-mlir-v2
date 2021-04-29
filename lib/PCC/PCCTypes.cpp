@@ -45,6 +45,10 @@ void PCCType::print(raw_ostream &os) const {
         llvm::interleaveComma(structType.getElementTypes(), os);
         os << ">";
       })
+      .Case<IntRangeType>([&](IntRangeType &intRangeType){
+        os << "int_range<" << intRangeType.getStartRange()
+           << ", " << intRangeType.getEndRange() << ">";
+      })
       .Default([](Type) { assert(0 && "unkown dialect type to print!"); });
 }
 
@@ -63,7 +67,6 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
     return failure();
 
   MLIRContext *context = parser.getBuilder().getContext();
-
   if (name.equals("id")) {
     // odd comma syntax
     return result = IDType::get(context), success();
@@ -119,7 +122,7 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
     }
     return result = SetType::get(elementType, count), success();
   }
-  // END - struct Type Parsing
+  // END - set Type Parsing
   else if (name.equals("struct")) {
     // parese `<`
     if (parser.parseLess())
@@ -144,6 +147,15 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
         return failure();
       return result = StructType::get(elementTypes), success();
     }
+  }
+  // END - struct Type Parsing
+  else if(name.equals("int_range")) {
+    size_t startRange, endRange;
+    if(parser.parseLess() || parser.parseInteger(startRange)
+        || parser.parseOptionalComma() || parser.parseInteger(endRange)
+        || parser.parseGreater())
+      return failure();
+    return result = IntRangeType::get(context, startRange, endRange), success();
   }
   return parser.emitError(parser.getNameLoc(), "unknown pcc type"), failure();
 }
@@ -360,8 +372,50 @@ llvm::ArrayRef<mlir::Type> StructType::getElementTypes() {
   return getImpl()->elementTypes;
 }
 
+//===----------------------------------------------------------------------===//
+// IntRange Type
+//===----------------------------------------------------------------------===//
+
+namespace mlir{
+namespace pcc{
+namespace detail{
+struct IntRangeTypeStorage : public mlir::TypeStorage{
+  using KeyTy = std::pair<size_t, size_t>;
+
+  IntRangeTypeStorage(size_t startRange, size_t endRange)
+      :value{std::make_pair(startRange, endRange)}{}
+
+  bool operator==(const KeyTy &key) const{
+    return key == value;
+  }
+
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  static IntRangeTypeStorage *construct(mlir::TypeStorageAllocator &allocator, const KeyTy &key){
+      return new (allocator.allocate<IntRangeTypeStorage>()) IntRangeTypeStorage(key.first, key.second);
+  }
+
+  KeyTy value;
+};
+}
+}
+}
+
+IntRangeType IntRangeType::get(MLIRContext *context, size_t startRange, size_t endRange) {
+  return Base::get(context, startRange, endRange);
+}
+
+size_t IntRangeType::getStartRange() {
+  return getImpl()->value.first;
+}
+size_t IntRangeType::getEndRange() {
+  return getImpl()->value.second;
+}
+
 // Register Newly Created types to the dialect
 
 void PCCDialect::registerTypes() {
-  addTypes<IDType, NetworkType, StateType, SetType, StructType>();
+  addTypes<IDType, NetworkType, StateType, SetType, StructType, IntRangeType>();
 }

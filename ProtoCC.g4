@@ -127,7 +127,7 @@ declarations : int_decl | bool_decl | state_decl | data_decl | id_decl;
 
     const_decl : CONSTANT ID INT;
 
-    int_decl : INTID range ID (EQUALSIGN INT)* SEMICOLON;
+    int_decl : INTID range ID (EQUALSIGN INT)? SEMICOLON;
     bool_decl : BOOLID ID (EQUALSIGN BOOL)* SEMICOLON;
 
     state_decl : STATE ID SEMICOLON;
