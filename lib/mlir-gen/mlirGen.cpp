@@ -19,7 +19,7 @@ namespace {
 class MLIRGenImpl {
 
 public:
-  MLIRGenImpl(mlir::MLIRContext &context) : builder(&context) {}
+  explicit MLIRGenImpl(mlir::MLIRContext &context) : builder(&context) {}
   mlir::ModuleOp mlirGen(ProtoCCParser::DocumentContext *ctx,
                          std::string compFile) {
     theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
@@ -334,11 +334,12 @@ private:
     // skip if nullptr
     if (ctx == nullptr)
       return mlir::success();
-    if (ctx->cache_block() != nullptr) {
+    // generate typedef for caches
+    if (ctx->cache_block()) {
       auto cacheBlckCtx = ctx->cache_block();
       std::string cacheIdent = cacheBlckCtx->ID()->getText();
       mlir::Location cacheLoc = loc(*cacheBlckCtx->ID()->getSymbol());
-      // for now hold the data statically
+      // TODO - for now hold the data statically
       std::map<std::string, mlir::Type> cacheTypeMap;
       for (auto cacheDecl : cacheBlckCtx->declarations()) {
         auto declPair = mlirTypeGen(cacheDecl);
@@ -357,7 +358,10 @@ private:
       builder.create<mlir::pcc::FooOp>(cacheLoc, cacheStruct);
       return mlir::success();
     }
-    return mlir::success();
+    if (ctx->dir_block()){
+      return mlir::success();
+    }
+    assert(0 && "machine type block not supported!");
   }
 };
 } // namespace
