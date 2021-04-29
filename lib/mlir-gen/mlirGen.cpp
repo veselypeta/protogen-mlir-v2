@@ -26,16 +26,16 @@ public:
     // save the filename - used for location tracking
     filename = compFile;
 
-    // init initial msg types i.e. (name, src, dst) fileds
+    // init initial msg types i.e. (name, src, dst) fields
     initMsgDefaultMappings(msgFieldIDTypeMap);
 
     // set the insertion point to the start of the module
     builder.setInsertionPointToStart(theModule.getBody());
 
-    // decalre a global scope
+    // declare a global scope
     SymbolTableScopeT global_scope(symbolTable);
 
-    // recursivelly call mlirGen
+    // recursively call mlirGen
     if (mlir::failed(mlirGen(ctx))) {
       assert(0 && "failed to generate MLIR correctly!");
     }
@@ -91,7 +91,7 @@ private:
 
     // shadowing not allowed!
     if (symbolTable.count(identRef) > 0) {
-      assert(0 && "mlir value already delared in current scope!");
+      assert(0 && "mlir value already declared in current scope!");
     }
     symbolTable.insert(identRef, val);
     return mlir::success();
