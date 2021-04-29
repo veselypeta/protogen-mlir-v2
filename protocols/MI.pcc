@@ -22,7 +22,6 @@ Message Ack{};
 
 Message Resp{
     Data cl;
-    int[0..NrCaches] acks = 0;
 };
 
 Message RespAck{

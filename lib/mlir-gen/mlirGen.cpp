@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <iostream>
 #include <set>
-#include <string>
 
 namespace {
 class MLIRGenImpl {
@@ -26,6 +25,9 @@ public:
     theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
     // save the filename - used for location tracking
     filename = compFile;
+
+    // init initial msg types i.e. (name, src, dst) fileds
+    initMsgDefaultMappings(msgFieldIDTypeMap);
 
     // set the insertion point to the start of the module
     builder.setInsertionPointToStart(theModule.getBody());
@@ -54,6 +56,12 @@ private:
   mlir::OpBuilder builder;
   std::string filename;
 
+  // hold msgId->type information
+  std::map<std::string, mlir::Type> msgFieldIDTypeMap;
+  using MsgMap = std::map<std::string, mlir::Type>;
+  // hold what type of Msg Types we have
+  std::map<std::string, MsgMap> msgTypeMap;
+
   // used to hold underlying data for llvm::StringRef
   std::set<std::string> identStorage;
 
@@ -81,13 +89,12 @@ private:
     // shadowing not allowed!
     if (symbolTable.count(identRef) > 0) {
       assert(0 && "mlir value already delared in current scope!");
-      return mlir::failure();
     }
     symbolTable.insert(identRef, val);
     return mlir::success();
   }
 
-  mlir::Value lookup(std::string ident) {
+  mlir::Value lookup(std::string &ident) {
     // Identifier must already be in the symbol table - otherwise error!
     if (!symbolTable.count(ident)) {
       assert(0 && "attempting to lookup ident which is not declared!");
@@ -127,12 +134,13 @@ private:
   }
 
   mlir::LogicalResult mlirGen(ProtoCCParser::Init_hwContext *ctx) {
-    // recursivelly call for each network block
+    // recursively call for each network block
     if (mlir::failed(mlirGen(ctx->network_block())))
       return mlir::failure();
-    // recursivelly call for each message block
+    // recursively call for each message block
     if (mlir::failed(mlirGen(ctx->message_block())))
       return mlir::failure();
+
     return mlir::success();
   }
 
@@ -166,37 +174,46 @@ private:
     if (ctx == nullptr)
       return mlir::success();
 
-    // map decl ids to their MLIR type
-    static std::map<std::string, mlir::Type> msgDecls;
+    // initialize a local msg type map for individual MsgTypes
+    // i.e. Resp
+    MsgMap localMsgTypeMap;
+    initMsgDefaultMappings(localMsgTypeMap);
 
     std::string msgId = ctx->ID()->getText();
-    mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
+    //    mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
     for (auto msgDecCtx : ctx->declarations()) {
       if (msgDecCtx->int_decl()) {
         auto idTypePair = mlirTypeGen(msgDecCtx->int_decl());
-        msgDecls.insert(idTypePair);
+        msgFieldIDTypeMap.insert(idTypePair);
+        localMsgTypeMap.insert(idTypePair);
       }
 
       if (msgDecCtx->bool_decl()) {
         auto idBoolTypePair = mlirTypeGen(msgDecCtx->bool_decl());
-        msgDecls.insert(idBoolTypePair);
+        msgFieldIDTypeMap.insert(idBoolTypePair);
+        localMsgTypeMap.insert(idBoolTypePair);
       }
 
       if (msgDecCtx->state_decl()) {
         auto idStateTypePair = mlirTypeGen(msgDecCtx->state_decl());
-        msgDecls.insert(idStateTypePair);
+        msgFieldIDTypeMap.insert(idStateTypePair);
+        localMsgTypeMap.insert(idStateTypePair);
       }
 
-      if (msgDecCtx->data_decl()){
+      if (msgDecCtx->data_decl()) {
         auto idDataTypePair = mlirTypeGen(msgDecCtx->data_decl());
-        msgDecls.insert(idDataTypePair);
+        msgFieldIDTypeMap.insert(idDataTypePair);
+        localMsgTypeMap.insert(idDataTypePair);
       }
 
       if (msgDecCtx->id_decl()) {
         auto idTypePair = mlirTypeGen(msgDecCtx->id_decl());
-        msgDecls.insert(idTypePair);
+        msgFieldIDTypeMap.insert(idTypePair);
+        localMsgTypeMap.insert(idTypePair);
       }
     }
+    // insert into local msg type map
+    msgTypeMap.insert(std::make_pair(msgId, localMsgTypeMap));
     return mlir::success();
   }
 
@@ -261,6 +278,41 @@ private:
     return std::make_pair(declId, dataType);
   }
 
+  mlir::pcc::StructType getUniqueMsgType(std::string msgTypeId) {
+    if (msgTypeMap.count(msgTypeId) == 0) {
+      assert(0 && "looking up a msg type that doesn't exist, or has not been "
+                  "declared yet");
+    }
+    auto typeMap = msgTypeMap.find(msgTypeId)->second;
+    std::vector<mlir::Type> elemTypes;
+    elemTypes.reserve(typeMap.size());
+    for (auto &type : typeMap) {
+      elemTypes.push_back(type.second);
+    }
+    std::reverse(elemTypes.begin(), elemTypes.end());
+    return mlir::pcc::StructType::get(elemTypes);
+  }
+
+  mlir::pcc::StructType getGlobalMsgType() {
+    std::vector<mlir::Type> elemTypes;
+    elemTypes.reserve(msgFieldIDTypeMap.size());
+    for (auto &mapValue : msgFieldIDTypeMap) {
+      elemTypes.push_back(mapValue.second);
+    }
+    // reverse the vector since things are pushed on in reverse order
+    std::reverse(elemTypes.begin(), elemTypes.end());
+    // construct the Type
+    return mlir::pcc::StructType::get(elemTypes);
+  }
+
+  void initMsgDefaultMappings(MsgMap &map) {
+    // TODO - implement a String type for the MsgId
+    //    msgFieldIDTypeMap.insert(std::make_pair("msgId", mlir::));
+    map.insert(
+        std::make_pair("src", mlir::pcc::IDType::get(builder.getContext())));
+    map.insert(
+        std::make_pair("dst", mlir::pcc::IDType::get(builder.getContext())));
+  }
   // get integer value from value range
   size_t getIntFromValRange(ProtoCCParser::Val_rangeContext *ctx) {
     if (ctx == nullptr)
