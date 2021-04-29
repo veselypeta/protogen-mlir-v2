@@ -16,6 +16,7 @@ struct IntRangeTypeStorage;
 
 // Types
 class IDType;
+class DataType;
 class NetworkType;
 class SetType;
 class StateType;
@@ -47,6 +48,16 @@ class IDType : public PCCType::TypeBase<IDType, PCCType, DefaultTypeStorage> {
 public:
   using Base::Base;
   static IDType get(MLIRContext *context) { return Base::get(context); }
+};
+
+//===----------------------------------------------------------------------===//
+// IntRange Type
+//===----------------------------------------------------------------------===//
+class DataType
+    : public PCCType::TypeBase<DataType, PCCType, DefaultTypeStorage> {
+public:
+  using Base::Base;
+  static DataType get(MLIRContext *context) { return Base::get(context); }
 };
 
 //===----------------------------------------------------------------------===//
@@ -114,19 +125,19 @@ public:
 //===----------------------------------------------------------------------===//
 // IntRange Type
 //===----------------------------------------------------------------------===//
-namespace mlir{
-namespace pcc{
-class IntRangeType : public PCCType::TypeBase<IntRangeType, PCCType, detail::IntRangeTypeStorage>{
+namespace mlir {
+namespace pcc {
+class IntRangeType : public PCCType::TypeBase<IntRangeType, PCCType,
+                                              detail::IntRangeTypeStorage> {
 public:
   using Base::Base;
-  static IntRangeType get(MLIRContext *context, size_t startRange, size_t endRange);
+  static IntRangeType get(MLIRContext *context, size_t startRange,
+                          size_t endRange);
   size_t getStartRange();
   size_t getEndRange();
 };
-}
-}
-
-
+} // namespace pcc
+} // namespace mlir
 
 namespace llvm {
 

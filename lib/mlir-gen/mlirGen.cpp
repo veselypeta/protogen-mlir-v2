@@ -161,26 +161,47 @@ private:
     return mlir::success();
   }
 
-  mlir::LogicalResult mlirGen(ProtoCCParser::Message_blockContext *ctx){
+  mlir::LogicalResult mlirGen(ProtoCCParser::Message_blockContext *ctx) {
+    // skip if nullptr
+    if (ctx == nullptr)
+      return mlir::success();
+
     // map decl ids to their MLIR type
     static std::map<std::string, mlir::Type> msgDecls;
-    // skip if nullptr
-    if(ctx == nullptr)
-      return mlir::success();
+
     std::string msgId = ctx->ID()->getText();
     mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
-    for(auto msgDecCtx : ctx->declarations()){
-      if (msgDecCtx->int_decl())
-        mlirTypeGen(msgDecCtx->int_decl());
-      msgDecCtx->bool_decl();
-      msgDecCtx->state_decl();
-      msgDecCtx->data_decl();
-      msgDecCtx->id_decl();
+    for (auto msgDecCtx : ctx->declarations()) {
+      if (msgDecCtx->int_decl()) {
+        auto idTypePair = mlirTypeGen(msgDecCtx->int_decl());
+        msgDecls.insert(idTypePair);
+      }
+
+      if (msgDecCtx->bool_decl()) {
+        auto idBoolTypePair = mlirTypeGen(msgDecCtx->bool_decl());
+        msgDecls.insert(idBoolTypePair);
+      }
+
+      if (msgDecCtx->state_decl()) {
+        auto idStateTypePair = mlirTypeGen(msgDecCtx->state_decl());
+        msgDecls.insert(idStateTypePair);
+      }
+
+      if (msgDecCtx->data_decl()){
+        auto idDataTypePair = mlirTypeGen(msgDecCtx->data_decl());
+        msgDecls.insert(idDataTypePair);
+      }
+
+      if (msgDecCtx->id_decl()) {
+        auto idTypePair = mlirTypeGen(msgDecCtx->id_decl());
+        msgDecls.insert(idTypePair);
+      }
     }
     return mlir::success();
   }
 
-  mlir::pcc::PCCType mlirTypeGen(ProtoCCParser::Int_declContext *ctx){
+  std::pair<std::string, mlir::pcc::IntRangeType>
+  mlirTypeGen(ProtoCCParser::Int_declContext *ctx) {
     // Integer declarations always define an integer range
     // we find the start and stop of the integer range
     std::string intDeclId = ctx->ID()->getText();
@@ -190,36 +211,76 @@ private:
     auto endRange = ctx->range()->val_range()[1];
 
     // determine the value of each sub-range
-    size_t startRangeVal;
-    if(startRange->INT()){
-      startRangeVal = std::atoi(startRange->INT()->getText().c_str());
-    } else {
-      std::string constRef = startRange->ID()->getText();
-      // lookup the reference in the scope
-      mlir::Value value = lookup(constRef);
-      if(!value.getType().isa<mlir::IntegerType>())
-        assert(0 && "const ref lookup returned non integer type!");
-       startRangeVal = static_cast<mlir::ConstantOp>(value.getDefiningOp()).valueAttr().cast<mlir::IntegerAttr>().getInt();
-    }
-
-    size_t endRangeVal;
-    if(endRange->INT()){
-      endRangeVal = std::atoi(endRange->INT()->getText().c_str());
-    } else {
-      std::string constRef = endRange->ID()->getText();
-      // lookup the reference in the scope
-      mlir::Value value = lookup(constRef);
-      if(!value.getType().isa<mlir::IntegerType>())
-        assert(0 && "const ref lookup returned non integer type!");
-      endRangeVal = static_cast<mlir::ConstantOp>(value.getDefiningOp()).valueAttr().cast<mlir::IntegerAttr>().getInt();
-    }
+    size_t startRangeVal = getIntFromValRange(startRange);
+    size_t endRangeVal = getIntFromValRange(endRange);
 
     // build the type - custom type with a sub-range
-    auto rangeType =  mlir::pcc::IntRangeType::get(builder.getContext(), startRangeVal, endRangeVal);
-    builder.create<mlir::pcc::FooOp>(loc(*startRange->INT()->getSymbol()), rangeType);
-    return rangeType;
+    auto rangeType = mlir::pcc::IntRangeType::get(builder.getContext(),
+                                                  startRangeVal, endRangeVal);
+    return std::make_pair(intDeclId, rangeType);
   }
 
+  std::pair<std::string, mlir::IntegerType>
+  mlirTypeGen(ProtoCCParser::Bool_declContext *ctx) {
+    std::string declId = ctx->ID()->getText();
+    mlir::IntegerType boolType = builder.getI1Type();
+    return std::make_pair(declId, boolType);
+  }
+
+  std::pair<std::string, mlir::pcc::StateType>
+  mlirTypeGen(ProtoCCParser::State_declContext *ctx) {
+    // a state declaration is always identified through the keyword State
+    std::string declId = "State";
+    std::string stateInitializer = ctx->ID()->getText();
+    mlir::pcc::StateType stateType =
+        mlir::pcc::StateType::get(builder.getContext(), stateInitializer);
+    return std::make_pair(declId, stateType);
+  }
+
+  // Does not support ID initial assignment i.e. cl ID = //something;
+  std::pair<std::string, mlir::pcc::PCCType>
+  mlirTypeGen(ProtoCCParser::Id_declContext *ctx) {
+    assert(!ctx->ID().empty() && "id decl had no ids defined");
+    std::string declId = ctx->ID()[0]->getText();
+    mlir::pcc::IDType idType = mlir::pcc::IDType::get(builder.getContext());
+    // if set
+    if (!ctx->set_decl().empty()) {
+      auto firstSet = ctx->set_decl()[0];
+      size_t setSize = getIntFromValRange(firstSet->val_range());
+      mlir::pcc::SetType setType = mlir::pcc::SetType::get(idType, setSize);
+      return std::make_pair(declId, setType);
+    }
+    return std::make_pair(declId, idType);
+  }
+
+  std::pair<std::string, mlir::pcc::DataType>
+  mlirTypeGen(ProtoCCParser::Data_declContext *ctx) {
+    std::string declId = ctx->ID()->getText();
+    mlir::pcc::DataType dataType =
+        mlir::pcc::DataType::get(builder.getContext());
+    return std::make_pair(declId, dataType);
+  }
+
+  // get integer value from value range
+  size_t getIntFromValRange(ProtoCCParser::Val_rangeContext *ctx) {
+    if (ctx == nullptr)
+      assert(0 && "val range context was nullptr");
+
+    // if INT easy, convert to integer
+    if (ctx->INT())
+      return std::atoi(ctx->INT()->getText().c_str());
+
+    // if ID we need to lookup in symbol table
+    std::string constRef = ctx->ID()->getText();
+    mlir::Value valRef = lookup(constRef);
+    // we know this must have come from a ConstantOp
+    mlir::ConstantOp constOp =
+        static_cast<mlir::ConstantOp>(valRef.getDefiningOp());
+    // extract the value attribute
+    mlir::IntegerAttr intAttr = constOp.getValue().cast<mlir::IntegerAttr>();
+    // return the int value
+    return intAttr.getInt();
+  }
 };
 } // namespace
 

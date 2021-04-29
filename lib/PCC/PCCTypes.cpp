@@ -29,6 +29,7 @@ void PCCType::print(raw_ostream &os) const {
 
   TypeSwitch<PCCType>(*this)
       .Case<IDType>([&](IDType) { os << "id"; })
+      .Case<DataType>([&](DataType) { os << "data"; })
       .Case<NetworkType>([&](NetworkType netType) {
         os << "network<" << netType.getOrdering() << ">";
       })
@@ -45,9 +46,9 @@ void PCCType::print(raw_ostream &os) const {
         llvm::interleaveComma(structType.getElementTypes(), os);
         os << ">";
       })
-      .Case<IntRangeType>([&](IntRangeType &intRangeType){
-        os << "int_range<" << intRangeType.getStartRange()
-           << ", " << intRangeType.getEndRange() << ">";
+      .Case<IntRangeType>([&](IntRangeType &intRangeType) {
+        os << "int_range<" << intRangeType.getStartRange() << ", "
+           << intRangeType.getEndRange() << ">";
       })
       .Default([](Type) { assert(0 && "unkown dialect type to print!"); });
 }
@@ -72,6 +73,10 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
     return result = IDType::get(context), success();
   }
   // END - ID Type Parsing
+  else if (name.equals("data")) {
+    return result = DataType::get(context), success();
+  }
+  // END - DataType parsing
   else if (name.equals("network")) {
     llvm::StringRef order;
     NetworkType::Ordering ordertype;
@@ -149,11 +154,11 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
     }
   }
   // END - struct Type Parsing
-  else if(name.equals("int_range")) {
+  else if (name.equals("int_range")) {
     size_t startRange, endRange;
-    if(parser.parseLess() || parser.parseInteger(startRange)
-        || parser.parseOptionalComma() || parser.parseInteger(endRange)
-        || parser.parseGreater())
+    if (parser.parseLess() || parser.parseInteger(startRange) ||
+        parser.parseOptionalComma() || parser.parseInteger(endRange) ||
+        parser.parseGreater())
       return failure();
     return result = IntRangeType::get(context, startRange, endRange), success();
   }
@@ -212,8 +217,8 @@ std::string NetworkType::getOrdering() {
   return "ordered";
 }
 
-NetworkType::Ordering NetworkType::convertToOrder(llvm::StringRef order){
-  if(order == "ordered"){
+NetworkType::Ordering NetworkType::convertToOrder(llvm::StringRef order) {
+  if (order == "ordered") {
     return Ordering::ORDERED;
   } else if (order == "unordered") {
     return Ordering::UNORDERED;
@@ -376,46 +381,44 @@ llvm::ArrayRef<mlir::Type> StructType::getElementTypes() {
 // IntRange Type
 //===----------------------------------------------------------------------===//
 
-namespace mlir{
-namespace pcc{
-namespace detail{
-struct IntRangeTypeStorage : public mlir::TypeStorage{
+namespace mlir {
+namespace pcc {
+namespace detail {
+struct IntRangeTypeStorage : public mlir::TypeStorage {
   using KeyTy = std::pair<size_t, size_t>;
 
   IntRangeTypeStorage(size_t startRange, size_t endRange)
-      :value{std::make_pair(startRange, endRange)}{}
+      : value{std::make_pair(startRange, endRange)} {}
 
-  bool operator==(const KeyTy &key) const{
-    return key == value;
-  }
+  bool operator==(const KeyTy &key) const { return key == value; }
 
   static llvm::hash_code hashKey(const KeyTy &key) {
     return llvm::hash_value(key);
   }
 
-  static IntRangeTypeStorage *construct(mlir::TypeStorageAllocator &allocator, const KeyTy &key){
-      return new (allocator.allocate<IntRangeTypeStorage>()) IntRangeTypeStorage(key.first, key.second);
+  static IntRangeTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                        const KeyTy &key) {
+    return new (allocator.allocate<IntRangeTypeStorage>())
+        IntRangeTypeStorage(key.first, key.second);
   }
 
   KeyTy value;
 };
-}
-}
-}
+} // namespace detail
+} // namespace pcc
+} // namespace mlir
 
-IntRangeType IntRangeType::get(MLIRContext *context, size_t startRange, size_t endRange) {
+IntRangeType IntRangeType::get(MLIRContext *context, size_t startRange,
+                               size_t endRange) {
   return Base::get(context, startRange, endRange);
 }
 
-size_t IntRangeType::getStartRange() {
-  return getImpl()->value.first;
-}
-size_t IntRangeType::getEndRange() {
-  return getImpl()->value.second;
-}
+size_t IntRangeType::getStartRange() { return getImpl()->value.first; }
+size_t IntRangeType::getEndRange() { return getImpl()->value.second; }
 
 // Register Newly Created types to the dialect
 
 void PCCDialect::registerTypes() {
-  addTypes<IDType, NetworkType, StateType, SetType, StructType, IntRangeType>();
+  addTypes<IDType, DataType, NetworkType, StateType, SetType, StructType,
+           IntRangeType>();
 }

@@ -128,11 +128,11 @@ declarations : int_decl | bool_decl | state_decl | data_decl | id_decl;
     const_decl : CONSTANT ID INT;
 
     int_decl : INTID range ID (EQUALSIGN INT)? SEMICOLON;
-    bool_decl : BOOLID ID (EQUALSIGN BOOL)* SEMICOLON;
+    bool_decl : BOOLID ID (EQUALSIGN BOOL)? SEMICOLON;
 
     state_decl : STATE ID SEMICOLON;
     data_decl : DATA ID SEMICOLON;
-    id_decl : set_decl* NID ID (EQUALSIGN set_decl* ID)* SEMICOLON;
+    id_decl : set_decl* NID ID (EQUALSIGN set_decl* ID)? SEMICOLON;
 
         set_decl : SET OEBRACE val_range CEBRACE;
         range : OEBRACE val_range DOT DOT val_range CEBRACE;
