@@ -151,7 +151,7 @@ init_hw : network_block | machines | message_block;
 
     /** Machine */
     machines : cache_block | dir_block | mem_block;
-        cache_block : CACHE OCBRACE declarations* CCBRACE objset_decl* ID SEMICOLON;
+        cache_block : CACHE OCBRACE declarations* CCBRACE objset_decl? ID SEMICOLON;
         dir_block : DIR OCBRACE declarations* CCBRACE objset_decl* ID SEMICOLON;
         mem_block : MEM OCBRACE declarations* CCBRACE objset_decl* ID SEMICOLON;
 

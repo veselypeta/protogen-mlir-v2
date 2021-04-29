@@ -37,7 +37,7 @@ public:
 
     // recursivelly call mlirGen
     if (mlir::failed(mlirGen(ctx))) {
-      return nullptr;
+      assert(0 && "failed to generate MLIR correctly!");
     }
 
     // Verify the module after we have finished constructing it, this will check
@@ -61,6 +61,8 @@ private:
   using MsgMap = std::map<std::string, mlir::Type>;
   // hold what type of Msg Types we have
   std::map<std::string, MsgMap> msgTypeMap;
+
+  // hold cache type info
 
   // used to hold underlying data for llvm::StringRef
   std::set<std::string> identStorage;
@@ -104,7 +106,7 @@ private:
   }
 
   mlir::LogicalResult mlirGen(ProtoCCParser::DocumentContext *ctx) {
-    // recursivelly call mlirGen on const_decl operations
+    // recursively call mlirGen on const_decl operations
     for (auto constCtx : ctx->const_decl()) {
       if (mlir::failed(mlirGen(constCtx))) {
         return mlir::failure();
@@ -139,6 +141,9 @@ private:
       return mlir::failure();
     // recursively call for each message block
     if (mlir::failed(mlirGen(ctx->message_block())))
+      return mlir::failure();
+    // recursively call for each machines block
+    if (mlir::failed(mlirGen(ctx->machines())))
       return mlir::failure();
 
     return mlir::success();
@@ -181,40 +186,29 @@ private:
 
     std::string msgId = ctx->ID()->getText();
     //    mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
-    for (auto msgDecCtx : ctx->declarations()) {
-      if (msgDecCtx->int_decl()) {
-        auto idTypePair = mlirTypeGen(msgDecCtx->int_decl());
-        msgFieldIDTypeMap.insert(idTypePair);
-        localMsgTypeMap.insert(idTypePair);
-      }
-
-      if (msgDecCtx->bool_decl()) {
-        auto idBoolTypePair = mlirTypeGen(msgDecCtx->bool_decl());
-        msgFieldIDTypeMap.insert(idBoolTypePair);
-        localMsgTypeMap.insert(idBoolTypePair);
-      }
-
-      if (msgDecCtx->state_decl()) {
-        auto idStateTypePair = mlirTypeGen(msgDecCtx->state_decl());
-        msgFieldIDTypeMap.insert(idStateTypePair);
-        localMsgTypeMap.insert(idStateTypePair);
-      }
-
-      if (msgDecCtx->data_decl()) {
-        auto idDataTypePair = mlirTypeGen(msgDecCtx->data_decl());
-        msgFieldIDTypeMap.insert(idDataTypePair);
-        localMsgTypeMap.insert(idDataTypePair);
-      }
-
-      if (msgDecCtx->id_decl()) {
-        auto idTypePair = mlirTypeGen(msgDecCtx->id_decl());
-        msgFieldIDTypeMap.insert(idTypePair);
-        localMsgTypeMap.insert(idTypePair);
-      }
+    for (auto msgDecl : ctx->declarations()) {
+      auto idTypePair = mlirTypeGen(msgDecl);
+      msgFieldIDTypeMap.insert(idTypePair);
+      localMsgTypeMap.insert(idTypePair);
     }
     // insert into local msg type map
     msgTypeMap.insert(std::make_pair(msgId, localMsgTypeMap));
     return mlir::success();
+  }
+
+  std::pair<std::string, mlir::Type>
+  mlirTypeGen(ProtoCCParser::DeclarationsContext *ctx) {
+    if (ctx->int_decl())
+      return mlirTypeGen(ctx->int_decl());
+    if (ctx->bool_decl())
+      return mlirTypeGen(ctx->bool_decl());
+    if (ctx->state_decl())
+      return mlirTypeGen(ctx->state_decl());
+    if (ctx->id_decl())
+      return mlirTypeGen(ctx->id_decl());
+    if (ctx->data_decl())
+      return mlirTypeGen(ctx->data_decl());
+    assert(0 && "declaration did not match any of the supported types");
   }
 
   std::pair<std::string, mlir::pcc::IntRangeType>
@@ -278,33 +272,34 @@ private:
     return std::make_pair(declId, dataType);
   }
 
-  mlir::pcc::StructType getUniqueMsgType(std::string msgTypeId) {
+  mlir::pcc::StructType getUniqueMsgType(std::string &msgTypeId) {
     if (msgTypeMap.count(msgTypeId) == 0) {
       assert(0 && "looking up a msg type that doesn't exist, or has not been "
                   "declared yet");
     }
     auto typeMap = msgTypeMap.find(msgTypeId)->second;
-    std::vector<mlir::Type> elemTypes;
-    elemTypes.reserve(typeMap.size());
-    for (auto &type : typeMap) {
-      elemTypes.push_back(type.second);
-    }
-    std::reverse(elemTypes.begin(), elemTypes.end());
+    std::vector<mlir::Type> elemTypes = getElemTypesFromMap(typeMap);
     return mlir::pcc::StructType::get(elemTypes);
   }
 
   mlir::pcc::StructType getGlobalMsgType() {
-    std::vector<mlir::Type> elemTypes;
-    elemTypes.reserve(msgFieldIDTypeMap.size());
-    for (auto &mapValue : msgFieldIDTypeMap) {
-      elemTypes.push_back(mapValue.second);
-    }
-    // reverse the vector since things are pushed on in reverse order
-    std::reverse(elemTypes.begin(), elemTypes.end());
-    // construct the Type
+    std::vector<mlir::Type> elemTypes = getElemTypesFromMap(msgFieldIDTypeMap);
     return mlir::pcc::StructType::get(elemTypes);
   }
 
+  static std::vector<mlir::Type>
+  getElemTypesFromMap(std::map<std::string, mlir::Type> &map,
+                      bool reversed = true) {
+    std::vector<mlir::Type> elemTypes;
+    elemTypes.reserve(map.size());
+    for (auto &mapValue : map) {
+      elemTypes.push_back(mapValue.second);
+    }
+    // reverse if required
+    if (reversed)
+      std::reverse(elemTypes.begin(), elemTypes.end());
+    return elemTypes;
+  }
   void initMsgDefaultMappings(MsgMap &map) {
     // TODO - implement a String type for the MsgId
     //    msgFieldIDTypeMap.insert(std::make_pair("msgId", mlir::));
@@ -332,6 +327,37 @@ private:
     mlir::IntegerAttr intAttr = constOp.getValue().cast<mlir::IntegerAttr>();
     // return the int value
     return intAttr.getInt();
+  }
+
+  // Mlir generate for machines
+  mlir::LogicalResult mlirGen(ProtoCCParser::MachinesContext *ctx) {
+    // skip if nullptr
+    if (ctx == nullptr)
+      return mlir::success();
+    if (ctx->cache_block() != nullptr) {
+      auto cacheBlckCtx = ctx->cache_block();
+      std::string cacheIdent = cacheBlckCtx->ID()->getText();
+      mlir::Location cacheLoc = loc(*cacheBlckCtx->ID()->getSymbol());
+      // for now hold the data statically
+      std::map<std::string, mlir::Type> cacheTypeMap;
+      for (auto cacheDecl : cacheBlckCtx->declarations()) {
+        auto declPair = mlirTypeGen(cacheDecl);
+        cacheTypeMap.insert(declPair);
+      }
+      std::vector<mlir::Type> elemTypes =
+          getElemTypesFromMap(cacheTypeMap, /*reversed*/ false);
+      auto cacheStruct = mlir::pcc::StructType::get(elemTypes);
+      if (cacheBlckCtx->objset_decl()) {
+        size_t setSize =
+            getIntFromValRange(cacheBlckCtx->objset_decl()->val_range());
+        auto cacheSetType = mlir::pcc::SetType::get(cacheStruct, setSize);
+        builder.create<mlir::pcc::FooOp>(cacheLoc, cacheSetType);
+        return mlir::success();
+      }
+      builder.create<mlir::pcc::FooOp>(cacheLoc, cacheStruct);
+      return mlir::success();
+    }
+    return mlir::success();
   }
 };
 } // namespace
