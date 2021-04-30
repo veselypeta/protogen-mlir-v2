@@ -56,7 +56,7 @@ private:
   mlir::OpBuilder builder;
   std::string filename;
 
-  // hold msgId->type information
+  // nhold msgId->type informatio
   std::map<std::string, mlir::Type> msgFieldIDTypeMap;
   using MsgMap = std::map<std::string, mlir::Type>;
   // hold what type of Msg Types we have

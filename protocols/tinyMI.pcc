@@ -1,0 +1,40 @@
+# NrCaches 3
+
+Network { Ordered fwd;    //FwdGetS, FwdGetM, Inv, PutAck
+          Unordered resp; // Data, InvAck
+          Unordered req;  //GetS, GetM, PutM
+          };
+
+Cache {
+    State I;
+    Data cl;
+} set[NrCaches] cache;
+
+Directory {
+    State I;
+    Data cl;
+    ID owner;
+} directory;
+
+Message Request{};
+
+Message Resp{
+    Data cl;
+};
+
+Architecture cache {
+
+    Stable{I, M}
+
+    Process(I, store, State){
+        msg = Request(GetM, ID, directory.ID);
+        req.send(msg);
+
+        await{
+            when GetM_Ack_D:
+                cl=GetM_Ack_D.cl;
+                State = M;
+                break;
+        }
+    }
+}
