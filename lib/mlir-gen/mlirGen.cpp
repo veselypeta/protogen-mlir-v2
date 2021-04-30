@@ -367,15 +367,19 @@ private:
     if (ctx->dir_block()) {
       auto dirBlockCtx = ctx->dir_block();
       std::string dirId = dirBlockCtx->ID()->getText();
-      if(!dirBlockCtx->objset_decl().empty())
+      mlir::Location dirLoc = loc(*dirBlockCtx->ID()->getSymbol());
+      if (!dirBlockCtx->objset_decl().empty())
         assert(0 && "currently set of directory decl is not supported");
       std::map<std::string, mlir::Type> dirTypeMap;
-      for(auto dirDecl : dirBlockCtx->declarations()){
+      for (auto dirDecl : dirBlockCtx->declarations()) {
         auto declPair = mlirTypeGen(dirDecl);
         dirTypeMap.insert(declPair);
       }
       machMap.insert(std::make_pair(dirId, dirTypeMap));
+      std::vector<mlir::Type> elemTypes = getElemTypesFromMap(dirTypeMap, false);
+      mlir::pcc::StructType dirStruct = mlir::pcc::StructType::get(elemTypes);
       // TODO - generate the correct supporting operation
+      builder.create<mlir::pcc::FooOp>(dirLoc, dirStruct);
       return mlir::success();
     }
     assert(0 && "machine type block not supported!");
