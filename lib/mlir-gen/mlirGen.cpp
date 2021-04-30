@@ -302,6 +302,8 @@ private:
       std::reverse(elemTypes.begin(), elemTypes.end());
     return elemTypes;
   }
+
+  // used to add (name, src, dst) types - to each msg initializer
   void initMsgDefaultMappings(MsgMap &map) {
     // TODO - implement a String type for the MsgId
     //    msgFieldIDTypeMap.insert(std::make_pair("msgId", mlir::));
@@ -363,6 +365,17 @@ private:
       return mlir::success();
     }
     if (ctx->dir_block()) {
+      auto dirBlockCtx = ctx->dir_block();
+      std::string dirId = dirBlockCtx->ID()->getText();
+      if(!dirBlockCtx->objset_decl().empty())
+        assert(0 && "currently set of directory decl is not supported");
+      std::map<std::string, mlir::Type> dirTypeMap;
+      for(auto dirDecl : dirBlockCtx->declarations()){
+        auto declPair = mlirTypeGen(dirDecl);
+        dirTypeMap.insert(declPair);
+      }
+      machMap.insert(std::make_pair(dirId, dirTypeMap));
+      // TODO - generate the correct supporting operation
       return mlir::success();
     }
     assert(0 && "machine type block not supported!");
