@@ -167,10 +167,10 @@ private:
           builder.getContext(),
           mlir::pcc::NetworkType::convertToOrder(orderingStr));
 
-      // TODO - construct and appropriate op
-      mlir::pcc::FooOp foo = builder.create<mlir::pcc::FooOp>(netLoc, netType);
+      auto idAttr = builder.getStringAttr(networkId);
+      auto netOp = builder.create<mlir::pcc::NetDeclOp>(netLoc, netType, idAttr);
       // Declare the network op in the scope
-      if (failed(declare(networkId, foo)))
+      if (failed(declare(networkId, netOp)))
         return mlir::failure();
     }
     return mlir::success();
