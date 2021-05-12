@@ -3,7 +3,6 @@
 
 include "mlir/IR/OpBase.td"
 
-
 def PCC_Dialect : Dialect {
     let name = "pcc";
     let summary = "a dialect for the PCC language";

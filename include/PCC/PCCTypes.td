@@ -16,17 +16,21 @@ def NetworkType : DialectType<PCC_Dialect, CPred<"$_self.isa<NetworkType>()">,
     "network", "::mlir::pcc::NetworkType">, BuildableType<"NetworkType::get($_builder.getContext())">;
 
 
-def SetType : DialectType<PCC_Dialect, CPred<"$_self.isa<SetType()>">, 
+def SetType : DialectType<PCC_Dialect, CPred<"$_self.isa<SetType>()">,
     "set", "::mlir::pcc::SetType">, BuildableType<"SetType::get($_builder.getContext())">;
 
 // A struct type for representing PCC Objects i.e. cache/directory/msg types
-def StructType : DialectType<PCC_Dialect, CPred<"$_self.isa<StructType()>">, 
+def StructType : DialectType<PCC_Dialect, CPred<"$_self.isa<StructType>()">,
     "struct", "::mlir::pcc::StructType">, BuildableType<"StructType::get($_builder.getContext())">;
 
-def IntRangeType : DialectType<PCC_Dialect, CPred<"$_self.isa<IntRangeType()>">,
+def IntRangeType : DialectType<PCC_Dialect, CPred<"$_self.isa<IntRangeType>()">,
         "int_range", "::mlir::pcc::IntRangeType">, BuildableType<"IntRangeType::get($_builder.getContext())">;
 
-def DataType : DialectType<PCC_Dialect, CPred<"$_self.isa<DataType()>">,
+def DataType : DialectType<PCC_Dialect, CPred<"$_self.isa<DataType>()">,
         "data", "::mlir::pcc::DataType">, BuildableType<"DataType::get($_builder.getContext())">;
+
+// Process Type for representing the 'function signature' of a process block
+def ProcessType : DialectType<PCC_Dialect, CPred<"$_self.isa<ProcessType>()">,
+        "process", "::mlir::pcc::ProcessType">, BuildableType<"ProcessType::get($_builder.getContext())">;
 
 #endif //PCC_TYPES

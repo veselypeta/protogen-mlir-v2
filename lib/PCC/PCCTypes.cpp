@@ -21,11 +21,6 @@ using namespace mlir::pcc;
 // Type Printer for PCC Types
 // Uses the TypeSwitch Class to help printing types
 void PCCType::print(raw_ostream &os) const {
-  // Not sure what this does
-  // auto printWdithQualifier = [&](Optional<int32_t> width) {
-  //     if (width)
-  //         os << '<' << width.getValue() << '>';
-  // };
 
   TypeSwitch<PCCType>(*this)
       .Case<IDType>([&](IDType) { os << "id"; })
@@ -50,7 +45,10 @@ void PCCType::print(raw_ostream &os) const {
         os << "int_range<" << intRangeType.getStartRange() << ", "
            << intRangeType.getEndRange() << ">";
       })
-      .Default([](Type) { assert(0 && "unkown dialect type to print!"); });
+      .Case<ProcessType>([&](ProcessType &processType){
+
+      })
+      .Default([](Type) { assert(0 && "unknown dialect type to print!"); });
 }
 
 void PCCDialect::printType(::mlir::Type type,
@@ -416,9 +414,74 @@ IntRangeType IntRangeType::get(MLIRContext *context, size_t startRange,
 size_t IntRangeType::getStartRange() { return getImpl()->value.first; }
 size_t IntRangeType::getEndRange() { return getImpl()->value.second; }
 
+//===----------------------------------------------------------------------===//
+// Process Type
+//===----------------------------------------------------------------------===//
+namespace mlir {
+namespace pcc {
+namespace detail {
+struct ProcessTypeStorage : public mlir::TypeStorage {
+  using KeyTy = std::pair<TypeRange, TypeRange>;
+  ProcessTypeStorage(size_t numInputs, size_t numResults,
+                      Type const *inputsAndResults)
+      : numInputs{numInputs}, numResults{numResults},
+        inputsAndResults{inputsAndResults} {}
+
+  bool operator==(const KeyTy &rhs) const {
+    if(std::get<0>(rhs) == getInputs()){
+      return std::get<1>(rhs) == getResults();
+    }
+    return false;
+  }
+
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  static ProcessTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                       const KeyTy &key) {
+    TypeRange inputs = key.first, results = key.second;
+    // Copy the inputs and results into the bump pointer.
+    SmallVector<Type, 16> types;
+    types.reserve(inputs.size() + results.size());
+    types.append(inputs.begin(), inputs.end());
+    types.append(results.begin(), results.end());
+    auto typesList = allocator.copyInto(ArrayRef<Type>(types));
+
+    // Initialize the memory using placement new.
+    return new (allocator.allocate<ProcessTypeStorage>())
+        ProcessTypeStorage(inputs.size(), results.size(), typesList.data());
+  }
+
+  ArrayRef<Type> getInputs() const {
+    return {inputsAndResults, numInputs};
+  }
+
+  ArrayRef<Type> getResults() const {
+    return {inputsAndResults+numInputs, numResults};
+  }
+
+  size_t numInputs;
+  size_t numResults;
+  Type const *inputsAndResults;
+};
+} // namespace detail
+ProcessType ProcessType::get(mlir::MLIRContext *ctx, mlir::TypeRange inputs,
+                             mlir::TypeRange results) {
+  return Base::get(ctx, inputs, results);
+}
+
+size_t ProcessType::getNumInputs() const { return getImpl()->numInputs; }
+size_t ProcessType::getNumResults() const { return getImpl()->numResults; }
+llvm::ArrayRef<Type> ProcessType::getInputs() const { return getImpl()->getInputs();}
+llvm::ArrayRef<Type> ProcessType::getResults() const { return getImpl()->getResults(); }
+
+} // namespace pcc
+} // namespace mlir
+
 // Register Newly Created types to the dialect
 
 void PCCDialect::registerTypes() {
   addTypes<IDType, DataType, NetworkType, StateType, SetType, StructType,
-           IntRangeType>();
+           IntRangeType, ProcessType>();
 }

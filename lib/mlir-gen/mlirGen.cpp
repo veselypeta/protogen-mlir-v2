@@ -8,12 +8,12 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
-
 #include "llvm/ADT/ScopedHashTable.h"
 
 #include <algorithm>
 #include <iostream>
 #include <set>
+#include <utility>
 
 namespace {
 class MLIRGenImpl {
@@ -24,7 +24,7 @@ public:
                          std::string compFile) {
     theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
     // save the filename - used for location tracking
-    filename = compFile;
+    filename = std::move(compFile);
 
     // init initial msg types i.e. (name, src, dst) fields
     initMsgDefaultMappings(msgFieldIDTypeMap);
@@ -121,6 +121,14 @@ private:
       }
     }
 
+    // recursively call mlirGen on arch_block
+    for (auto archBlockCtx : ctx->arch_block()) {
+      if (archBlockCtx) {
+        if (mlir::failed(mlirGen(archBlockCtx)))
+          return mlir::failure();
+      }
+    }
+
     return mlir::success();
   }
 
@@ -168,7 +176,8 @@ private:
           mlir::pcc::NetworkType::convertToOrder(orderingStr));
 
       auto idAttr = builder.getStringAttr(networkId);
-      auto netOp = builder.create<mlir::pcc::NetDeclOp>(netLoc, netType, idAttr);
+      auto netOp =
+          builder.create<mlir::pcc::NetDeclOp>(netLoc, netType, idAttr);
       // Declare the network op in the scope
       if (failed(declare(networkId, netOp)))
         return mlir::failure();
@@ -376,13 +385,68 @@ private:
         dirTypeMap.insert(declPair);
       }
       machMap.insert(std::make_pair(dirId, dirTypeMap));
-      std::vector<mlir::Type> elemTypes = getElemTypesFromMap(dirTypeMap, false);
+      std::vector<mlir::Type> elemTypes =
+          getElemTypesFromMap(dirTypeMap, false);
       mlir::pcc::StructType dirStruct = mlir::pcc::StructType::get(elemTypes);
       // TODO - generate the correct supporting operation
       builder.create<mlir::pcc::FooOp>(dirLoc, dirStruct);
       return mlir::success();
     }
     assert(0 && "machine type block not supported!");
+  }
+
+  // MLIR generate for architecture blocks
+  mlir::LogicalResult mlirGen(ProtoCCParser::Arch_blockContext *ctx) {
+    // skip if nullptr
+    if (!ctx)
+      return mlir::success();
+
+    // Lookup the Arch we are targeting from the ID
+    std::string archId = ctx->ID()->getText();
+    mlir::Value archSSA = lookup(archId);
+
+    // Stable State Definitions ie. {M, S, I};
+    std::vector<std::string> stableStates;
+    ProtoCCParser::Stable_defContext *stableCtx =
+        ctx->arch_body()->stable_def();
+    for (auto stableState : stableCtx->ID()) {
+      stableStates.push_back(stableState->getText());
+    }
+
+    // for each process block
+    for (auto procBlockCtx : ctx->arch_body()->process_block()) {
+      // Get the Start State of the transaction
+      ProtoCCParser::Process_transContext *transContext =
+          procBlockCtx->process_trans();
+      std::string startState = transContext->ID()->getText();
+
+      // TODO -- we are just getting the string value of the action
+      // Better would be to discriminate between (ACCESS, EVICT, ID)
+      std::string action = transContext->process_events()->getText();
+
+      // get the final state if it exists
+      std::string finalState;
+      if (transContext->process_finalstate())
+        finalState =
+            transContext->process_finalstate()->process_finalident()->getText();
+
+      // TODO - create an operation that takes the correct types as parameters
+      mlir::Type archType = archSSA.getType();
+      mlir::pcc::StructType msgType = getGlobalMsgType();
+      llvm::SmallVector<mlir::Type, 2> procArgs;
+      procArgs.push_back(archType);
+      procArgs.push_back(msgType);
+      mlir::pcc::ProcessType procType = mlir::pcc::ProcessType::get(
+          builder.getContext(), procArgs, llvm::None);
+
+      auto procOpLocation = loc(*procBlockCtx->PROC()->getSymbol());
+      auto procOp = builder.create<mlir::pcc::ProcessOp>(procOpLocation, "firstProc", procType);
+      procOp.addEntryBlock();
+      builder.setInsertionPointToStart(procOp->getBlock());
+      auto stateType = mlir::pcc::StateType::get(builder.getContext(), "I");
+      builder.create<mlir::pcc::FooOp>(builder.getUnknownLoc(), stateType);
+    }
+    return mlir::success();
   }
 };
 } // namespace
@@ -391,6 +455,6 @@ namespace pcc {
 mlir::ModuleOp mlirGen(mlir::MLIRContext &mlirCtx,
                        ProtoCCParser::DocumentContext *docCtx,
                        std::string filename) {
-  return MLIRGenImpl(mlirCtx).mlirGen(docCtx, filename);
+  return MLIRGenImpl(mlirCtx).mlirGen(docCtx, std::move(filename));
 }
 } // namespace pcc
