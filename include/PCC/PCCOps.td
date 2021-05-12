@@ -37,18 +37,17 @@ def ProcessOp : PCC_Op<"process", [FunctionLike]>{
     let regions = (region AnyRegion:$body);
 
     let extraClassDeclaration = [{
-        static ProcessOp create(Location loc, ProcessType type);
-        ProcessType getProcType();
-        ProcessType getType(){return getProcType();}
+//        static ProcessOp create(Location loc, ProcessType type);
+//        ProcessType getProcType();
     private:
         // This trait needs access to the hooks defined below.
         friend class OpTrait::FunctionLike<ProcessOp>;
         /// Returns the number of arguments. This is a hook for
         /// OpTrait::FunctionLike.
-        unsigned getNumFuncArguments() { return type().cast<ProcessType>().getNumInputs(); }
+        unsigned getNumFuncArguments() {return getType().getInputs().size(); }
 
         /// Returns the number of results. This is a hook for OpTrait::FunctionLike.
-        unsigned getNumFuncResults() { return type().cast<ProcessType>().getNumResults(); }
+        unsigned getNumFuncResults() {return getType().getResults().size();}
 
         /// Hook for OpTrait::FunctionLike, called after verifying that the 'type'
         /// attribute is present and checks if it holds a function type. Ensures
@@ -56,13 +55,21 @@ def ProcessOp : PCC_Op<"process", [FunctionLike]>{
         /// safely.
         LogicalResult verifyType() {
             auto type = getTypeAttr().getValue();
-            if (!type.isa<ProcessType>())
-                return emitOpError("ProcessOp Requires a Process Type");
+            if (!type.isa<FunctionType>())
+                return emitOpError("requires '" + getTypeAttrName() +
+                                   "' attribute of function type");
             return success();
         }
     }];
 
     let printer = [{ return ::print(*this, p); }];
+}
+
+
+def BreakOp : PCC_Op<"break", [Terminator]>{
+    let summary = "default terminator op";
+    let description = "A default terminator for terminating any block";
+    let assemblyFormat = [{attr-dict}];
 }
 
 

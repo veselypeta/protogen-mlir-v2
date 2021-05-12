@@ -29,8 +29,5 @@ def IntRangeType : DialectType<PCC_Dialect, CPred<"$_self.isa<IntRangeType>()">,
 def DataType : DialectType<PCC_Dialect, CPred<"$_self.isa<DataType>()">,
         "data", "::mlir::pcc::DataType">, BuildableType<"DataType::get($_builder.getContext())">;
 
-// Process Type for representing the 'function signature' of a process block
-def ProcessType : DialectType<PCC_Dialect, CPred<"$_self.isa<ProcessType>()">,
-        "process", "::mlir::pcc::ProcessType">, BuildableType<"ProcessType::get($_builder.getContext())">;
 
 #endif //PCC_TYPES

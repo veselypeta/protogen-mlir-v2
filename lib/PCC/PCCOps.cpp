@@ -5,7 +5,7 @@ using namespace mlir;
 using namespace mlir::pcc;
 
 static void print(ProcessOp op, OpAsmPrinter &p) {
-  ProcessType procType = op.getProcType();
+  auto procType = op.getType();
   impl::printFunctionLikeOp(p, op, procType.getInputs(), /*isVariadic=*/false,
                             procType.getResults());
 }

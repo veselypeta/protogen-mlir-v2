@@ -436,15 +436,14 @@ private:
       llvm::SmallVector<mlir::Type, 2> procArgs;
       procArgs.push_back(archType);
       procArgs.push_back(msgType);
-      mlir::pcc::ProcessType procType = mlir::pcc::ProcessType::get(
-          builder.getContext(), procArgs, llvm::None);
+      auto procType = builder.getFunctionType(procArgs, llvm::None);
 
       auto procOpLocation = loc(*procBlockCtx->PROC()->getSymbol());
       auto procOp = builder.create<mlir::pcc::ProcessOp>(procOpLocation, "firstProc", procType);
-      procOp.addEntryBlock();
-      builder.setInsertionPointToStart(procOp->getBlock());
+      auto &entryBlock = *procOp.addEntryBlock();
+      builder.setInsertionPointToStart(&entryBlock);
       auto stateType = mlir::pcc::StateType::get(builder.getContext(), "I");
-      builder.create<mlir::pcc::FooOp>(builder.getUnknownLoc(), stateType);
+      builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
     }
     return mlir::success();
   }

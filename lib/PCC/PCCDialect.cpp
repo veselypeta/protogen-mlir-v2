@@ -15,14 +15,10 @@ void PCCDialect::initialize() {
 // ProcessOp
 //===----------------------------------------------------------------------===//
 
-ProcessOp ProcessOp::create(Location location, ProcessType type) {
-  OperationState state(location, "proc");
-  OpBuilder builder(location->getContext());
-  ProcessOp::build(builder, state, "no-name-assigned",
-                   type);
-  return llvm::cast<ProcessOp>(Operation::create(state));
-}
-
-ProcessType ProcessOp::getProcType() {
-  return getTypeAttr().getValue().cast<ProcessType>();
-}
+//ProcessOp ProcessOp::create(Location location, ProcessType type) {
+//  OperationState state(location, "proc");
+//  OpBuilder builder(location->getContext());
+//  ProcessOp::build(builder, state, "no-name-assigned",
+//                   type);
+//  return llvm::cast<ProcessOp>(Operation::create(state));
+//}

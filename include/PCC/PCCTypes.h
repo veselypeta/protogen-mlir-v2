@@ -12,7 +12,6 @@ struct SetTypeStorage;
 struct StateTypeStorage;
 struct StructTypeStorage;
 struct IntRangeTypeStorage;
-struct ProcessTypeStorage;
 } // namespace detail
 
 // Types
@@ -23,7 +22,6 @@ class SetType;
 class StateType;
 class StructType;
 class IntRangeType;
-class ProcessType;
 
 //===----------------------------------------------------------------------===//
 // PCC Type
@@ -137,32 +135,6 @@ public:
                           size_t endRange);
   size_t getStartRange();
   size_t getEndRange();
-};
-} // namespace pcc
-} // namespace mlir
-
-//===----------------------------------------------------------------------===//
-// Process Type
-//===----------------------------------------------------------------------===//
-namespace mlir {
-namespace pcc {
-class ProcessType : public PCCType::TypeBase<ProcessType, PCCType,
-                                             detail::ProcessTypeStorage> {
-public:
-  using Base::Base;
-  static ProcessType get(mlir::MLIRContext *ctx, mlir::TypeRange inputs,
-                         mlir::TypeRange results);
-
-  // inputs types
-  size_t getNumInputs() const;
-  mlir::Type getInput(size_t i) const { return getInputs()[i]; }
-
-  // results
-  size_t getNumResults() const;
-  mlir::Type getResult(size_t i) const { return getResults()[i]; }
-
-  llvm::ArrayRef<mlir::Type> getInputs() const;
-  llvm::ArrayRef<mlir::Type> getResults() const;
 };
 } // namespace pcc
 } // namespace mlir
