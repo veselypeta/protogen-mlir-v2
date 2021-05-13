@@ -26,7 +26,7 @@ public:
     // save the filename - used for location tracking
     filename = std::move(compFile);
 
-    // init initial msg types i.e. (name, src, dst) fields
+    // init initial msg types i.e. (name, src, dst) fields on the global map
     TypeMapT globalMap;
     initMsgDefaultMappings(globalMap);
     msgTypeMap.insert({"global", globalMap});
@@ -104,7 +104,6 @@ private:
     // Identifier must already be in the symbol table - otherwise error!
     if (!symbolTable.count(ident)) {
       assert(0 && "attempting to lookup ident which is not declared!");
-      return nullptr;
     }
     return symbolTable.lookup(ident);
   }
@@ -287,7 +286,7 @@ private:
     return std::make_pair(declId, dataType);
   }
 
-  mlir::pcc::StructType getUniqueMsgType(std::string &msgTypeId) {
+  [[nodiscard]] mlir::pcc::StructType getUniqueMsgType(std::string &msgTypeId) {
     if (msgTypeMap.count(msgTypeId) == 0) {
       assert(0 && "looking up a msg type that doesn't exist, or has not been "
                   "declared yet");
@@ -297,25 +296,24 @@ private:
     return mlir::pcc::StructType::get(elemTypes);
   }
 
-  TypeMapT &getGlobalMsgMap() {
-    auto globalMsgType = msgTypeMap.find("global");
-    assert(globalMsgType != msgTypeMap.end() && "global msg not defined!");
-    return globalMsgType->second;
+  [[nodiscard]] TypeMapT &getGlobalMsgMap() {
+    static std::string global = "global";
+    return getMsgMap(global);
   }
 
-  TypeMapT &getMsgMap(std::string &msgId) {
+  [[nodiscard]] TypeMapT &getMsgMap(std::string &msgId) {
     auto map = msgTypeMap.find(msgId);
     assert(map != msgTypeMap.end() && "invalid msg id provided!");
     return map->second;
   }
 
-  mlir::pcc::StructType getGlobalMsgType() {
+  [[nodiscard]] mlir::pcc::StructType getGlobalMsgType() {
     TypeMapT &globMap = getGlobalMsgMap();
     std::vector<mlir::Type> elemTypes = getElemTypesFromMap(globMap);
     return mlir::pcc::StructType::get(elemTypes);
   }
 
-  static std::vector<mlir::Type>
+  [[nodiscard]] static std::vector<mlir::Type>
   getElemTypesFromMap(std::map<std::string, mlir::Type> &map,
                       bool reversed = true) {
     std::vector<mlir::Type> elemTypes;
@@ -327,6 +325,18 @@ private:
     if (reversed)
       std::reverse(elemTypes.begin(), elemTypes.end());
     return elemTypes;
+  }
+
+  [[nodiscard]] static std::vector<std::string>
+  getFieldIdsFromMap(TypeMapT &map, bool reversed = true) {
+    std::vector<std::string> ids;
+    ids.reserve(map.size());
+    for (auto &mapVal : map) {
+      ids.push_back(mapVal.first);
+    }
+    if (reversed)
+      std::reverse(ids.begin(), ids.end());
+    return ids;
   }
 
   // used to add (name, src, dst) types - to each msg initializer
@@ -490,6 +500,13 @@ private:
         // find the type of the message we wish to construct
         auto msgConstrTypeMap = getMsgMap(msgTypeId);
         auto msgConstrParams = assignTypesCtx->message_constr()->message_expr();
+        // TODO -- this can be uncommented once we push the name parameter to
+        // msg type assert(msgConstrTypeMap.size() == msgConstrParams.size() &&
+        // "parameter length should match!");
+        auto fields = getFieldIdsFromMap(msgConstrTypeMap);
+        for(size_t i = 0; i < msgConstrTypeMap.size(); i++){
+            auto paranCtx = msgConstrParams[i];
+        }
       }
     }
     return mlir::success();
