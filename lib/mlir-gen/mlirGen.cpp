@@ -438,12 +438,18 @@ private:
       procArgs.push_back(msgType);
       auto procType = builder.getFunctionType(procArgs, llvm::None);
 
+      std::string processIdent = (startState += "_") += action;
+
       auto procOpLocation = loc(*procBlockCtx->PROC()->getSymbol());
-      auto procOp = builder.create<mlir::pcc::ProcessOp>(procOpLocation, "firstProc", procType);
+      auto procOp = builder.create<mlir::pcc::ProcessOp>(procOpLocation, processIdent, procType);
       auto &entryBlock = *procOp.addEntryBlock();
       builder.setInsertionPointToStart(&entryBlock);
-      auto stateType = mlir::pcc::StateType::get(builder.getContext(), "I");
+
+      // TODO -- insert Operations into the Process Operation
+
       builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
+      //reset the insertion point to after the Process op
+      builder.setInsertionPointAfter(procOp);
     }
     return mlir::success();
   }
