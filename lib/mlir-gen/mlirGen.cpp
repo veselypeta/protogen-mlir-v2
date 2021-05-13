@@ -27,7 +27,9 @@ public:
     filename = std::move(compFile);
 
     // init initial msg types i.e. (name, src, dst) fields
-    initMsgDefaultMappings(msgFieldIDTypeMap);
+    TypeMapT globalMap;
+    initMsgDefaultMappings(globalMap);
+    msgTypeMap.insert({"global", globalMap});
 
     // set the insertion point to the start of the module
     builder.setInsertionPointToStart(theModule.getBody());
@@ -56,15 +58,16 @@ private:
   mlir::OpBuilder builder;
   std::string filename;
 
-  // nhold msgId->type informatio
-  std::map<std::string, mlir::Type> msgFieldIDTypeMap;
-  using MsgMap = std::map<std::string, mlir::Type>;
-  // hold what type of Msg Types we have
-  std::map<std::string, MsgMap> msgTypeMap;
+  // A type map for mapping string -> mlir::Type
+  using TypeMapT = std::map<std::string, mlir::Type>;
+
+  // hold message types in a map
+  std::map<std::string, TypeMapT> msgTypeMap;
 
   // hold cache & directory type info
-  using MachMapT = std::map<std::string, std::map<std::string, mlir::Type>>;
+  using MachMapT = std::map<std::string, TypeMapT>;
   MachMapT machMap;
+
   // used to hold underlying data for llvm::StringRef
   std::set<std::string> identStorage;
 
@@ -192,18 +195,19 @@ private:
 
     // initialize a local msg type map for individual MsgTypes
     // i.e. Resp
-    MsgMap localMsgTypeMap;
+    TypeMapT localMsgTypeMap;
     initMsgDefaultMappings(localMsgTypeMap);
 
     std::string msgId = ctx->ID()->getText();
     //    mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
     for (auto msgDecl : ctx->declarations()) {
       auto idTypePair = mlirTypeGen(msgDecl);
-      msgFieldIDTypeMap.insert(idTypePair);
+      // insert into both local and global maps
+      getGlobalMsgMap().insert(idTypePair);
       localMsgTypeMap.insert(idTypePair);
     }
     // insert into local msg type map
-    msgTypeMap.insert(std::make_pair(msgId, localMsgTypeMap));
+    msgTypeMap.insert({msgId, localMsgTypeMap});
     return mlir::success();
   }
 
@@ -293,8 +297,21 @@ private:
     return mlir::pcc::StructType::get(elemTypes);
   }
 
+  TypeMapT &getGlobalMsgMap() {
+    auto globalMsgType = msgTypeMap.find("global");
+    assert(globalMsgType != msgTypeMap.end() && "global msg not defined!");
+    return globalMsgType->second;
+  }
+
+  TypeMapT &getMsgMap(std::string &msgId) {
+    auto map = msgTypeMap.find(msgId);
+    assert(map != msgTypeMap.end() && "invalid msg id provided!");
+    return map->second;
+  }
+
   mlir::pcc::StructType getGlobalMsgType() {
-    std::vector<mlir::Type> elemTypes = getElemTypesFromMap(msgFieldIDTypeMap);
+    TypeMapT &globMap = getGlobalMsgMap();
+    std::vector<mlir::Type> elemTypes = getElemTypesFromMap(globMap);
     return mlir::pcc::StructType::get(elemTypes);
   }
 
@@ -313,13 +330,11 @@ private:
   }
 
   // used to add (name, src, dst) types - to each msg initializer
-  void initMsgDefaultMappings(MsgMap &map) {
+  void initMsgDefaultMappings(TypeMapT &map) {
     // TODO - implement a String type for the MsgId
     //    msgFieldIDTypeMap.insert(std::make_pair("msgId", mlir::));
-    map.insert(
-        std::make_pair("src", mlir::pcc::IDType::get(builder.getContext())));
-    map.insert(
-        std::make_pair("dst", mlir::pcc::IDType::get(builder.getContext())));
+    map.insert({"src", mlir::pcc::IDType::get(builder.getContext())});
+    map.insert({"dst", mlir::pcc::IDType::get(builder.getContext())});
   }
   // get integer value from value range
   size_t getIntFromValRange(ProtoCCParser::Val_rangeContext *ctx) {
@@ -358,7 +373,7 @@ private:
         cacheTypeMap.insert(declPair);
       }
       // insert into the global map
-      machMap.insert(std::make_pair(cacheIdent, cacheTypeMap));
+      machMap.insert({cacheIdent, cacheTypeMap});
       // get the individual elem types for struct construction
       std::vector<mlir::Type> elemTypes =
           getElemTypesFromMap(cacheTypeMap, /*reversed*/ false);
@@ -431,8 +446,8 @@ private:
             transContext->process_finalstate()->process_finalident()->getText();
 
       // TODO - create an operation that takes the correct types as parameters
-      mlir::Type archType = archSSA.getType();
-      mlir::pcc::StructType msgType = getGlobalMsgType();
+      auto archType = archSSA.getType();
+      auto msgType = getGlobalMsgType();
       llvm::SmallVector<mlir::Type, 2> procArgs;
       procArgs.push_back(archType);
       procArgs.push_back(msgType);
@@ -441,15 +456,41 @@ private:
       std::string processIdent = (startState += "_") += action;
 
       auto procOpLocation = loc(*procBlockCtx->PROC()->getSymbol());
-      auto procOp = builder.create<mlir::pcc::ProcessOp>(procOpLocation, processIdent, procType);
+      auto procOp = builder.create<mlir::pcc::ProcessOp>(
+          procOpLocation, processIdent, procType);
       auto &entryBlock = *procOp.addEntryBlock();
       builder.setInsertionPointToStart(&entryBlock);
 
       // TODO -- insert Operations into the Process Operation
+      for (auto expr : procBlockCtx->process_expr()) {
+        // Generate Expressions
+        if (expr->expressions()) {
+          if (mlir::failed(mlirGen(expr->expressions()))) {
+            return mlir::failure();
+          }
+        }
+      }
 
       builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
-      //reset the insertion point to after the Process op
+      // reset the insertion point to after the Process op
       builder.setInsertionPointAfter(procOp);
+    }
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::ExpressionsContext *ctx) {
+    if (ctx->assignment()) {
+      std::string asignmentId =
+          ctx->assignment()->process_finalident()->getText();
+      auto assignTypesCtx = ctx->assignment()->assign_types();
+      // inline for now
+      if (assignTypesCtx->message_constr()) {
+        std::string msgTypeId =
+            assignTypesCtx->message_constr()->ID()->getText();
+        // find the type of the message we wish to construct
+        auto msgConstrTypeMap = getMsgMap(msgTypeId);
+        auto msgConstrParams = assignTypesCtx->message_constr()->message_expr();
+      }
     }
     return mlir::success();
   }
