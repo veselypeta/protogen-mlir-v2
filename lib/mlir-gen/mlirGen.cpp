@@ -83,6 +83,10 @@ private:
                                      tok.getCharPositionInLine());
   }
 
+  mlir::Location loc(antlr4::tree::TerminalNode &terminal) const {
+    return loc(*terminal.getSymbol());
+  }
+
   // Used to declare MLIR Values along with their identifiers
   mlir::LogicalResult declare(std::string &ident, mlir::Value val) {
     // save the string to the class so that it won't be deleted, StrRef does not
@@ -490,11 +494,13 @@ private:
 
   mlir::LogicalResult mlirGen(ProtoCCParser::ExpressionsContext *ctx) {
     if (ctx->assignment()) {
+      // get the assingment ident i.e. msg
       std::string asignmentId =
           ctx->assignment()->process_finalident()->getText();
       auto assignTypesCtx = ctx->assignment()->assign_types();
       // inline for now
       if (assignTypesCtx->message_constr()) {
+        // get the type of msg being constructed i.e. Request
         std::string msgTypeId =
             assignTypesCtx->message_constr()->ID()->getText();
         // find the type of the message we wish to construct
@@ -504,12 +510,40 @@ private:
         // msg type assert(msgConstrTypeMap.size() == msgConstrParams.size() &&
         // "parameter length should match!");
         auto fields = getFieldIdsFromMap(msgConstrTypeMap);
-        for(size_t i = 0; i < msgConstrTypeMap.size(); i++){
-            auto paranCtx = msgConstrParams[i];
+        for (size_t i = 0; i < msgConstrTypeMap.size(); i++) {
+          auto paramCtx = msgConstrParams[i];
+          mlirGen(paramCtx);
         }
       }
     }
     return mlir::success();
+  }
+
+  void mlirGen(ProtoCCParser::Message_exprContext *ctx) {
+    if (ctx->INT()) {
+      buildIntConstant(*ctx->INT());
+    }
+    if (ctx->BOOL()) {
+      buildBoolConstant(*ctx->BOOL());
+    }
+    if(ctx->NID()){
+//      buildSelfIdReference(*ctx->NID());
+    }
+  }
+
+  mlir::Value buildIntConstant(antlr4::tree::TerminalNode &intTok) {
+    auto intVal = std::strtol(intTok.getText().c_str(), nullptr, 10);
+    return builder.create<mlir::ConstantOp>(loc(intTok),
+                                            builder.getI64IntegerAttr(intVal));
+  }
+
+  mlir::Value buildBoolConstant(antlr4::tree::TerminalNode &boolTok){
+    bool boolVal = boolTok.getText() == "true";
+    return builder.create<mlir::ConstantOp>(loc(boolTok), builder.getBoolAttr(boolVal));
+  }
+
+  mlir::Value buildSelfIdReference(antlr4::tree::TerminalNode &nid){
+    return builder.create<mlir::pcc::FooOp>(loc(nid), builder.getI64Type());
   }
 };
 } // namespace
