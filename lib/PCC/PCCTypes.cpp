@@ -4,7 +4,6 @@
 #include "mlir/IR/Types.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include <iostream>
 #include <string>
 
 /// Types
@@ -33,6 +32,7 @@ void PCCType::print(raw_ostream &os) const {
       })
       .Case<SetType>([&](SetType setType) {
         os << "set<";
+        os << "!pcc.";
         setType.getElementType().print(os);
         os << ", " << setType.getNumElements() << ">";
       })

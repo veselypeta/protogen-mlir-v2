@@ -82,8 +82,8 @@ add_dependencies(protocc-antlr4 antlr4_static)
 # --- END ANTLR
 
 # murphi-lib
-add_library(murphi-lib SHARED IMPORTED)
-set_property(TARGET murphi-lib PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/murphi-lib/build/libmurphi.dylib)
+add_library(murphi-lib STATIC IMPORTED)
+set_property(TARGET murphi-lib PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/murphi-lib/build/libmurphi.a)
 include_directories(murphi-lib/include)
 
 add_subdirectory(include)

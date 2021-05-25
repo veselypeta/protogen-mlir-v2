@@ -62,6 +62,7 @@ def ProcessOp : PCC_Op<"process", [FunctionLike]>{
         }
     }];
 
+    let parser = [{ return ::parseProcessOp(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
 }
 
