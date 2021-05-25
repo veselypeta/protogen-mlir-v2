@@ -22,6 +22,8 @@ target_link_libraries(murphi-translate
         MLIRSPIRV
         MLIRTranslation
         MLIRSupport
+
+        murphi-lib
         )
 
 mlir_check_link_libraries(murphi-translate)
