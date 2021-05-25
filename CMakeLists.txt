@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.19.2)
 
 project(protogen-mlir LANGUAGES CXX C)
 
+if (NOT CMAKE_BUILD_TYPE EQUAL RELEASE)
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+endif ()
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
@@ -48,7 +57,7 @@ include_directories(${ANTLR4_INCLUDE_DIRS})
 
 # set variable pointing to the antlr tool that supports C++
 # this is not required if the jar file can be found under PATH environment
-set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/antlr-4.9.2-complete.jar )
+set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/antlr-4.9.2-complete.jar)
 
 # add macros to generate ANTLR Cpp code from grammar
 find_package(ANTLR REQUIRED)
@@ -77,5 +86,8 @@ include_directories(murphi-lib/include)
 
 add_subdirectory(include)
 add_subdirectory(lib)
-add_subdirectory(test)
+# don't include tests in release build
+if (NOT CMAKE_BUILD_TYPE EQUAL RELEASE)
+    add_subdirectory(test)
+endif ()
 add_subdirectory(tools)

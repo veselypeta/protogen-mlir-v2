@@ -532,7 +532,8 @@ private:
   }
 
   mlir::Value buildIntConstant(antlr4::tree::TerminalNode &intTok) {
-    auto intVal = std::strtol(intTok.getText().c_str(), nullptr, 10);
+
+    auto intVal = std::stoi(intTok.getText());
     return builder.create<mlir::ConstantOp>(loc(intTok),
                                             builder.getI64IntegerAttr(intVal));
   }

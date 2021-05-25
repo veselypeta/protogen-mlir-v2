@@ -10,5 +10,5 @@ int main(int argc, char **argv)
 
     return mlir::failed(
         mlir::MlirOptMain(argc, argv, "PCC modular optimizer driver", registry,
-                          /*prelaodDialectsInContext=*/false));
+                          /*preloadDialectsInContext=*/false));
 }
