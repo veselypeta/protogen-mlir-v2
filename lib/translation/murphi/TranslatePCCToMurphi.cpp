@@ -4,7 +4,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Translation.h"
-//#include "models/Expr.h"
+#include "models/Expr.h"
 
 using namespace mlir::pcc;
 
@@ -16,8 +16,8 @@ public:
   MurphiTranslateImpl(mlir::ModuleOp op, mlir::raw_ostream &output)
       : theModule{op}, output{output} {}
   mlir::LogicalResult translate() {
-    //    murphi::IntExpr test(21);
-    //    test.getAsString();
+    murphi::IntExpr test(21);
+    theModule.print(output);
     return mlir::success();
   }
 
