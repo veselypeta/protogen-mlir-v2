@@ -47,7 +47,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(sanitizers)
 
 # ANTLR4 Stuff ----- 
-
+set(ANTLR4_TAG 4.9.2)
 # required if linking to static library
 add_definitions(-DANTLR4CPP_STATIC)
 
