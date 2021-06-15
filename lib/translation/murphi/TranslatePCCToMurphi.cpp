@@ -16,9 +16,25 @@ public:
   MurphiTranslateImpl(mlir::ModuleOp op, mlir::raw_ostream &output)
       : theModule{op}, output{output} {}
   mlir::LogicalResult translate() {
-    murphi::IntExpr test(21);
-    theModule.print(output);
+    generatePreamble();
+
+    // Translate Top Level Constructs (Constants ... )
+
+
     return mlir::success();
+  }
+
+  void generatePreamble(){
+    repeatChar('-', 20);
+    output << '\n';
+    repeatChar('-', 2);
+    output << " translation performed by ProtoGen-MLIR v2\n";
+    repeatChar('-', 20);
+  }
+
+  void repeatChar(char c, size_t reps){
+    for(size_t i = 0; i < reps; i++)
+      output << c;
   }
 
 private:

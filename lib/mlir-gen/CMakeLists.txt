@@ -1,30 +1,30 @@
 set(LLVM_LINK_COMPONENTS
-  Support
-  )
+        Support
+        )
 
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 
 add_mlir_dialect_library(
-    mlir-gen
-    mlirGen.cpp
-    
-    ADDITIONAL_HEADER_DIRS
-    ${PROJECT_SOURCE_DIR}/include/PCC
+        mlir-gen
+        mlirGen.cpp
 
-    DEPENDS
-    MLIRPCCIncGen
+        ADDITIONAL_HEADER_DIRS
+        ${PROJECT_SOURCE_DIR}/include/PCC
 
-    LINK_LIBS PRIVATE 
-    ${dialect_libs}
-    ${translation_libs}
-    ${LIBS}
-    MLIRIR
-    MLIRParser
-    MLIRPass
-    MLIRTranslation
-    MLIRSupport
-    antlr4_static
-    protocc-antlr4
+        DEPENDS
+        MLIRPCCIncGen
+        protocc-dep
+
+        LINK_LIBS PRIVATE
+        ${dialect_libs}
+        ${translation_libs}
+        ${LIBS}
+        MLIRIR
+        MLIRParser
+        MLIRPass
+        MLIRTranslation
+        MLIRSupport
+        antlr4_static
+        protocc-antlr4
 )
-add_dependencies(mlir-gen protocc-antlr4)

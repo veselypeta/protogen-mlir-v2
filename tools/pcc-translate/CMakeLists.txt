@@ -1,30 +1,30 @@
 set(LLVM_LINK_COMPONENTS
-  Support
-  )
+        Support
+        )
 
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 
 add_llvm_executable(pcc-translate
-  pcc-translate.cpp
-  TranslatePCCToMLIR.cpp
-  )
+        pcc-translate.cpp
+        TranslatePCCToMLIR.cpp
+        DEPENDS
+        protocc-dep
+        )
 
-  llvm_update_compile_flags(pcc-translate)
+llvm_update_compile_flags(pcc-translate)
 target_link_libraries(pcc-translate
-  PRIVATE
-  ${dialect_libs}
-  ${translation_libs}
-  ${LIBS}
-  MLIRIR
-  MLIRParser
-  MLIRPass
-  MLIRSPIRV
-  MLIRTranslation
-  MLIRSupport
-  antlr4_static
-  protocc-antlr4
-  )
+        PRIVATE
+        ${dialect_libs}
+        ${translation_libs}
+        ${LIBS}
+        MLIRIR
+        MLIRParser
+        MLIRPass
+        MLIRSPIRV
+        MLIRTranslation
+        MLIRSupport
+        antlr4_static
+        protocc-antlr4
+        )
 mlir_check_link_libraries(pcc-translate)
-add_dependencies(pcc-translate antlr4_static)
-add_dependencies(pcc-translate protocc-antlr4)
