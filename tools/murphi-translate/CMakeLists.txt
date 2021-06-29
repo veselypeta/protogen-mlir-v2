@@ -8,6 +8,8 @@ get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 
 add_llvm_executable(murphi-translate
         murphi-translate.cpp
+        DEPENDS
+        MLIRPCCIncGen
         )
 llvm_update_compile_flags(murphi-translate)
 

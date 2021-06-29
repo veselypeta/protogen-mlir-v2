@@ -11,7 +11,6 @@
 #include "llvm/ADT/ScopedHashTable.h"
 
 #include <algorithm>
-#include <iostream>
 #include <set>
 #include <utility>
 
@@ -142,11 +141,10 @@ private:
     std::string constId = ctx->ID()->getText();
     std::string intText = ctx->INT()->getText();
     long constValue = strtol(ctx->INT()->getText().c_str(), nullptr, 10);
-    mlir::IntegerType constType = builder.getI64Type();
     mlir::Location constDeclLocation = loc(*ctx->ID()->getSymbol());
 
-    mlir::ConstantOp constOp = builder.create<mlir::ConstantOp>(
-        constDeclLocation, constType, builder.getI64IntegerAttr(constValue));
+    auto constOp = builder.create<mlir::pcc::ConstantOp>(constDeclLocation,
+                                                         constId, constValue);
 
     return declare(constId, constOp);
   }
@@ -363,12 +361,9 @@ private:
     std::string constRef = ctx->ID()->getText();
     mlir::Value valRef = lookup(constRef);
     // we know this must have come from a ConstantOp
-    mlir::ConstantOp constOp =
-        static_cast<mlir::ConstantOp>(valRef.getDefiningOp());
-    // extract the value attribute
-    mlir::IntegerAttr intAttr = constOp.getValue().cast<mlir::IntegerAttr>();
-    // return the int value
-    return intAttr.getInt();
+    auto constOp =
+        static_cast<mlir::pcc::ConstantOp>(valRef.getDefiningOp());
+    return constOp.val();
   }
 
   // Mlir generate for machines
@@ -526,8 +521,8 @@ private:
     if (ctx->BOOL()) {
       buildBoolConstant(*ctx->BOOL());
     }
-    if(ctx->NID()){
-//      buildSelfIdReference(*ctx->NID());
+    if (ctx->NID()) {
+      //      buildSelfIdReference(*ctx->NID());
     }
   }
 
@@ -538,12 +533,13 @@ private:
                                             builder.getI64IntegerAttr(intVal));
   }
 
-  mlir::Value buildBoolConstant(antlr4::tree::TerminalNode &boolTok){
+  mlir::Value buildBoolConstant(antlr4::tree::TerminalNode &boolTok) {
     bool boolVal = boolTok.getText() == "true";
-    return builder.create<mlir::ConstantOp>(loc(boolTok), builder.getBoolAttr(boolVal));
+    return builder.create<mlir::ConstantOp>(loc(boolTok),
+                                            builder.getBoolAttr(boolVal));
   }
 
-  mlir::Value buildSelfIdReference(antlr4::tree::TerminalNode &nid){
+  mlir::Value buildSelfIdReference(antlr4::tree::TerminalNode &nid) {
     return builder.create<mlir::pcc::FooOp>(loc(nid), builder.getI64Type());
   }
 };

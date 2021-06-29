@@ -1,6 +1,9 @@
 #ifndef PCC_OPS
 #define PCC_OPS
 
+//def PCCIntAttr : AttrConstraint<CPred<$_self.isa<IntegerAttr>()>, "PCC Integer Attribute">;
+
+// TODO - remove
 def FooOp : PCC_Op<"foo"> {
     let summary = "foo op";
     let description = [{}];
@@ -8,6 +11,29 @@ def FooOp : PCC_Op<"foo"> {
     let assemblyFormat = [{
         attr-dict `:` type($results)
     }];
+}
+
+def ConstantOp : PCC_Op<"constant"> {
+    let summary = "define a global integer constant at the root module level";
+    let description = [{
+        Only to be used at the root level of a module. This operation will be used to represent
+        constants in murphi, which can only be define at a top level.
+    }];
+
+    let arguments = (ins I64Attr:$val, StrAttr:$id);
+    let results = (outs I64:$result);
+    let assemblyFormat = [{attr-dict `:` type($result)}];
+
+    let builders = [
+            OpBuilder<(ins "std::string":$id, "int64_t":$value), [{
+                build($_builder,
+                      $_state,
+                      $_builder.getI64Type(),
+                      $_builder.getI64IntegerAttr(value),
+                      $_builder.getStringAttr(id)
+                      );
+    }]>
+            ];
 }
 
 // PCC Op to declare a interconnect network (either ordered or unordered)

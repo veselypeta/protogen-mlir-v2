@@ -4,3 +4,6 @@
 [submodule "murphi-lib"]
 	path = murphi-lib
 	url = https://github.com/veselypeta/murphi-lib.git
+[submodule "fmt"]
+	path = fmt
+	url = https://github.com/fmtlib/fmt.git

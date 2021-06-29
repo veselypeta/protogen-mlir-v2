@@ -83,6 +83,12 @@ add_library(murphi-lib STATIC IMPORTED)
 set_property(TARGET murphi-lib PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/murphi-lib/build/libmurphi.a)
 include_directories(murphi-lib/include)
 
+# fmt library
+add_subdirectory(fmt)
+find_package(fmt)
+include_directories(fmt/include)
+
+
 add_subdirectory(include)
 add_subdirectory(lib)
 # don't include tests in release build
