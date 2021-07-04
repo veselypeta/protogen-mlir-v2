@@ -34,5 +34,6 @@
 # folders
 .vscode
 build
+cmake-build-debug
 .antlr
 .idea

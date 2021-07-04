@@ -20,16 +20,22 @@ std::string MurphiProcedureTemplate::to_string() {
   std::string procTemplate = "procedure {0}({1});\n" // proc name and parameters
                              "{2}"                   // fwd declarations
                              "begin\n"               // begin proc
-                             "{3}"                   // begin alias
-                             "{4}"                   // proc body
-                             "{5}"                   // end alias
+                             "{3}"                   // proc body
                              "end;\n";               // end proc
+
+  std::string aliasTemplate = "{0}{1}{2}";
+
+  // for each alias indent -- in reverse order
+  for(auto alias = aliasStatements.rbegin(); alias != aliasStatements.rend(); ++alias){
+    procedureBody = fmt::format(aliasTemplate,
+                                (*alias).begin_alias_to_string(),
+                                murphi::utils::indentAllLines(procedureBody),
+                                (*alias).end_alias_to_string());
+  }
 
   return fmt::format(procTemplate, procedureName, printParametersList(),
                      murphi::utils::indentAllLines(printForwardDeclarations()),
-                     /* begin aliases */ "",
-                     murphi::utils::indentAllLines(procedureBody),
-                     /* end aliases */ ""
+                     murphi::utils::indentAllLines(procedureBody)
                      );
 }
 
