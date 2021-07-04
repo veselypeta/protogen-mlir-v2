@@ -42,7 +42,12 @@ public:
   std::string printForwardDeclarations();
 
   // TODO - change to make it easier to add statements to the function
-  void addToProcedureBody(std::string &text) { procedureBody = text; }
+  void setProcedureBody(std::string &text) { procedureBody = text; }
+  std::string &getProcedureBody() {return procedureBody;}
+
+  void addAliasStatement(MurphiAliasStatement &alias){
+    aliasStatements.push_back(alias);
+  }
 
   std::string to_string();
 
@@ -50,6 +55,7 @@ private:
   std::string procedureName;
   std::vector<std::string> parameterList;
   std::vector<std::string> forwardDeclarations;
+  std::vector<MurphiAliasStatement> aliasStatements;
   std::string procedureBody;
 };
 } // namespace murphi

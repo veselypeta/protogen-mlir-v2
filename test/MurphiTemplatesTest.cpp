@@ -85,7 +85,7 @@ TEST(MurphiCodeGen, PrintProcedure){
   proc.addParameter(inMsgParam);
   proc.addParameter(cachesetParam);
   proc.addForwardDeclaration(fwdMsgDecl);
-  proc.addToProcedureBody(testBody);
+  proc.setProcedureBody(testBody);
 
   std::string printedValue = proc.to_string();
 
@@ -93,6 +93,43 @@ TEST(MurphiCodeGen, PrintProcedure){
                             "\tvar msg : Message;\n"
                             "begin\n"
                             "\tcache.State := cache_I;\n"
+                            "end;\n";
+
+  ASSERT_STREQ(expectedStr.c_str(), printedValue.c_str());
+}
+
+TEST(MurphiCodeGen, PrintProcedureWithAliases){
+  std::string procName = "handle_cache_I_evict_GetM";
+  std::string inMsgParam = "inmsg: Message";
+  std::string cachesetParam = "cache: OBJSET_cache";
+  std::string fwdMsgDecl = "var msg : Message;";
+  std::string testBody = "cache.State := cache_I;";
+
+  // create some aliases
+  MurphiAliasStatement msgAlias("msg", "inmsg");
+  MurphiAliasStatement cacheAlias("cle", "i_cache[m].CL[adr]");
+
+
+  MurphiProcedureTemplate proc(procName);
+  proc.addParameter(inMsgParam);
+  proc.addParameter(cachesetParam);
+  proc.addForwardDeclaration(fwdMsgDecl);
+  proc.setProcedureBody(testBody);
+
+  // add aliases to the procedure
+  proc.addAliasStatement(msgAlias);
+  proc.addAliasStatement(cacheAlias);
+
+  std::string printedValue = proc.to_string();
+
+  std::string expectedStr = "procedure handle_cache_I_evict_GetM(inmsg: Message; cache: OBJSET_cache);\n"
+                            "\tvar msg : Message;\n"
+                            "begin\n"
+                            "\talias msg : inmsg do\n"
+                            "\t\talias cle : i_cache[m].CL[adr] do\n"
+                            "\t\t\tcache.State := cache_I;\n"
+                            "\t\tendalias;\n"
+                            "\tendalias;\n"
                             "end;\n";
 
   ASSERT_STREQ(expectedStr.c_str(), printedValue.c_str());

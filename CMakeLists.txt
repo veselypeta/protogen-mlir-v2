@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16.2 FATAL_ERROR)
 
 project(protogen-mlir LANGUAGES CXX C)
 
@@ -79,8 +79,8 @@ add_dependencies(protocc-antlr4 protocc-dep)
 # --- END ANTLR
 
 # murphi-lib
-add_library(murphi-lib STATIC IMPORTED)
-set_property(TARGET murphi-lib PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/murphi-lib/build/libmurphi.a)
+add_subdirectory(murphi-lib)
+find_package(murphi-lib)
 include_directories(murphi-lib/include)
 
 # fmt library
