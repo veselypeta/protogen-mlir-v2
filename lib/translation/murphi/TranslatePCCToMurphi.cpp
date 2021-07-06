@@ -4,6 +4,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Translation.h"
+#include "translation/murphi/MurphiCodeGen.h"
 
 #include <string>
 using namespace mlir::pcc;
@@ -19,7 +20,6 @@ public:
   mlir::LogicalResult translate() {
     generatePreamble();
 
-
     for(auto &op : getModuleBody().getOperations()){
       auto constOp = mlir::dyn_cast<ConstantOp>(op);
       if(constOp != nullptr){
@@ -27,8 +27,6 @@ public:
         const uint64_t constVal = constOp.val();
       }
     }
-
-
 
     return mlir::success();
   }
@@ -56,10 +54,11 @@ private:
   }
 
   void processConstantOp(ConstantOp &constantOp){
-    auto id = constantOp.id();
+    auto id = constantOp.id().str();
     auto val = constantOp.val();
     // Make some sort of constant op in murphi
-    auto tmpl = "const " + id + " : " + std::to_string(val);
+
+    murphi::MurphiConstantTemplate murphiConstTemplate(id, val);
   }
 };
 
