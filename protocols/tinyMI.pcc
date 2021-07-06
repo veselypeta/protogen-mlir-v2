@@ -28,8 +28,8 @@ Architecture cache {
 
     Process(I, store, State){
         msg = Request(GetM, ID, directory.ID);
+
         //req.send(msg);
-//
         //await{
         //    when GetM_Ack_D:
         //        cl=GetM_Ack_D.cl;
