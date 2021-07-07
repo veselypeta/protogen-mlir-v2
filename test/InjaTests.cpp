@@ -50,6 +50,7 @@ TEST(InjaSuite, InjaLoopsTest){
 
 
   ASSERT_STREQ(expected_str.c_str(), result.c_str());
+  
 }
 
 TEST(JSONSuite, UnorderedJsonTest){
@@ -95,5 +96,5 @@ TEST(JSONSuite, StructPushBack){
   auto result = to_string(data);
 
   ASSERT_STREQ("{\"id\":\"NrCaches\",\"value\":3}", result.c_str());
-
+  
 }
