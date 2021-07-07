@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
-
+#include <nlohmann/json.hpp>
 
 
 TEST(InjaSuite, BasicExample){
@@ -50,4 +50,50 @@ TEST(InjaSuite, InjaLoopsTest){
 
 
   ASSERT_STREQ(expected_str.c_str(), result.c_str());
+}
+
+TEST(JSONSuite, UnorderedJsonTest){
+  using namespace inja;
+  json unordJson;
+  unordJson["elements"] = json::array();
+  unordJson["elements"].push_back({{"C", 1}});
+  unordJson["elements"].push_back({{"B", 2}});
+  unordJson["elements"].push_back({{"A", 3}});
+
+  auto result = to_string(unordJson);
+
+  ASSERT_STREQ("{\"elements\":[{\"C\":1},{\"B\":2},{\"A\":3}]}", result.c_str());
+}
+
+
+namespace ns{
+using namespace inja;
+
+struct MurphiTestConstant{
+  std::string id;
+  size_t value;
+};
+
+void to_json(json &j, const MurphiTestConstant &m) {
+  j = json{{"id", m.id}, {"value", m.value}};
+}
+
+void from_json(const json &j, MurphiTestConstant &m){
+  j.at("id").get_to(m.id);
+  j.at("value").get_to(m.value);
+}
+}
+
+TEST(JSONSuite, StructPushBack){
+  using namespace inja;
+  using namespace ns;
+
+  MurphiTestConstant tc{"NrCaches", 3};
+
+  json data = tc;
+
+  auto result = to_string(data);
+
+  ASSERT_STREQ("{\"id\":\"NrCaches\",\"value\":3}", result.c_str());
+
 }
