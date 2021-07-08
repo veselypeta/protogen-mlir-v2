@@ -98,3 +98,49 @@ TEST(JSONSuite, StructPushBack){
   ASSERT_STREQ("{\"id\":\"NrCaches\",\"value\":3}", result.c_str());
   
 }
+
+TEST(InjaSuite, TemplateInheritance){
+  using namespace inja;
+  Environment env{"../../templates/"};
+  env.set_trim_blocks(true);
+  env.set_lstrip_blocks(true);
+
+  Template tmp = env.parse_template("murphi_base.tmpl");
+  json data;
+  data["const_decls"].push_back({{"id", "NrCaches"}, {"value", 3}});
+  data["const_decls"].push_back({{"id", "ValCount"}, {"value", 6}});
+  auto result = env.render(tmp, data);
+
+  // Template returns something
+  ASSERT_STRNE("", result.c_str());
+}
+
+
+TEST(InjaSuite, IncludeOnTypeId){
+  using namespace inja;
+  Environment env{"../../templates/"};
+  env.set_trim_blocks(true);
+  env.set_lstrip_blocks(true);
+  Template tmp = env.parse_template("murphi_base.tmpl");
+
+  json data;
+  data["const_decls"] = json::array();
+  data["type_decls"].push_back({
+      { "typeid", "record"},
+      { "id", "Message" },
+      { "decls", {
+                      {"src", "Cache"},
+                      {"dst", "Cache"},
+                      {"access", "Access"}
+                }
+      }
+  }
+ );
+
+  auto result = env.render(tmp, data);
+
+  ASSERT_STREQ("", result.c_str());
+
+
+
+}

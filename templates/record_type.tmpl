@@ -1,0 +1,5 @@
+{{ record_type_tmpl_data.id }} : record
+{% for id, type in record_type_tmpl_data.decls %}
+    {{ id }} : {{ type }};
+{% endfor %}
+end;

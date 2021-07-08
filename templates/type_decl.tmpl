@@ -1,0 +1,6 @@
+{% for decl in type_decl_tmpl_data %}
+    {% if decl.typeid == "record" %}
+        {% set record_type_tmpl_data=decl %}
+        {% include "record_type.tmpl" %}
+    {% endif %}
+{% endfor %}
