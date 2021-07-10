@@ -2,8 +2,7 @@
 #include <inja/inja.hpp>
 #include <nlohmann/json.hpp>
 
-
-TEST(InjaSuite, BasicExample){
+TEST(InjaSuite, BasicExample) {
   using namespace inja;
   json data;
   data["name"] = "world";
@@ -12,27 +11,26 @@ TEST(InjaSuite, BasicExample){
   ASSERT_STREQ("Hello world!", result.c_str());
 }
 
-TEST(InjaSuite, ComplexJsonTest){
+TEST(InjaSuite, ComplexJsonTest) {
   using namespace inja;
   json data;
 
   data["name"]["forename"] = "bob";
   data["name"]["surname"] = "smith";
 
-  const std::string templ = "My name is {{ name.forename }} {{ name.surname }}!";
+  const std::string templ =
+      "My name is {{ name.forename }} {{ name.surname }}!";
 
   const auto result = inja::render(templ, data);
 
   ASSERT_STREQ("My name is bob smith!", result.c_str());
 }
 
-TEST(InjaSuite, InjaLoopsTest){
+TEST(InjaSuite, InjaLoopsTest) {
   using namespace inja;
   json data;
-  data["constdecls"] = {
-      {{"id", "NrCaches"}, { "value", 3 }},
-      {{"id", "ValCount"}, { "value", 5 }}
-  };
+  data["constdecls"] = {{{"id", "NrCaches"}, {"value", 3}},
+                        {{"id", "ValCount"}, {"value", 5}}};
 
   const std::string templ = "const\n"
                             "{% for cd in constdecls %}\n"
@@ -48,12 +46,10 @@ TEST(InjaSuite, InjaLoopsTest){
                                    "\tValCount : 5\n"
                                    "\n";
 
-
   ASSERT_STREQ(expected_str.c_str(), result.c_str());
-  
 }
 
-TEST(JSONSuite, UnorderedJsonTest){
+TEST(JSONSuite, UnorderedJsonTest) {
   using namespace inja;
   json unordJson;
   unordJson["elements"] = json::array();
@@ -63,14 +59,14 @@ TEST(JSONSuite, UnorderedJsonTest){
 
   auto result = to_string(unordJson);
 
-  ASSERT_STREQ("{\"elements\":[{\"C\":1},{\"B\":2},{\"A\":3}]}", result.c_str());
+  ASSERT_STREQ("{\"elements\":[{\"C\":1},{\"B\":2},{\"A\":3}]}",
+               result.c_str());
 }
 
-
-namespace ns{
+namespace ns {
 using namespace inja;
 
-struct MurphiTestConstant{
+struct MurphiTestConstant {
   std::string id;
   size_t value;
 };
@@ -79,13 +75,13 @@ void to_json(json &j, const MurphiTestConstant &m) {
   j = json{{"id", m.id}, {"value", m.value}};
 }
 
-void from_json(const json &j, MurphiTestConstant &m){
+void from_json(const json &j, MurphiTestConstant &m) {
   j.at("id").get_to(m.id);
   j.at("value").get_to(m.value);
 }
-}
+} // namespace ns
 
-TEST(JSONSuite, StructPushBack){
+TEST(JSONSuite, StructPushBack) {
   using namespace inja;
   using namespace ns;
 
@@ -96,10 +92,9 @@ TEST(JSONSuite, StructPushBack){
   auto result = to_string(data);
 
   ASSERT_STREQ("{\"id\":\"NrCaches\",\"value\":3}", result.c_str());
-  
 }
 
-TEST(InjaSuite, TemplateInheritance){
+TEST(InjaSuite, TemplateInheritance) {
   using namespace inja;
   Environment env{"../../templates/"};
   env.set_trim_blocks(true);
@@ -109,14 +104,14 @@ TEST(InjaSuite, TemplateInheritance){
   json data;
   data["const_decls"].push_back({{"id", "NrCaches"}, {"value", 3}});
   data["const_decls"].push_back({{"id", "ValCount"}, {"value", 6}});
+  data["type_decls"] = json::array();
   auto result = env.render(tmp, data);
 
   // Template returns something
   ASSERT_STRNE("", result.c_str());
 }
 
-
-TEST(InjaSuite, IncludeOnTypeId){
+TEST(InjaSuite, IncludeOnTypeId) {
   using namespace inja;
   Environment env{"../../templates/"};
   env.set_trim_blocks(true);
@@ -125,22 +120,26 @@ TEST(InjaSuite, IncludeOnTypeId){
 
   json data;
   data["const_decls"] = json::array();
-  data["type_decls"].push_back({
-      { "typeid", "record"},
-      { "id", "Message" },
-      { "decls", {
-                      {"src", "Cache"},
-                      {"dst", "Cache"},
-                      {"access", "Access"}
-                }
-      }
-  }
- );
+  data["type_decls"].push_back(
+      {{"typeid", "record"},
+       {"id", "Message"},
+       {"decls", {{"src", "Cache"}, {"dst", "Cache"}, {"access", "Access"}}}});
 
   auto result = env.render(tmp, data);
 
-  ASSERT_STREQ("", result.c_str());
+  ASSERT_STRNE("", result.c_str());
+}
 
+TEST(InjaSuite, TestPushingJsonObject) {
+  using namespace inja;
+  using namespace ns;
 
+  json data;
+  MurphiTestConstant tst_const{"NrCaches", 3};
+  data["const_decls"].push_back(tst_const);
 
+  const auto jsonStr = to_string(data);
+
+  ASSERT_STREQ("{\"const_decls\":[{\"id\":\"NrCaches\",\"value\":3}]}",
+               jsonStr.c_str());
 }
