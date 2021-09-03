@@ -1,4 +1,8 @@
 -- Murphi Code Gen
+{# This is the base template for the codegen #}
+{# It is made up of multiple includes which render different parts of the code #}
+{# by convention: the data passed to the included template is of the form: #}
+{# <template_name>_data #}
 
 {% set const_decl_tmpl_data=const_decls %}
 {% include "const_decl.tmpl" %}
