@@ -10,4 +10,7 @@ public:
 
 protected:
   static inja::Environment *env;
+
+private:
+  ~InjaEnvSingleton();
 };

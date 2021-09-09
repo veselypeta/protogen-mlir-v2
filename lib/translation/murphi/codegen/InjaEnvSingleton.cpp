@@ -1,8 +1,10 @@
-#include "translation/murphi/InjaEnvSingleton.h"
+#include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include <inja/inja.hpp>
 #include <mutex>
 
 using namespace inja;
+
+inja::Environment *InjaEnvSingleton::env = nullptr;
 
 std::mutex initMut;
 void registerInjaCallbacks(Environment &env) {
@@ -22,6 +24,19 @@ void registerInjaCallbacks(Environment &env) {
                           return elem["id"] == globalMsg["id"];
                         }) != additionalParameters.end();
   });
+
+  /*
+   * -- render_template --
+   * Takes two Arguments
+   * (1) a string name for the template held in the templates folder
+   * (2) a json object which is passed to the template during rendering
+   */
+  env.add_callback("render_template", 2, [&env](Arguments &args){
+    std::string tmplName = args.at(0)->get<std::string>();
+    json data = args.at(1)->get<json>();
+    auto tmpl = env.parse_template(tmplName);
+    return env.render(tmpl, data);
+  });
 }
 
 inja::Environment &InjaEnvSingleton::getInstance() {
@@ -35,4 +50,7 @@ inja::Environment &InjaEnvSingleton::getInstance() {
   return *env;
 }
 
-inja::Environment *InjaEnvSingleton::env = nullptr;
+InjaEnvSingleton::~InjaEnvSingleton() {
+  delete env;
+}
+

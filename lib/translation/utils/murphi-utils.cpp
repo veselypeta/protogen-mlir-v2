@@ -1,8 +1,8 @@
 #include "translation/utils/murphi-utils.h"
 #include "translation/murphi/MurphiCodeGen.h"
 
-namespace murphi{
-namespace utils{
+namespace murphi {
+namespace utils {
 
 std::vector<std::string> splitString(const std::string &str, char delim) {
   std::vector<std::string> lines{};
@@ -34,7 +34,8 @@ std::string indentAllLines(const std::string &str) {
   return rv;
 }
 
-murphi::MurphiProcedureTemplate make_cache_message_handler_procedure(std::string &procIdent){
+murphi::MurphiProcedureTemplate
+make_cache_message_handler_procedure(std::string &procIdent) {
   murphi::MurphiProcedureTemplate proc(procIdent);
   const std::string defaultInMsgParam = "inmsg : Message";
   const std::string defaultMachineParam = "cache : OBJSET_cache";
@@ -53,5 +54,10 @@ murphi::MurphiProcedureTemplate make_cache_message_handler_procedure(std::string
   return proc;
 }
 
+bool isWhitespace(unsigned char c) {
+  return (c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' ||
+          c == '\f');
 }
-}
+
+} // namespace utils
+} // namespace murphi

@@ -1,7 +1,7 @@
-#include "translation/murphi/InjaEnvSingleton.h"
+#include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
-#include <nlohmann/json.hpp>
+
 
 nlohmann::json getIdAndType(const std::string &id, const std::string &typeId,
                             const std::string &type) {

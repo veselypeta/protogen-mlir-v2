@@ -2,21 +2,23 @@
 // FOR THE JSON OBJECT THAT WILL BE GENERATED
 
 // ***** DECLS ***** //
+
+interface TypeDescription {
+    typeId: MurphiTypeId;
+    type: MurphiType;
+}
+
 interface ConstDecl {
     id: string;
     value: number;
 }
 
-interface TypeDecl {
+interface TypeDecl extends TypeDescription{
     id: string;
-    typeId: MurphiTypeId;
-    type: MurphiType;
 }
 
-interface VarDecl {
+interface VarDecl extends TypeDescription{
     id: string;
-    typeId: MurphiTypeId;
-    type: MurphiType;
 }
 
 type Decl = ConstDecl | TypeDecl | VarDecl;
@@ -38,14 +40,15 @@ interface Enum {
     decls:ID[];
 }
 
+// TODO - subranges should support expr for start/stop
 interface IntegerSubRange {
     start: number;
     stop: number;
 }
 
 interface MurphiArray {
-    length: MurphiType;
-    type: MurphiType;
+    index: TypeDescription;
+    type: TypeDescription;
 }
 
 type ID = string;

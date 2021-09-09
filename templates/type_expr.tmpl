@@ -1,0 +1,16 @@
+{# takes data object of type TypeDescription#}
+{% if typeId == "record" %}
+    {{- render_template("record_type.tmpl",type) -}}
+{% endif %}
+{% if typeId == "enum" %}
+    {{- render_template("enum_type.tmpl", type) -}}
+{% endif %}
+{% if typeId == "ID" %}
+    {{- type -}}
+{% endif %}
+{% if typeId == "array" %}
+    {{- render_template("array_type.tmpl", type) -}}
+{% endif %}
+{% if typeId == "sub_range" %}
+    {{- render_template("sub_range_type.tmpl", type) -}}
+{% endif %}

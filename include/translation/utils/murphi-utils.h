@@ -31,5 +31,7 @@ T interleave(const std::vector<T> &elements,
                          elements[0], interLam);
 }
 
+bool isWhitespace(unsigned char);
+
 }
 }
