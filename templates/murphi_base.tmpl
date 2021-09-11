@@ -1,12 +1,15 @@
 -- Murphi Code Gen
 {# This is the base template for the codegen #}
 {# It is made up of multiple includes which render different parts of the code #}
-{# by convention: the data passed to the included template is of the form: #}
-{# <template_name>_data #}
+{% if exists("decls") %}
+{% if exists("decls.const_decls") %}
+    {%- set const_decl_tmpl_data=decls.const_decls %}
+    {%- include "const_decl.tmpl" %}
+{% endif %}
 
-{% set const_decl_tmpl_data=const_decls %}
-{% include "const_decl.tmpl" %}
 
-
-{% set type_decl_tmpl_data=type_decls %}
-{% include "type_decl.tmpl" %}
+{% if exists("decls.type_decls") %}
+    {%- set type_decl_tmpl_data=decls.type_decls %}
+    {%- include "type_decl.tmpl" %}
+{% endif %}
+{% endif %}

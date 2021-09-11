@@ -1,6 +1,8 @@
+#include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
 #include <nlohmann/json.hpp>
+#include <regex>
 
 TEST(InjaSuite, BasicExample) {
   using namespace inja;
@@ -63,7 +65,7 @@ TEST(JSONSuite, UnorderedJsonTest) {
                result.c_str());
 }
 
-namespace ns {
+namespace {
 using namespace inja;
 
 struct MurphiTestConstant {
@@ -79,11 +81,20 @@ void from_json(const json &j, MurphiTestConstant &m) {
   j.at("id").get_to(m.id);
   j.at("value").get_to(m.value);
 }
-} // namespace ns
+
+json getMessageType() {
+  json data;
+  data["decls"] = {{{"id", "adr"}, {"typeId", "ID"}, {"type", "Address"}},
+                   {{"id", "mtype"}, {"typeId", "ID"}, {"type", "MessageType"}},
+                   {{"id", "src"}, {"typeId", "ID"}, {"type", "Machines"}},
+                   {{"id", "dst"}, {"typeId", "ID"}, {"type", "Machines"}},
+                   {{"id", "cl"}, {"typeId", "ID"}, {"type", "ClValue"}}};
+  return data;
+}
+} // end namespace
 
 TEST(JSONSuite, StructPushBack) {
   using namespace inja;
-  using namespace ns;
 
   MurphiTestConstant tc{"NrCaches", 3};
 
@@ -96,43 +107,42 @@ TEST(JSONSuite, StructPushBack) {
 
 TEST(InjaSuite, TemplateInheritance) {
   using namespace inja;
-  Environment env{"../../templates/"};
-  env.set_trim_blocks(true);
-  env.set_lstrip_blocks(true);
+  auto &env = InjaEnvSingleton::getInstance();
 
   Template tmp = env.parse_template("murphi_base.tmpl");
   json data;
   data["const_decls"].push_back({{"id", "NrCaches"}, {"value", 3}});
   data["const_decls"].push_back({{"id", "ValCount"}, {"value", 6}});
-  data["type_decls"] = json::array();
   auto result = env.render(tmp, data);
 
-  // Template returns something
-  ASSERT_STRNE("", result.c_str());
+  ASSERT_NE(result.find("NrCaches : 3;"), std::string::npos);
+  ASSERT_NE(result.find("ValCount : 6;"), std::string::npos);
 }
 
 TEST(InjaSuite, IncludeOnTypeId) {
   using namespace inja;
-  Environment env{"../../templates/"};
-  env.set_trim_blocks(true);
-  env.set_lstrip_blocks(true);
+  auto &env = InjaEnvSingleton::getInstance();
   Template tmp = env.parse_template("murphi_base.tmpl");
 
   json data;
-  data["const_decls"] = json::array();
   data["type_decls"].push_back(
-      {{"typeid", "record"},
-       {"id", "Message"},
-       {"decls", {{"src", "Cache"}, {"dst", "Cache"}, {"access", "Access"}}}});
+      {{"typeId", "record"}, {"id", "Message"}, {"type", getMessageType()}});
+  std::string result = env.render(tmp, data);
 
-  auto result = env.render(tmp, data);
+  ASSERT_NE(result.find("adr : Address;"), std::string::npos);
+  ASSERT_NE(result.find("mtype : MessageType;"), std::string::npos);
+  ASSERT_NE(result.find("src : Machines;"), std::string::npos);
+  ASSERT_NE(result.find("dst : Machines;"), std::string::npos);
+  ASSERT_NE(result.find("cl : ClValue;"), std::string::npos);
 
-  ASSERT_STRNE("", result.c_str());
+  std::regex re(R"(\w+ : record(.|\s)*end;)");
+  std::smatch sm;
+  std::regex_search(result, sm, re);
+  ASSERT_TRUE(sm.length() > 0);
 }
 
 TEST(InjaSuite, TestPushingJsonObject) {
   using namespace inja;
-  using namespace ns;
 
   json data;
   MurphiTestConstant tst_const{"NrCaches", 3};

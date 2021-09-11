@@ -14,3 +14,6 @@
 {% if typeId == "sub_range" %}
     {{- render_template("sub_range_type.tmpl", type) -}}
 {% endif %}
+{% if typeId == "multiset" %}
+    {{- render_template("multiset_type.tmpl", type) -}}
+{% endif %}

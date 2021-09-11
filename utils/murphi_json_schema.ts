@@ -25,7 +25,7 @@ type Decl = ConstDecl | TypeDecl | VarDecl;
 
 // ***** TYPES ***** //
 
-type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID";
+type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset";
 interface Record {
     decls:[
         {
@@ -51,8 +51,13 @@ interface MurphiArray {
     type: TypeDescription;
 }
 
+interface MultisetType {
+    index: TypeDescription;
+    type: TypeDescription;
+}
+
 type ID = string;
-type MurphiType = Record | Enum | IntegerSubRange | MurphiArray | ID;
+type MurphiType = Record | Enum | IntegerSubRange | MurphiArray | ID | MultisetType;
 
 
 // ***** METHODS ***** //

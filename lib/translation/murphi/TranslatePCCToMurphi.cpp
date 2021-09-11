@@ -1,65 +1,233 @@
 #include "translation/murphi/TranslatePCCToMurphi.h"
 #include "PCC/PCCOps.h"
+#include "inja/inja.hpp"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Translation.h"
-#include "translation/murphi/MurphiCodeGen.h"
+#include "translation/murphi/codegen/InjaEnvSingleton.h"
 
-#include <string>
 using namespace mlir::pcc;
 
 // private namespace for the implementation
 namespace {
+using namespace inja;
 
-class MurphiTranslateImpl {
+/*
+ * Some useful constants to have for compiling murphi
+ */
+
+// *** CONST *** //
+constexpr char c_val_cnt_id[] = "VAL_COUNT";
+constexpr size_t c_val_max = 1;
+constexpr char c_adr_cnt_id[] = "ADR_COUNT";
+constexpr size_t c_adr_cnt = 1;
+
+// *** Keys *** //
+constexpr char SetKey[] = "OBJSET_";
+constexpr char EntryKey[] = "ENTRY_";
+constexpr char MachKey[] = "MACH_";
+constexpr char ObjKey[] = "OBJ_";
+constexpr char Initval[] = "INITVAL";
+constexpr char CLIdent[] = "CL";
+
+// Network Parameters
+constexpr char c_ordered[] = "O_NET_MAX";
+constexpr char c_unordered[] = "U_NET_MAX";
+constexpr char ordered[] = "Ordered";
+constexpr char ordered_cnt[] = "Orderedcnt";
+constexpr char k_o_network[] = "onet_";
+constexpr char unordered[] = "Unordered";
+constexpr char k_u_network[] = "unet_";
+
+// *** Enum Keywords **** //
+constexpr char k_machines[] = "Machines";
+
+// *** Record Keywords *** //
+constexpr char r_message[] = "Message";
+
+// config parameters
+constexpr size_t c_fifo_max = 1;
+constexpr bool enable_fifo = false;
+constexpr size_t c_ordered_size = c_adr_cnt * 3 * 2 * 2;
+constexpr size_t c_unordered_size = c_adr_cnt * 3 * 2 * 2;
+
+constexpr struct {
+  const llvm::StringRef constant = "pcc.constant";
+  const llvm::StringRef net_decl = "pcc.net_decl";
+} opStringMap;
+
+class ModuleInterpreter {
 public:
-  MurphiTranslateImpl(mlir::ModuleOp op, mlir::raw_ostream &output)
-      : theModule{op}, output{output} {}
+  explicit ModuleInterpreter(mlir::ModuleOp op) : theModule{op} {}
 
-  mlir::LogicalResult translate() {
-    generatePreamble();
-
-    for(auto &op : getModuleBody().getOperations()){
-      auto constOp = mlir::dyn_cast<ConstantOp>(op);
-      if(constOp != nullptr){
-        const std::string constId = constOp.id().str();
-        const uint64_t constVal = constOp.val();
+  std::vector<mlir::pcc::ConstantOp> getConstants() {
+    std::vector<mlir::pcc::ConstantOp> constants;
+    for (auto &op : getModuleBody()) {
+      if (op.getName().getIdentifier().strref() == opStringMap.constant) {
+        auto constantOp = mlir::dyn_cast<mlir::pcc::ConstantOp>(op);
+        constants.push_back(constantOp);
       }
     }
+    return constants;
+  }
 
-    return mlir::success();
+  std::vector<mlir::pcc::NetDeclOp> getNetworks() {
+    std::vector<mlir::pcc::NetDeclOp> networks;
+    for (auto &op : getModuleBody()) {
+      if (op.getName().getIdentifier().strref() == opStringMap.net_decl) {
+        auto netOp = mlir::dyn_cast<mlir::pcc::NetDeclOp>(op);
+        networks.push_back(netOp);
+      }
+    }
+    return networks;
   }
 
 private:
   mlir::ModuleOp theModule;
-  mlir::raw_ostream &output;
-
-  void generatePreamble() {
-    repeatChar('-', 20);
-    output << '\n';
-    repeatChar('-', 2);
-    output << " Translation performed by ProtoGen-MLIR v2\n";
-    repeatChar('-', 20);
-    repeatChar('\n', 2);
-  }
-
-  void repeatChar(const char c, const size_t reps) const {
-    for (size_t i = 0; i < reps; i++)
-      output << c;
-  }
-
-  mlir::Block &getModuleBody(){
+  mlir::Block &getModuleBody() {
     return theModule.getOperation()->getRegion(0).front();
   }
+};
 
-  void processConstantOp(ConstantOp &constantOp){
-    auto id = constantOp.id().str();
-    auto val = constantOp.val();
-    // Make some sort of constant op in murphi
+struct ConstDecl {
+  std::string id;
+  size_t value;
+};
 
-    murphi::MurphiConstantTemplate murphiConstTemplate(id, val);
+void to_json(json &j, const ConstDecl &c) {
+  j = {{"id", c.id}, {"value", c.value}};
+}
+
+
+
+json emitNetworkDefinitionJson(){
+  auto ord_type_name = std::string(ObjKey) + ordered;
+  auto ord_type_count_name = std::string(ObjKey) + ordered_cnt;
+  auto un_ord_type_name = std::string(ObjKey) + unordered;
+  json j = {
+        {
+            {"id", ord_type_name},
+            {"typeId", "array"},
+            {"type", {
+                         {"index", {
+                                        {"typeId", "ID"},
+                                        {"type", k_machines}
+                                   }},
+                         {"type", {
+                                    {"typeId", "array"},
+                                    {"type", {
+                                                 {"index", {
+                                                              {"typeId", "sub_range"},
+                                                              {"type", {
+                                                                           {"start", 0},
+                                                                           {"stop", std::string(c_ordered) + "-1"}
+                                                                       }}
+                                                          }},
+                                                 {"type", {
+                                                             {"typeId", "ID"},
+                                                             {"type", r_message}
+                                                           }}
+                                             }
+                                    }
+
+
+                                   }}
+                     }}
+      },
+      {
+          {"id", ord_type_count_name},
+          {"typeId", "array"},
+          {"type", {
+                       {"index", {
+                                     {"typeId", "ID"},
+                                     {"type", k_machines}
+                                 }},
+                       {"type", {
+                                    {"typeId", "sub_range"},
+                                    {"type", {
+                                                 {"start", 0},
+                                                 {"stop", c_unordered}
+                                             }}
+
+                                }}
+                   }}
+      },
+      {
+          {"id", un_ord_type_name},
+          {"typeId", "array"},
+          {"type", {
+                       {"index", {
+                                     {"typeId", "ID"},
+                                     {"type", k_machines}
+                                 }
+                        },
+                       {"type", {
+                                    {"typeId", "multiset"},
+                                    {"type", {
+                                                 {"index", {
+                                                               {"typeId", "ID"},
+                                                               {"type", c_ordered}
+                                                           }},
+                                                 {"type", {
+                                                              {"typeId", "ID"},
+                                                              {"type", r_message}
+                                                          }}
+                                             }}
+                                }}
+                   }}
+      }
+  };
+  return j;
+}
+
+class MurphiTranslateImpl {
+public:
+  MurphiTranslateImpl(mlir::ModuleOp op, mlir::raw_ostream &output)
+      : moduleInterpreter{ModuleInterpreter{op}}, output{output} {}
+
+  mlir::LogicalResult translate() {
+    generateConstants();
+    generateTypes();
+    return render();
   }
+
+  void generateConstants() {
+    // add the defined constants
+    for (auto constantOp : moduleInterpreter.getConstants()) {
+      data["decls"]["const_decls"].push_back(
+          ConstDecl{constantOp.id().str(), constantOp.val()});
+    }
+
+    // boilerplate constants
+    data["decls"]["const_decls"].push_back(ConstDecl{c_val_cnt_id, c_val_max});
+    data["decls"]["const_decls"].push_back(ConstDecl{c_adr_cnt_id, c_adr_cnt});
+    data["decls"]["const_decls"].push_back(
+        ConstDecl{c_ordered, c_ordered_size});
+    data["decls"]["const_-decls"].push_back(
+        ConstDecl{c_unordered, c_unordered_size});
+  }
+
+  void generateTypes() { generateNetworkObjects(); }
+
+  void generateNetworkObjects() {
+    for(const auto &type : emitNetworkDefinitionJson()){
+      data["decls"]["type_decls"].push_back(type);
+    }
+  }
+
+  mlir::LogicalResult render() {
+    auto &env = InjaEnvSingleton::getInstance();
+    auto tmpl = env.parse_template("murphi_base.tmpl");
+    auto result = env.render(tmpl, data);
+    output << result;
+    return mlir::success();
+  }
+
+private:
+  ModuleInterpreter moduleInterpreter;
+  mlir::raw_ostream &output;
+  json data;
 };
 
 } // namespace
@@ -67,7 +235,7 @@ private:
 namespace mlir {
 void registerToMurphiTranslation() {
   mlir::TranslateFromMLIRRegistration registration(
-      "pcc-to-murphi",
+      "mlir-to-murphi",
       [](mlir::ModuleOp op, mlir::raw_ostream &output) {
         MurphiTranslateImpl murphiTranslate(op, output);
         return murphiTranslate.translate();
