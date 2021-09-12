@@ -1,5 +1,9 @@
 enum {
 {% for decl in decls %}
+    {% if loop/is_last %}
     {{ decl }}
+    {% else %}
+    {{ decl }},
+    {% endif %}
 {% endfor %}
 }

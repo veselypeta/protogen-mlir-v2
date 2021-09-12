@@ -17,6 +17,8 @@ using namespace inja;
  * Some useful constants to have for compiling murphi
  */
 
+constexpr char state_suffix[] = "_state";
+
 // *** CONST *** //
 constexpr char c_val_cnt_id[] = "VAL_COUNT";
 constexpr size_t c_val_max = 1;
@@ -41,6 +43,10 @@ constexpr char unordered[] = "Unordered";
 constexpr char k_u_network[] = "unet_";
 
 // *** Enum Keywords **** //
+constexpr char k_access[] = "Access";
+constexpr char k_message_type[] = "MessageType";
+constexpr char k_address[] = "Address";
+constexpr char k_cache_val[] = "ClValue";
 constexpr char k_machines[] = "Machines";
 
 // *** Record Keywords *** //
@@ -83,6 +89,25 @@ public:
     return networks;
   }
 
+  //FIXME - stub implementation
+  std::vector<std::string> getEnumMessageTypes(){
+    return {"Get_M", "Fwd_Get_M", "GetM_Ack_D"};
+  }
+
+  // FIXME - stub implementation
+  std::vector<std::string> getEnumMachineStates(std::string &mach){
+    std::vector<std::string> states = {"I", "M", "I_load", "M_evict"};
+    std::for_each(states.begin(), states.end(), [&mach](auto &state){
+      state = mach + "_" + state;
+    });
+    return states;
+  }
+
+  // FIXME - stub implementation
+  std::vector<std::string> getMachineKeys(){
+    return {"cache", "directory"};
+  }
+
 private:
   mlir::ModuleOp theModule;
   mlir::Block &getModuleBody() {
@@ -99,7 +124,20 @@ void to_json(json &j, const ConstDecl &c) {
   j = {{"id", c.id}, {"value", c.value}};
 }
 
+struct Enum {
+  std::string id;
+  std::vector<std::string> elems;
+};
 
+void to_json(json &j, const Enum &c) {
+  j = {
+      {"id", c.id},
+      {"typeId", "enum"},
+      {"type", {
+                   {"decls", c.elems}
+               }}
+      };
+}
 
 json emitNetworkDefinitionJson(){
   auto ord_type_name = std::string(ObjKey) + ordered;
@@ -208,7 +246,25 @@ public:
         ConstDecl{c_unordered, c_unordered_size});
   }
 
-  void generateTypes() { generateNetworkObjects(); }
+  void generateTypes() {
+    generateEnums();
+    generateNetworkObjects();
+  }
+
+  void generateEnums() {
+    // access enum
+    data["decls"]["type_decls"].push_back(
+        Enum{k_access, {"none", "load", "store"}});
+    // messages enum
+    data["decls"]["type_decls"].push_back(
+        Enum{k_message_type, moduleInterpreter.getEnumMessageTypes()});
+    // machines states
+    for(auto &mach : moduleInterpreter.getMachineKeys()){
+      data["decls"]["type_decls"].push_back(
+          Enum{mach + state_suffix, moduleInterpreter.getEnumMachineStates(mach)}
+          );
+    }
+  }
 
   void generateNetworkObjects() {
     for(const auto &type : emitNetworkDefinitionJson()){
