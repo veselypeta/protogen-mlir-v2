@@ -17,3 +17,6 @@
 {% if typeId == "multiset" %}
     {{- render_template("multiset_type.tmpl", type) -}}
 {% endif %}
+{% if typeId == "scalarset" %}
+    {{- render_template("scalarset_type.tmpl", type) -}}
+{% endif %}

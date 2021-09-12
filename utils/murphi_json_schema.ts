@@ -25,7 +25,7 @@ type Decl = ConstDecl | TypeDecl | VarDecl;
 
 // ***** TYPES ***** //
 
-type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset";
+type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset" | "scalarset";
 interface Record {
     decls:[
         {
@@ -42,8 +42,8 @@ interface Enum {
 
 // TODO - subranges should support expr for start/stop
 interface IntegerSubRange {
-    start: number;
-    stop: number;
+    start: number | string;
+    stop: number | string;
 }
 
 interface MurphiArray {
@@ -56,8 +56,12 @@ interface MultisetType {
     type: TypeDescription;
 }
 
+interface ScalarsetType {
+    type: string;
+}
+
 type ID = string;
-type MurphiType = Record | Enum | IntegerSubRange | MurphiArray | ID | MultisetType;
+type MurphiType = Record | Enum | IntegerSubRange | MurphiArray | ID | MultisetType | ScalarsetType;
 
 
 // ***** METHODS ***** //
