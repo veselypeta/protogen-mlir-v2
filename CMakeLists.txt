@@ -18,7 +18,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 set(MLIR_DIR ${PROJECT_SOURCE_DIR}/llvm-project/build/lib/cmake/mlir)
 set(LLVM_DIR ${PROJECT_SOURCE_DIR}/llvm-project/build/lib/cmake/llvm)
-set(LLVM_EXTERNAL_LIT ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/bin/llvm-lit)
+if(NOT DEFINED LLVM_EXTERNAL_LIT)
+    set(LLVM_EXTERNAL_LIT ${PROJECT_SOURCE_DIR}/llvm-project/llvm/build/bin/llvm-lit)
+endif()
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
