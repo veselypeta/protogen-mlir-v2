@@ -12,6 +12,11 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        with:
+          # ninja version to download. Default: 1.10.0
+          version: 1.10.0
       - name: Get Template Code
         uses: actions/checkout@v2
         with:
@@ -32,7 +37,6 @@ jobs:
           cmake  --build $GITHUB_WORKSPACE/llvm-project/build
 
       - name: Release Build
-        uses: seanmiddleditch/gha-setup-ninja@master
         run: |
           mkdir $GITHUB_WORKSPACE/build
           cd $GITHUB_WORKSPACE/build
