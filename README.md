@@ -1,23 +1,37 @@
 # ProtoGen-MLIR-V2
 
-## Build and Run
-
-To build this project you first need to build `llvm` and `murphi-lib`, which are included as submodules.
-```
-$ git clone https://github.com/veselypeta/protogen-mlir-v2.git
-$ cd protogen-mlir-v2
-$ git submodule init
-$ git submodule update
-```
-
-Requirements
+##Requirements
 - `Git`
 - `CMake`
 - `Ninja`
 - `clang`
+- `lld`
 - `uuid-dev`
 
-Begin each step from within the project root directory
+On Ubuntu you can install all dependencies with the following:
+```zsh
+sudo apt-get install -y git cmake ninja-build clang lld uuid-dev
+```
+
+
+## Build and Run
+
+To build this project you first need to build `llvm`, which is included as a submodule.
+Follow the instructions to clone and set up the repository.
+```zsh
+git clone https://github.com/veselypeta/protogen-mlir-v2.git
+```
+```zsh
+cd protogen-mlir-v2
+```
+```zsh
+git submodule init
+```
+```zsh
+git submodule update
+```
+
+*Begin each step from within the project root directory*
 
 ### Step 1 - Build LLVM
 ```zsh 
@@ -34,6 +48,7 @@ cmake -G Ninja ../llvm \
   -DLLVM_ENABLE_RTTI=ON \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_CXX_COMPILER=clang++ \
+  -DLLVM_ENABLE_LLD=ON \
   -DLLVM_INSTALL_UTILS=ON \
   -DLLVM_BUILD_EXAMPLES=OFF \
   -DLLVM_INCLUDE_TESTS=OFF
@@ -43,6 +58,8 @@ cmake -G Ninja ../llvm \
 cmake --build .
 ```
 
+Note: Building LLVM will take a long time (~30 min) and is quite heavy on resources. I recommend that you use a minimum 4-core modern
+CPU and at least 16 GB of RAM.
 
 ### Step 2 - Build ProtoGen-MLIR-V2
 
@@ -57,4 +74,5 @@ cmake -G Ninja .. -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=DEBUG
 ```zsh 
 cmake --build .
 ```
-Note: This step may fail, but running again will usually succeed. This is caused by the codegen for ANTLR4 not completing before the compilation of generated files.
+Note: a clean build will take a while to complete (~5 min), it needs to download and compile the ANTLR4 cpp runtime.
+However, incremental builds are much faster.

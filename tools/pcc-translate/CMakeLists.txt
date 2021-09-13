@@ -8,8 +8,6 @@ get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 add_llvm_executable(pcc-translate
         pcc-translate.cpp
         TranslatePCCToMLIR.cpp
-        DEPENDS
-        protocc-dep
         )
 
 llvm_update_compile_flags(pcc-translate)

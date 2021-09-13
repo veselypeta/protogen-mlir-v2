@@ -9,7 +9,7 @@ add_mlir_dialect_library(
 
         DEPENDS
         MLIRPCCIncGen
-        protocc-dep
+        protocc-antlr4
 
 
         LINK_LIBS PUBLIC MLIRIR
