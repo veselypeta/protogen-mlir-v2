@@ -78,11 +78,6 @@ add_dependencies(protocc-antlr4 protocc-dep)
 
 # --- END ANTLR
 
-# murphi-lib
-add_subdirectory(murphi-lib)
-find_package(murphi-lib)
-include_directories(murphi-lib/include)
-
 # fmt library
 add_subdirectory(fmt)
 find_package(fmt)
