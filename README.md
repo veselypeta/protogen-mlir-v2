@@ -44,19 +44,7 @@ cmake --build .
 ```
 
 
-### Step 2 - Build murphi-lib
-```zsh 
-cd murphi-lib && mkdir build && cd build
-```
-```zsh 
-cmake -G Ninja ..
-```
-```zsh 
-cmake --build .
-```
-
-
-### Step 3 - Build ProtoGen-MLIR-V2
+### Step 2 - Build ProtoGen-MLIR-V2
 
 ```zsh 
 mkdir build && cd build
