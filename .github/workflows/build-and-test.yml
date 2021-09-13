@@ -14,8 +14,8 @@ jobs:
     steps:
       - name: Get Template Code
         uses: actions/checkout@v2
-          with: 
-            submodules: recursive
+        with:
+          submodules: recursive
       - name: Cache LLVM
         id: cache-llvm
         uses: actions/cache@v2
@@ -24,7 +24,7 @@ jobs:
           key: ${{ runner.os }}-llvm-install-${{ env.LLVM_COMMIT }}
       - name: Build LLVM
         if: steps.cache-llvm.outputs.cache-hit != 'true'
-        - uses: seanmiddleditch/gha-setup-ninja@master
+        uses: seanmiddleditch/gha-setup-ninja@master
         run: |
           mkdir $GITHUB_WORKSPACE/llvm-project/build
           cd $GITHUB_WORKSPACE/llvm-project/build
@@ -32,7 +32,7 @@ jobs:
           cmake  --build $GITHUB_WORKSPACE/llvm-project/build
 
       - name: Release Build
-        - uses: seanmiddleditch/gha-setup-ninja@master
+        uses: seanmiddleditch/gha-setup-ninja@master
         run: |
           mkdir $GITHUB_WORKSPACE/build
           cd $GITHUB_WORKSPACE/build
