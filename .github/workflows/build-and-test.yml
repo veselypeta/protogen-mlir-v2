@@ -1,0 +1,40 @@
+name: Build and test
+
+on: [push, pull_request]
+
+env:
+  LLVM_COMMIT: fed41342a82f5a3a9201819a82bf7a48313e296b
+  LLVM_CMAKE_FLAGS: '-DLLVM_ENABLE_PROJECTS=mlir -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLLVM_ENABLE_LLD=ON -DLLVM_INSTALL_UTILS=ON -DLLVM_BUILD_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF'
+  CMAKE_FLAGS: '-DCMAKE_LINKER=lld -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=DEBUG'
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Template Code
+        uses: actions/checkout@v2
+          with: 
+            submodules: recursive
+      - name: Cache LLVM
+        id: cache-llvm
+        uses: actions/cache@v2
+        with:
+          path: llvm-project
+          key: ${{ runner.os }}-llvm-install-${{ env.LLVM_COMMIT }}
+      - name: Build LLVM
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        - uses: seanmiddleditch/gha-setup-ninja@master
+        run: |
+          mkdir $GITHUB_WORKSPACE/llvm-project/build
+          cd $GITHUB_WORKSPACE/llvm-project/build
+          cmake -G Ninja $GITHUB_WORKSPACE/llvm-project/llvm ${{env.LLVM_CMAKE_FLAGS }}
+          cmake  --build $GITHUB_WORKSPACE/llvm-project/build
+
+      - name: Release Build
+        - uses: seanmiddleditch/gha-setup-ninja@master
+        run: |
+          mkdir $GITHUB_WORKSPACE/build
+          cd $GITHUB_WORKSPACE/build
+          cmake -G Ninja $GITHUB_WORKSPACE ${{ env.CMAKE_FLAGS }}
+          cmake --build $GITHUB_WORKSPACE/build
