@@ -1,6 +1,6 @@
 # ProtoGen-MLIR-V2
 
-##Requirements
+## Requirements
 - `Git`
 - `CMake`
 - `Ninja`
