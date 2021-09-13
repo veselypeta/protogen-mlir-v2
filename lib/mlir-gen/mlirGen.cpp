@@ -77,9 +77,9 @@ private:
 
   // return an mlir::Location object for builder operations
   mlir::Location loc(const antlr4::Token &tok) const {
-    return mlir::FileLineColLoc::get(builder.getContext(), filename,
-                                     tok.getLine(),
-                                     tok.getCharPositionInLine());
+    return mlir::FileLineColLoc::get(filename, tok.getLine(),
+                                     tok.getCharPositionInLine(),
+                                     builder.getContext());
   }
 
   mlir::Location loc(antlr4::tree::TerminalNode &terminal) const {

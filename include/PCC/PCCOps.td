@@ -25,7 +25,7 @@ def ConstantOp : PCC_Op<"constant"> {
     let assemblyFormat = [{attr-dict `:` type($result)}];
 
     let builders = [
-            OpBuilder<(ins "std::string":$id, "int64_t":$value), [{
+            OpBuilderDAG<(ins "std::string":$id, "int64_t":$value), [{
                 build($_builder,
                       $_state,
                       $_builder.getI64Type(),
@@ -61,6 +61,12 @@ def ProcessOp : PCC_Op<"process", [FunctionLike]>{
     let arguments = (ins SymbolNameAttr:$sym_name, TypeAttr:$type);
     // Single region with entry block
     let regions = (region AnyRegion:$body);
+
+    let builders = [OpBuilderDAG<(ins
+                    "StringRef":$name, "FunctionType":$type,
+                    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+                    CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)
+  >];
 
     let extraClassDeclaration = [{
 //        static ProcessOp create(Location loc, ProcessType type);

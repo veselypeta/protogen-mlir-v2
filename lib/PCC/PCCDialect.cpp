@@ -1,4 +1,5 @@
 #include "PCC/PCCOps.h"
+#include <mlir/IR/SymbolTable.h>
 
 using namespace mlir;
 using namespace mlir::pcc;
@@ -14,6 +15,24 @@ void PCCDialect::initialize() {
 //===----------------------------------------------------------------------===//
 // ProcessOp
 //===----------------------------------------------------------------------===//
+
+void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
+                   FunctionType type, ArrayRef<NamedAttribute> attrs,
+                   ArrayRef<DictionaryAttr> argAttrs) {
+  state.addAttribute(SymbolTable::getSymbolAttrName(),
+                     builder.getStringAttr(name));
+  state.addAttribute(getTypeAttrName(), TypeAttr::get(type));
+  state.attributes.append(attrs.begin(), attrs.end());
+  state.addRegion();
+
+  if (argAttrs.empty())
+    return;
+  assert(type.getNumInputs() == argAttrs.size());
+  SmallString<8> argAttrName;
+  for (unsigned i = 0, e = type.getNumInputs(); i != e; ++i)
+    if (DictionaryAttr argDict = argAttrs[i])
+      state.addAttribute(getArgAttrName(i, argAttrName), argDict);
+}
 
 //ProcessOp ProcessOp::create(Location location, ProcessType type) {
 //  OperationState state(location, "proc");
