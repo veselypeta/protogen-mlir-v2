@@ -1,5 +1,4 @@
 #include "translation/utils/murphi-utils.h"
-#include "translation/murphi/MurphiCodeGen.h"
 
 namespace murphi {
 namespace utils {
@@ -32,26 +31,6 @@ std::string indentAllLines(const std::string &str) {
     rv += "\t" + line + "\n";
   }
   return rv;
-}
-
-murphi::MurphiProcedureTemplate
-make_cache_message_handler_procedure(std::string &procIdent) {
-  murphi::MurphiProcedureTemplate proc(procIdent);
-  const std::string defaultInMsgParam = "inmsg : Message";
-  const std::string defaultMachineParam = "cache : OBJSET_cache";
-  const std::string defaultMsgFwdDecl = "var msg : Message;";
-
-  // add the parameters
-  proc.addParameter(defaultInMsgParam);
-  proc.addParameter(defaultMachineParam);
-
-  // add the fwd decl
-  proc.addForwardDeclaration(defaultMsgFwdDecl);
-
-  // TODO - setup the aliases for the function
-  // TODO - have an easy entrypoint for the consumer to add statements
-
-  return proc;
 }
 
 bool isWhitespace(unsigned char c) {

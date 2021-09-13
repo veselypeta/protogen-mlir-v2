@@ -78,11 +78,6 @@ add_dependencies(protocc-antlr4 protocc-dep)
 
 # --- END ANTLR
 
-# fmt library
-add_subdirectory(fmt)
-find_package(fmt)
-include_directories(fmt/include)
-
 
 add_subdirectory(include)
 add_subdirectory(lib)

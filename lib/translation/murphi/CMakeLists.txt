@@ -1,6 +1,5 @@
 add_mlir_dialect_library(trans-murphi
         TranslatePCCToMurphi.cpp
-        MurphiCodeGen.cpp
         codegen/InjaEnvSingleton.cpp
 
         ADDITIONAL_HEADER_DIRS
@@ -11,4 +10,4 @@ add_mlir_dialect_library(trans-murphi
         translation-utils
         )
 
-target_link_libraries(trans-murphi PUBLIC MLIRIR fmt::fmt)
+target_link_libraries(trans-murphi PUBLIC MLIRIR)
