@@ -30,12 +30,12 @@ jobs:
         run: |
           mkdir $GITHUB_WORKSPACE/llvm-project/build
           cd $GITHUB_WORKSPACE/llvm-project/build
-          cmake $GITHUB_WORKSPACE/llvm-project/llvm ${{env.LLVM_CMAKE_FLAGS }}
-          cmake -G Ninja --build $GITHUB_WORKSPACE/llvm-project/build
+          cmake -G Ninja $GITHUB_WORKSPACE/llvm-project/llvm ${{env.LLVM_CMAKE_FLAGS }}
+          cmake --build $GITHUB_WORKSPACE/llvm-project/build
 
       - name: Release Build
         run: |
           mkdir $GITHUB_WORKSPACE/build
           cd $GITHUB_WORKSPACE/build
-          cmake $GITHUB_WORKSPACE ${{ env.CMAKE_FLAGS }}
-          cmake -G Ninja --build $GITHUB_WORKSPACE/build
+          cmake -G Ninja $GITHUB_WORKSPACE ${{ env.CMAKE_FLAGS }}
+          cmake --build $GITHUB_WORKSPACE/build
