@@ -76,3 +76,12 @@ cmake --build .
 ```
 Note: a clean build will take a while to complete (~5 min), it needs to download and compile the ANTLR4 cpp runtime.
 However, incremental builds are much faster.
+
+## Tests
+To run all tests
+```zsh
+cd build/test
+```
+```asm
+ctest
+```

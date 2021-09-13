@@ -40,6 +40,5 @@ TEST(TypeDeclTemplate, RecordType) {
 
   // regex tests
   std::regex re(R"(type\s*\w+\s*:\s*record\s+(\w+\s*:\s*\w+;\s*)+end;\s*)");
-  ASSERT_STREQ("", result.c_str());
   ASSERT_TRUE(std::regex_match(result, re));
 }

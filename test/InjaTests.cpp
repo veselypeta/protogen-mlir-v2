@@ -111,10 +111,9 @@ TEST(InjaSuite, TemplateInheritance) {
 
   Template tmp = env.parse_template("murphi_base.tmpl");
   json data;
-  data["const_decls"].push_back({{"id", "NrCaches"}, {"value", 3}});
-  data["const_decls"].push_back({{"id", "ValCount"}, {"value", 6}});
+  data["decls"]["const_decls"].push_back({{"id", "NrCaches"}, {"value", 3}});
+  data["decls"]["const_decls"].push_back({{"id", "ValCount"}, {"value", 6}});
   auto result = env.render(tmp, data);
-
   ASSERT_NE(result.find("NrCaches : 3;"), std::string::npos);
   ASSERT_NE(result.find("ValCount : 6;"), std::string::npos);
 }
@@ -125,7 +124,7 @@ TEST(InjaSuite, IncludeOnTypeId) {
   Template tmp = env.parse_template("murphi_base.tmpl");
 
   json data;
-  data["type_decls"].push_back(
+  data["decls"]["type_decls"].push_back(
       {{"typeId", "record"}, {"id", "Message"}, {"type", getMessageType()}});
   std::string result = env.render(tmp, data);
 
