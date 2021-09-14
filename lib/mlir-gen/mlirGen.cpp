@@ -361,8 +361,7 @@ private:
     std::string constRef = ctx->ID()->getText();
     mlir::Value valRef = lookup(constRef);
     // we know this must have come from a ConstantOp
-    auto constOp =
-        static_cast<mlir::pcc::ConstantOp>(valRef.getDefiningOp());
+    auto constOp = static_cast<mlir::pcc::ConstantOp>(valRef.getDefiningOp());
     return constOp.val();
   }
 
@@ -376,10 +375,18 @@ private:
       auto cacheBlckCtx = ctx->cache_block();
       std::string cacheIdent = cacheBlckCtx->ID()->getText();
       mlir::Location cacheLoc = loc(*cacheBlckCtx->ID()->getSymbol());
+
+      std::vector<mlir::NamedAttribute> namedAttrs;
+      // construct a map for each type in the cache definition i.e. State I
       std::map<std::string, mlir::Type> cacheTypeMap;
       for (auto cacheDecl : cacheBlckCtx->declarations()) {
         auto declPair = mlirTypeGen(cacheDecl);
+        // Named Attribute Pair i.e. { cl : !pcc.data }
+        std::pair<mlir::Identifier, mlir::TypeAttr> namedAttrPair = {
+            mlir::Identifier::get(declPair.first, builder.getContext()),
+            mlir::TypeAttr::get(declPair.second)};
         cacheTypeMap.insert(declPair);
+        namedAttrs.emplace_back(namedAttrPair);
       }
       // insert into the global map
       machMap.insert({cacheIdent, cacheTypeMap});
@@ -392,31 +399,49 @@ private:
         size_t setSize =
             getIntFromValRange(cacheBlckCtx->objset_decl()->val_range());
         auto cacheSetType = mlir::pcc::SetType::get(cacheStruct, setSize);
-        auto fooOp = builder.create<mlir::pcc::FooOp>(cacheLoc, cacheSetType);
-        return declare(cacheIdent, fooOp);
+        mlir::pcc::CacheDeclOp cacheDeclOp =
+            builder.create<mlir::pcc::CacheDeclOp>(cacheLoc, cacheIdent,
+                                                   cacheSetType, namedAttrs);
+        return declare(cacheIdent, cacheDeclOp);
       }
-      return mlir::success();
+      // no set declaration
+      mlir::pcc::CacheDeclOp cacheDeclOp =
+          builder.create<mlir::pcc::CacheDeclOp>(cacheLoc, cacheIdent,
+                                                 cacheStruct, namedAttrs);
+      return declare(cacheIdent, cacheDeclOp);
     }
     if (ctx->dir_block()) {
       auto dirBlockCtx = ctx->dir_block();
       std::string dirId = dirBlockCtx->ID()->getText();
       mlir::Location dirLoc = loc(*dirBlockCtx->ID()->getSymbol());
+
       if (!dirBlockCtx->objset_decl().empty())
         assert(0 && "currently set of directory decl is not supported");
+
+      std::vector<mlir::NamedAttribute> namedAttrsVec;
+      // Type map for directory i.e. ID owner;
       std::map<std::string, mlir::Type> dirTypeMap;
       for (auto dirDecl : dirBlockCtx->declarations()) {
         auto declPair = mlirTypeGen(dirDecl);
+        std::pair<mlir::Identifier, mlir::TypeAttr> namedAttr = {
+            mlir::Identifier::get(declPair.first, builder.getContext()),
+            mlir::TypeAttr::get(declPair.second)};
         dirTypeMap.insert(declPair);
+        namedAttrsVec.emplace_back(namedAttr);
       }
       machMap.insert(std::make_pair(dirId, dirTypeMap));
       std::vector<mlir::Type> elemTypes =
           getElemTypesFromMap(dirTypeMap, false);
       mlir::pcc::StructType dirStruct = mlir::pcc::StructType::get(elemTypes);
       // TODO - generate the correct supporting operation
-      builder.create<mlir::pcc::FooOp>(dirLoc, dirStruct);
+      mlir::pcc::DirectoryDeclOp dirDecl =
+          builder.create<mlir::pcc::DirectoryDeclOp>(dirLoc, dirId, dirStruct,
+                                                     namedAttrsVec);
       return mlir::success();
     }
-    assert(0 && "machine type block not supported!");
+    // fail if not cache or directory
+    assert(0 &&
+           "machine types other than (cache or directory) are not supported!");
   }
 
   // MLIR generate for architecture blocks

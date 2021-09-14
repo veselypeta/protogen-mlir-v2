@@ -3,4 +3,5 @@ module {
       %1 = pcc.net_decl {netId = "fwd"} : !pcc.network<ordered>
       %2 = pcc.net_decl {netId = "resp"} : !pcc.network<unordered>
       %3 = pcc.net_decl {netId = "req"} : !pcc.network<unordered>
+      %4 = pcc.cache_decl {id = "cache", fields=["State", "cl", "owner"]} : !pcc.set<!pcc.struct<!pcc.state<I>, !pcc.id, !pcc.data>, 3>
 }

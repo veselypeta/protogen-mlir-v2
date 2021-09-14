@@ -17,8 +17,8 @@ void PCCDialect::initialize() {
 //===----------------------------------------------------------------------===//
 
 void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
-                   FunctionType type, ArrayRef<NamedAttribute> attrs,
-                   ArrayRef<DictionaryAttr> argAttrs) {
+                      FunctionType type, ArrayRef<NamedAttribute> attrs,
+                      ArrayRef<DictionaryAttr> argAttrs) {
   state.addAttribute(SymbolTable::getSymbolAttrName(),
                      builder.getStringAttr(name));
   state.addAttribute(getTypeAttrName(), TypeAttr::get(type));
@@ -34,10 +34,34 @@ void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
       state.addAttribute(getArgAttrName(i, argAttrName), argDict);
 }
 
-//ProcessOp ProcessOp::create(Location location, ProcessType type) {
-//  OperationState state(location, "proc");
-//  OpBuilder builder(location->getContext());
-//  ProcessOp::build(builder, state, "no-name-assigned",
-//                   type);
-//  return llvm::cast<ProcessOp>(Operation::create(state));
-//}
+// ProcessOp ProcessOp::create(Location location, ProcessType type) {
+//   OperationState state(location, "proc");
+//   OpBuilder builder(location->getContext());
+//   ProcessOp::build(builder, state, "no-name-assigned",
+//                    type);
+//   return llvm::cast<ProcessOp>(Operation::create(state));
+// }
+
+//===----------------------------------------------------------------------===//
+// CacheDeclOp
+//===----------------------------------------------------------------------===//
+void CacheDeclOp::build(::mlir::OpBuilder &odsBuilder,
+                        ::mlir::OperationState &odsState, StringRef cacheId,
+                        Type type, ArrayRef<NamedAttribute> attrs) {
+  // FIXME - the use of "id" here is dangerous since if changed id TableGen will break here
+  odsState.addAttribute("id", odsBuilder.getStringAttr(cacheId));
+  odsState.addTypes(type);
+  odsState.attributes.append(attrs.begin(), attrs.end());
+}
+
+//===----------------------------------------------------------------------===//
+// DirectoryDeclOp
+//===----------------------------------------------------------------------===//
+void DirectoryDeclOp::build(::mlir::OpBuilder &odsBuilder,
+                        ::mlir::OperationState &odsState, StringRef dirId,
+                        Type type, ArrayRef<NamedAttribute> attrs) {
+  // FIXME - the use of "id" here is dangerous since if changed id TableGen will break here
+  odsState.addAttribute("id", odsBuilder.getStringAttr(dirId));
+  odsState.addTypes(type);
+  odsState.attributes.append(attrs.begin(), attrs.end());
+}

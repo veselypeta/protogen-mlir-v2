@@ -52,6 +52,56 @@ def NetDeclOp : PCC_Op<"net_decl">{
     // TODO -- add builder to allow for easy Op construction
 }
 
+def CacheDeclOp : PCC_Op<"cache_decl">{
+    let summary = "Declare the global type of a the cache(s)";
+    let description = [{
+        Declare the cache object types field field ids. Returns a SSA value which can be used in
+        other operations.
+    }];
+    let arguments = (ins SymbolNameAttr:$id);
+    let results = (outs PCCType:$result);
+    let assemblyFormat = [{
+        attr-dict `:` type($result)
+    }];
+
+    let builders = [OpBuilderDAG<(ins
+                    "StringRef":$cacheId,
+                    "Type":$type,
+                    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs
+                    )>];
+    let extraClassDeclaration = [{
+        TypeAttr getFieldAttr(llvm::StringRef name){
+            bool hasAttr = getOperation()->hasAttr(name);
+            assert(hasAttr && "The cache does not posses a field with this attribute");
+            return getOperation()->getAttr(name).dyn_cast<mlir::TypeAttr>();
+        }
+    }];
+}
+
+def DirectoryDeclOp : PCC_Op<"directory_decl">{
+    let summary = "Declare a directory global type declaration";
+    let description = [{
+        Declare the directory global object which can be used by behavioural implementations.
+    }];
+    let arguments = (ins SymbolNameAttr:$id);
+    let results = (outs PCCType:$result);
+    let assemblyFormat = [{
+        attr-dict `:` type($result)
+    }];
+
+    let builders = [OpBuilderDAG<(ins "StringRef":$dirId,
+                    "Type":$type,
+                    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)
+                            >];
+    let extraClassDeclaration = [{
+        TypeAttr getFieldAttr(llvm::StringRef name){
+            bool hasAttr = getOperation()->hasAttr(name);
+            assert(hasAttr && "The directory does not posses a field with this attribute");
+            return getOperation()->getAttr(name).dyn_cast<mlir::TypeAttr>();
+        }
+    }];
+}
+
 def ProcessOp : PCC_Op<"process", [FunctionLike]>{
     let summary = "Process handler operations";
     let description = "A Op which represents a particular action and events to be triggered on a cache or directory";
