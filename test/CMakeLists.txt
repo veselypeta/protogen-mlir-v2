@@ -6,7 +6,6 @@ add_executable(protogen-mlir-test
         InjaTests.cpp
         # codegen tests
         codegen/InjaEnvSingletonTests.cpp
-        codegen/MessageConstructorTemplateTests.cpp
         codegen/ConstDeclTemplateTests.cpp
         codegen/TypeDeclTemplateTests.cpp
         codegen/EnumTypeTests.cpp

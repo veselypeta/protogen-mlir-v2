@@ -1,8 +1,8 @@
-#include "translation/utils/murphi-utils.h"
+#include "translation/utils/utils.h"
 #include <gtest/gtest.h>
 
-using namespace murphi;
-using namespace murphi::utils;
+using namespace translation;
+using namespace translation::utils;
 
 TEST(MurphiTemplateTests, IndentLines) {
   std::string testString = "line one\nline two\nline three\n";

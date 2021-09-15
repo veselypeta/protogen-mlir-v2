@@ -3,7 +3,7 @@
 #include <string>
 #include <numeric>
 
-namespace murphi{
+namespace translation {
 namespace utils{
 
 std::vector<std::string> splitString(const std::string &str, char delim);

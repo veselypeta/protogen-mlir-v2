@@ -1,6 +1,6 @@
-#include "translation/utils/murphi-utils.h"
+#include "translation/utils/utils.h"
 
-namespace murphi {
+namespace translation {
 namespace utils {
 
 std::vector<std::string> splitString(const std::string &str, char delim) {

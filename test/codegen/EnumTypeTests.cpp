@@ -1,5 +1,5 @@
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
-#include "translation/utils/murphi-utils.h"
+#include "translation/utils/utils.h"
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
 #include <regex>
@@ -16,7 +16,7 @@ TEST(EnumTypeTest, RenderTemplate) {
   const std::regex enum_regex("enum\\{[a-z, A-Z]+(,[a-z, A-Z]+)*\\}");
 
   result.erase(std::remove_if(result.begin(), result.end(),
-                              &murphi::utils::isWhitespace),
+                              &translation::utils::isWhitespace),
                result.end());
   ASSERT_TRUE(std::regex_match(result.c_str(), enum_regex));
   ASSERT_NE(result.find("load"), std::string::npos);
