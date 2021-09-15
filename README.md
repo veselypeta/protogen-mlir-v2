@@ -82,6 +82,6 @@ To run all tests
 ```zsh
 cd build/test
 ```
-```asm
+```zsh
 ctest
 ```

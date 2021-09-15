@@ -6,6 +6,8 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Translation.h"
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
+#include <algorithm>
+#include <iostream>
 
 using namespace mlir::pcc;
 
@@ -64,15 +66,14 @@ constexpr char c_cle[] = "cle";
 constexpr char c_dle[] = "dle";
 constexpr char c_inmsg[] = "inmsg";
 
-const std::array<std::pair<std::string, std::string>, 4> BaseMsg {
+const std::array<std::pair<std::string, std::string>, 4> BaseMsg{
     std::make_pair(c_adr, k_address), // target address
-    {c_mtype, k_message_type}, // message type
-    {c_src, k_machines}, // source
-    {c_dst, k_machines} // destination
+    {c_mtype, k_message_type},        // message type
+    {c_src, k_machines},              // source
+    {c_dst, k_machines}               // destination
 };
 
-const std::vector<std::pair<std::string, std::string>> SuperMsg {};
-
+const std::vector<std::pair<std::string, std::string>> SuperMsg{};
 
 // config parameters
 constexpr size_t c_fifo_max = 1;
@@ -84,6 +85,8 @@ constexpr size_t c_unordered_size = c_adr_cnt * 3 * 2 * 2;
 constexpr struct {
   const llvm::StringRef constant = "pcc.constant";
   const llvm::StringRef net_decl = "pcc.net_decl";
+  const llvm::StringRef cache_decl = "pcc.cache_decl";
+  const llvm::StringRef dir_decl = "pcc.dir_decl";
 } opStringMap;
 
 // a map to each type of machine
@@ -97,38 +100,47 @@ public:
   explicit ModuleInterpreter(mlir::ModuleOp op) : theModule{op} {}
 
   std::vector<mlir::pcc::ConstantOp> getConstants() {
-    std::vector<mlir::pcc::ConstantOp> constants;
+    return getOperations<mlir::pcc::ConstantOp>();
+  }
+
+  template <class T> std::vector<T> getOperations() {
+    std::vector<T> ops;
     for (auto &op : getModuleBody()) {
-      if (op.getName().getIdentifier().strref() == opStringMap.constant) {
-        auto constantOp = mlir::dyn_cast<mlir::pcc::ConstantOp>(op);
-        constants.push_back(constantOp);
+      if (mlir::isa<T>(op)) {
+        ops.push_back(mlir::dyn_cast<T>(op));
       }
     }
-    return constants;
-  }
+    return ops;
+  };
 
   std::vector<mlir::pcc::NetDeclOp> getNetworks() {
-    std::vector<mlir::pcc::NetDeclOp> networks;
-    for (auto &op : getModuleBody()) {
-      if (op.getName().getIdentifier().strref() == opStringMap.net_decl) {
-        auto netOp = mlir::dyn_cast<mlir::pcc::NetDeclOp>(op);
-        networks.push_back(netOp);
-      }
-    }
-    return networks;
+    return getOperations<mlir::pcc::NetDeclOp>();
   }
 
-  //FIXME - stub implementation
-  std::vector<std::string> getEnumMessageTypes(){
+  mlir::pcc::CacheDeclOp getCache() {
+    auto cacheOps = getOperations<mlir::pcc::CacheDeclOp>();
+    assert(cacheOps.size() == 1 &&
+           "found zero or more than one cache decl operations");
+    return cacheOps.at(0);
+  }
+
+  mlir::pcc::DirectoryDeclOp getDirectory() {
+    auto directoryOps = getOperations<mlir::pcc::DirectoryDeclOp>();
+    assert(directoryOps.size() == 1 &&
+           "found zero or more directory decl operations!");
+    return directoryOps.at(0);
+  }
+
+  // FIXME - stub implementation
+  std::vector<std::string> getEnumMessageTypes() {
     return {"Get_M", "Fwd_Get_M", "GetM_Ack_D"};
   }
 
   // FIXME - stub implementation
-  std::vector<std::string> getEnumMachineStates(const std::string &mach){
+  std::vector<std::string> getEnumMachineStates(const std::string &mach) {
     std::vector<std::string> states = {"I", "M", "I_load", "M_evict"};
-    std::for_each(states.begin(), states.end(), [&mach](auto &state){
-      state = mach + "_" + state;
-    });
+    std::for_each(states.begin(), states.end(),
+                  [&mach](auto &state) { state = mach + "_" + state; });
     return states;
   }
 
@@ -158,96 +170,48 @@ struct Enum {
 };
 
 void to_json(json &j, const Enum &c) {
-  j = {
-      {"id", c.id},
-      {"typeId", "enum"},
-      {"type", {
-                   {"decls", c.elems}
-               }}
-      };
+  j = {{"id", c.id}, {"typeId", "enum"}, {"type", {{"decls", c.elems}}}};
 }
 
-json emitNetworkDefinitionJson(){
+json emitNetworkDefinitionJson() {
   auto ord_type_name = std::string(ObjKey) + ordered;
   auto ord_type_count_name = std::string(ObjKey) + ordered_cnt;
   auto un_ord_type_name = std::string(ObjKey) + unordered;
   json j = {
-        {
-            {"id", ord_type_name},
-            {"typeId", "array"},
-            {"type", {
-                         {"index", {
-                                        {"typeId", "ID"},
-                                        {"type", k_machines}
-                                   }},
-                         {"type", {
-                                    {"typeId", "array"},
-                                    {"type", {
-                                                 {"index", {
-                                                              {"typeId", "sub_range"},
-                                                              {"type", {
-                                                                           {"start", 0},
-                                                                           {"stop", std::string(c_ordered) + "-1"}
-                                                                       }}
-                                                          }},
-                                                 {"type", {
-                                                             {"typeId", "ID"},
-                                                             {"type", r_message}
-                                                           }}
-                                             }
-                                    }
+      {{"id", ord_type_name},
+       {"typeId", "array"},
+       {"type",
+        {{"index", {{"typeId", "ID"}, {"type", k_machines}}},
+         {"type",
+          {{"typeId", "array"},
+           {"type",
+            {{"index",
+              {{"typeId", "sub_range"},
+               {"type",
+                {{"start", 0}, {"stop", std::string(c_ordered) + "-1"}}}}},
+             {"type", {{"typeId", "ID"}, {"type", r_message}}}}}
 
+          }}}}},
+      {{"id", ord_type_count_name},
+       {"typeId", "array"},
+       {"type",
+        {{"index", {{"typeId", "ID"}, {"type", k_machines}}},
+         {"type",
+          {{"typeId", "sub_range"},
+           {"type", {{"start", 0}, {"stop", c_unordered}}}
 
-                                   }}
-                     }}
-      },
-      {
-          {"id", ord_type_count_name},
-          {"typeId", "array"},
-          {"type", {
-                       {"index", {
-                                     {"typeId", "ID"},
-                                     {"type", k_machines}
-                                 }},
-                       {"type", {
-                                    {"typeId", "sub_range"},
-                                    {"type", {
-                                                 {"start", 0},
-                                                 {"stop", c_unordered}
-                                             }}
-
-                                }}
-                   }}
-      },
-      {
-          {"id", un_ord_type_name},
-          {"typeId", "array"},
-          {"type", {
-                       {"index", {
-                                     {"typeId", "ID"},
-                                     {"type", k_machines}
-                                 }
-                        },
-                       {"type", {
-                                    {"typeId", "multiset"},
-                                    {"type", {
-                                                 {"index", {
-                                                               {"typeId", "ID"},
-                                                               {"type", c_ordered}
-                                                           }},
-                                                 {"type", {
-                                                              {"typeId", "ID"},
-                                                              {"type", r_message}
-                                                          }}
-                                             }}
-                                }}
-                   }}
-      }
-  };
+          }}}}},
+      {{"id", un_ord_type_name},
+       {"typeId", "array"},
+       {"type",
+        {{"index", {{"typeId", "ID"}, {"type", k_machines}}},
+         {"type",
+          {{"typeId", "multiset"},
+           {"type",
+            {{"index", {{"typeId", "ID"}, {"type", c_ordered}}},
+             {"type", {{"typeId", "ID"}, {"type", r_message}}}}}}}}}}};
   return j;
 }
-
-
 
 /*
  * Murphi Translation Class
@@ -282,9 +246,18 @@ public:
   void generateTypes() {
     _typeEnums();
     _typeStatics();
+    _typeMachines();
     // TODO - type machines
     _typeMessage();
     _typeNetworkObjects();
+  }
+
+  [[nodiscard]] static std::string k_directory_state_t() {
+    return machines.directory.str() + state_suffix;
+  }
+
+  [[nodiscard]] static std::string k_cache_state_t() {
+    return machines.cache.str() + state_suffix;
   }
 
   void _typeEnums() {
@@ -296,62 +269,92 @@ public:
         Enum{k_message_type, moduleInterpreter.getEnumMessageTypes()});
     // cache state
     data["decls"]["type_decls"].push_back(
-        Enum{machines.cache.str() + state_suffix, moduleInterpreter.getEnumMachineStates(machines.cache.str())}
-        );
+        Enum{k_cache_state_t(),
+             moduleInterpreter.getEnumMachineStates(machines.cache.str())});
     data["decls"]["type_decls"].push_back(
-        Enum{machines.cache.str() + state_suffix, moduleInterpreter.getEnumMachineStates(machines.directory.str())}
-    );
+        Enum{k_directory_state_t(),
+             moduleInterpreter.getEnumMachineStates(machines.directory.str())});
   }
 
-  void _typeStatics(){
+  void _typeStatics() {
     // Address type
-    data["decls"]["type_decls"].push_back({
-        {"id", k_address},
-        {"typeId", "scalarset"},
-        {"type", {
-                     {"type", c_adr_cnt_id}
-                 }}
-    });
+    data["decls"]["type_decls"].push_back({{"id", k_address},
+                                           {"typeId", "scalarset"},
+                                           {"type", {{"type", c_adr_cnt_id}}}});
     // ClValue type
-    data["decls"]["type_decls"].push_back({
-        {"id", k_cache_val},
-        {"typeId", "sub_range"},
-        {"type", {
-                     {"start", 0},
-                     {"stop", c_val_cnt_id}
-                 }}
-    });
+    data["decls"]["type_decls"].push_back(
+        {{"id", k_cache_val},
+         {"typeId", "sub_range"},
+         {"type", {{"start", 0}, {"stop", c_val_cnt_id}}}});
   }
 
   void _typeNetworkObjects() {
-    for(const auto &type : emitNetworkDefinitionJson()){
+    for (const auto &type : emitNetworkDefinitionJson()) {
       data["decls"]["type_decls"].push_back(type);
     }
   }
 
-  void _typeMessage(){
+  void _typeMachines() {
+    // *** cache *** //
+    mlir::pcc::CacheDeclOp cacheOp = moduleInterpreter.getCache();
+    _getMachineEntry(cacheOp.getOperation());
+
+    // *** directory *** //
+//    mlir::pcc::DirectoryDeclOp directoryOp = moduleInterpreter.getDirectory();
+  }
+
+  void _getMachineEntry(mlir::Operation *machineOp) {
+    // Check that the operation is either cache or directory decl
+    auto opIdent = machineOp->getName().getIdentifier().strref();
+    assert(opIdent == opStringMap.cache_decl ||
+           opIdent == opStringMap.dir_decl &&
+               "invalid operation passed to generation machine function");
+    auto machineIdent =
+        opIdent == opStringMap.cache_decl ? machines.cache : machines.directory;
+    json r_cache;
+    for (auto &attr : machineOp->getAttrs()) {
+      if (attr.first != "id") {
+        std::string fieldID = attr.first.str();
+        mlir::TypeAttr typeAttr = attr.second.cast<mlir::TypeAttr>();
+        std::string fieldType =
+            MLIRTypeToMurphiTypeRef(typeAttr.getValue(), machineIdent);
+        json entry = {{"id", fieldID}, {"typeId", "ID"}, {"type", fieldType}};
+        r_cache["decls"].push_back(entry);
+      }
+    }
+    data["decls"]["type_decls"].push_back(
+        {{"id", std::string(EntryKey) + machines.cache.str()},
+         {"typeId", "record"},
+         {"type", r_cache}});
+  }
+
+  static std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
+                                             const llvm::StringRef mach) {
+    if (t.isa<mlir::pcc::DataType>()) {
+      return k_cache_val;
+    }
+    if (t.isa<mlir::pcc::StateType>()) {
+      return mach == machines.cache ? k_cache_state_t() : k_directory_state_t();
+    }
+    // TODO - add support for more types
+    assert(0 && "currently using an unsupported type!");
+  }
+
+  void _typeMessage() {
     json msgJson = {
         {"id", r_message},
         {"typeId", "record"},
-        {"type", {
-                     {"decls", json::array() /* initialize an empty array */}
-                 }}
-    };
+        {"type", {{"decls", json::array() /* initialize an empty array */}}}};
     // default types
-    for(auto &defMsgType : BaseMsg){
-      msgJson["type"]["decls"].push_back({
-          {"id", defMsgType.first},
-          {"typeId", "ID"},
-          {"type", defMsgType.second}
-      });
+    for (auto &defMsgType : BaseMsg) {
+      msgJson["type"]["decls"].push_back({{"id", defMsgType.first},
+                                          {"typeId", "ID"},
+                                          {"type", defMsgType.second}});
     }
     // extra types
-    for(auto &adiType : SuperMsg){
-      msgJson["type"]["decls"].push_back({
-          {"id", adiType.first},
-          {"typeId", "ID"},
-          {"type", adiType.second}
-      });
+    for (auto &adiType : SuperMsg) {
+      msgJson["type"]["decls"].push_back(
+          {{"id", adiType.first}, {"typeId", "ID"}, {"type", adiType.second}});
     }
     data["decls"]["type_decls"].push_back(msgJson);
   }
