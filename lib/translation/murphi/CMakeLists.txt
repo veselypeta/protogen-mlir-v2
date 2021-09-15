@@ -1,6 +1,7 @@
 add_mlir_dialect_library(trans-murphi STATIC
-        TranslatePCCToMurphi.cpp
+        Translate.cpp
         codegen/InjaEnvSingleton.cpp
+        codegen/MurphiCodeGen.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${PROJECT_SOURCE_DIR}/include/translation/murphi

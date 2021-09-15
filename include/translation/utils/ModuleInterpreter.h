@@ -17,10 +17,10 @@ public:
   mlir::pcc::DirectoryDeclOp getDirectory();
 
   // FIXME - stub implementation
-  static std::vector<std::string> getEnumMessageTypes();
+  std::vector<std::string> getEnumMessageTypes();
 
   // FIXME - stub implementation
-  static std::vector<std::string> getEnumMachineStates(const std::string &mach);
+  std::vector<std::string> getEnumMachineStates(const std::string &mach);
 
 private:
   mlir::ModuleOp theModule;

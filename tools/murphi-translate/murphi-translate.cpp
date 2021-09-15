@@ -1,6 +1,6 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Translation.h"
-#include "translation/murphi/TranslatePCCToMurphi.h"
+#include "translation/murphi/Translate.h"
 
 int main(int argc, char **argv){
 

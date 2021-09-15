@@ -11,7 +11,7 @@ add_executable(protogen-mlir-test
         codegen/EnumTypeTests.cpp
         codegen/ArrayTypeTests.cpp
         codegen/SubRangeTests.cpp
-        murphi-translate/MurphiTranslateTests.cpp)
+        murphi-translate/ModuleInterpreterTests.cpp)
 
 target_link_libraries(protogen-mlir-test gtest_main MLIRIR antlr4_static mlir-gen trans-murphi)
 

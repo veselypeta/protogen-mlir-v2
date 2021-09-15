@@ -2,7 +2,6 @@
 #include "translation/utils/ModuleInterpreter.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
-
 class ModuleInterpreterFixture: public ::testing::Test {
   public :
       ModuleInterpreterFixture(): builder{&ctx} {
