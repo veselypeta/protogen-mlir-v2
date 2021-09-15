@@ -1,8 +1,6 @@
 #ifndef PCC_OPS
 #define PCC_OPS
 
-//def PCCIntAttr : AttrConstraint<CPred<$_self.isa<IntegerAttr>()>, "PCC Integer Attribute">;
-
 // TODO - remove
 def FooOp : PCC_Op<"foo"> {
     let summary = "foo op";
