@@ -8,10 +8,7 @@
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include <algorithm>
 #include <iostream>
-<<<<<<< HEAD
 #include "translation/utils/ModuleInterpreter.h"
-=======
->>>>>>> 9da33eb576af1b609bcce525d4415db2a936ca53
 
 using namespace mlir::pcc;
 
@@ -98,65 +95,6 @@ constexpr struct {
   const llvm::StringRef cache = "cache";
   const llvm::StringRef directory = "directory";
 } machines;
-
-<<<<<<< HEAD
-=======
-class ModuleInterpreter {
-public:
-  explicit ModuleInterpreter(mlir::ModuleOp op) : theModule{op} {}
-
-  std::vector<mlir::pcc::ConstantOp> getConstants() {
-    return getOperations<mlir::pcc::ConstantOp>();
-  }
-
-  template <class T> std::vector<T> getOperations() {
-    std::vector<T> ops;
-    for (auto &op : getModuleBody()) {
-      if (mlir::isa<T>(op)) {
-        ops.push_back(mlir::dyn_cast<T>(op));
-      }
-    }
-    return ops;
-  };
-
-  std::vector<mlir::pcc::NetDeclOp> getNetworks() {
-    return getOperations<mlir::pcc::NetDeclOp>();
-  }
-
-  mlir::pcc::CacheDeclOp getCache() {
-    auto cacheOps = getOperations<mlir::pcc::CacheDeclOp>();
-    assert(cacheOps.size() == 1 &&
-           "found zero or more than one cache decl operations");
-    return cacheOps.at(0);
-  }
-
-  mlir::pcc::DirectoryDeclOp getDirectory() {
-    auto directoryOps = getOperations<mlir::pcc::DirectoryDeclOp>();
-    assert(directoryOps.size() == 1 &&
-           "found zero or more directory decl operations!");
-    return directoryOps.at(0);
-  }
-
-  // FIXME - stub implementation
-  std::vector<std::string> getEnumMessageTypes() {
-    return {"Get_M", "Fwd_Get_M", "GetM_Ack_D"};
-  }
-
-  // FIXME - stub implementation
-  std::vector<std::string> getEnumMachineStates(const std::string &mach) {
-    std::vector<std::string> states = {"I", "M", "I_load", "M_evict"};
-    std::for_each(states.begin(), states.end(),
-                  [&mach](auto &state) { state = mach + "_" + state; });
-    return states;
-  }
-
-private:
-  mlir::ModuleOp theModule;
-  mlir::Block &getModuleBody() {
-    return theModule.getOperation()->getRegion(0).front();
-  }
-};
->>>>>>> 9da33eb576af1b609bcce525d4415db2a936ca53
 
 /*
  * Helper Structs to generate JSON
