@@ -4,6 +4,7 @@ add_executable(protogen-mlir-test
         mlirGenTest.cpp
         MurphiTemplatesTest.cpp
         InjaTests.cpp
+        ValiJSONTests.cpp
         # codegen tests
         codegen/InjaEnvSingletonTests.cpp
         codegen/ConstDeclTemplateTests.cpp
@@ -11,7 +12,9 @@ add_executable(protogen-mlir-test
         codegen/EnumTypeTests.cpp
         codegen/ArrayTypeTests.cpp
         codegen/SubRangeTests.cpp
-        murphi-translate/ModuleInterpreterTests.cpp)
+        murphi-translate/ModuleInterpreterTests.cpp
+        murphi-translate/MurphiCodeGenTests.cpp
+        )
 
 target_link_libraries(protogen-mlir-test gtest_main MLIRIR antlr4_static mlir-gen trans-murphi)
 

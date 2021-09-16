@@ -82,6 +82,10 @@ add_dependencies(protocc-antlr4 antlr4_static)
 # --- include 3rd party code
 include_directories(third-party)
 
+# -- valijson
+set(valijson_BUILD_TESTS OFF)
+add_subdirectory(third-party/valijson)
+
 add_subdirectory(include)
 add_subdirectory(lib)
 # don't include tests in release build

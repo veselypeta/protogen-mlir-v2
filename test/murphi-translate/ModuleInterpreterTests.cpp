@@ -14,7 +14,6 @@ class ModuleInterpreterFixture: public ::testing::Test {
       mlir::MLIRContext ctx;
       mlir::OpBuilder builder;
       mlir::ModuleOp theModule;
-
 };
 
 TEST_F(ModuleInterpreterFixture, getConstants){
