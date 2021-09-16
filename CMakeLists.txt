@@ -83,7 +83,7 @@ add_dependencies(protocc-antlr4 antlr4_static)
 include_directories(third-party)
 
 # -- valijson
-set(valijson_BUILD_TESTS OFF)
+set(valijson_BUILD_TESTS OFF CACHE BOOL "disable valijson tests")
 add_subdirectory(third-party/valijson)
 
 add_subdirectory(include)

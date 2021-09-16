@@ -16,7 +16,7 @@ template<class T>
 T interleave(const std::vector<T> &elements,
              T interText) {
 
-  if(elements.size() == 0){
+  if(elements.empty()){
     return T{};
   }
 
