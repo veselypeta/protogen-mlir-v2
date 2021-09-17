@@ -8,6 +8,7 @@
 #include <valijson/validator.hpp>
 
 namespace JSONValidation {
+constexpr auto schema_base_directory = u8"../../json_schema/";
 bool validate_json_doc(const std::string &schema_path,
                        const rapidjson::Document &json_doc);
 bool validate_json_str(const std::string &schema_path,

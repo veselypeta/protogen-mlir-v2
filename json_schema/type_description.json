@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "type_description_schema",
+  "title": "type_description",
+  "description": "validate the TypeDescription interface",
+  "type": "object",
+  "properties": {
+    "type": {
+      "$ref": "murphi_type.json"
+    },
+    "typeId": {
+      "$ref": "murphi_type_id.json"
+    }
+  },
+  "required": [ "type", "typeId" ]
+}

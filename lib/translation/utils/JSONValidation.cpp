@@ -1,19 +1,42 @@
 #include "JSONValidation.h"
 
 namespace JSONValidation {
+
+namespace {
+// Callback functions for fetching remote documents
+const rapidjson::Document *fetch_doc(const std::string &uri) {
+
+  auto *fetchedRoot = new rapidjson::Document();
+
+  // load the documents from within the base directory
+  std::string doc_path = std::string(schema_base_directory) + uri;
+  if(!valijson::utils::loadDocument(doc_path, *fetchedRoot)){
+    delete fetchedRoot;
+    std::string error_msg = doc_path + " : is an invalid reference to a document";
+    throw std::runtime_error(error_msg.c_str());
+  }
+    return fetchedRoot;
+}
+
+void free_doc(const rapidjson::Document *adapter) {
+  delete adapter;
+}
+} // namespace
+
 bool validate_json_doc(const std::string &schema_path,
                        const rapidjson::Document &json_doc) {
   // parse the schema file into a rapijson document
-  rapidjson::Document schemaDoc;
-  if (!valijson::utils::loadDocument(schema_path, schemaDoc)) {
+  rapidjson::Document schema_doc;
+  if (!valijson::utils::loadDocument(schema_path, schema_doc)) {
     throw std::runtime_error("Failed to load schema document");
   }
   // create the valijson schema
   valijson::Schema schema;
   {
     valijson::SchemaParser schemaParser;
-    valijson::adapters::RapidJsonAdapter schemaAdapter;
-    schemaParser.populateSchema(schemaAdapter, schema);
+    valijson::adapters::RapidJsonAdapter schemaAdapter(schema_doc);
+    schemaParser.populateSchema(schemaAdapter, schema, fetch_doc,
+                                free_doc);
   }
 
   // run the validation

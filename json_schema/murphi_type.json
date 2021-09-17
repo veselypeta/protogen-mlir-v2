@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "const_decl_schema",
+  "title": "const_decl",
+  "description": "Json schema for a const_decl in murphi programming language",
+  "type": "object",
+  "anyOf": [
+    {"$ref": "enum_type.json"}
+  ]
+}

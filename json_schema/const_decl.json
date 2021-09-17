@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "const_decl_schema",
+  "title": "const_decl",
+  "description": "Json schema for a const_decl in murphi programming language",
+  "type": "object",
+  "properties":{
+    "id": {
+      "description": "The unique identifier for the constant",
+      "type": "string"
+    },
+    "value": {
+      "description": "the compile time integer value of the constant",
+      "type": "integer"
+    }
+  },
+  "required": [ "id", "value" ]
+}
