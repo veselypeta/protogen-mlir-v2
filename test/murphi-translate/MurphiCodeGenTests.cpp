@@ -10,7 +10,7 @@ TEST(MurphiCodeGen, ConstDecl_to_json) {
   ASSERT_STREQ(std::string(j["id"]).c_str(), "NrCaches");
   ASSERT_EQ(j["value"], 3);
   std::string schema_path =
-      std::string(schema_base_directory) + "const_decl.json";
+      std::string(schema_base_directory) + "gen_ConstDecl.json";
 
   ASSERT_TRUE(validate_json(schema_path, j));
 }
@@ -27,20 +27,26 @@ TEST(MurphiCodeGen, EnumDecl_to_json) {
   ASSERT_STREQ(elems.at(2).c_str(), "c");
 
   std::string schema_path =
-      std::string(schema_base_directory) + "type_decl.json";
+      std::string(schema_base_directory) + "gen_TypeDecl.json";
 
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
-TEST(MurphiCodeGen, MurphiType){
-  json valid_json = {
-    {"decls", {"a", "b", "c"}}
-  };
-  json invalid_json = {
-      {"decls", {"a", 21, "c"}}
-  };
+TEST(MurphiCodeGen, MurphiType_schema_validation) {
+  json valid_json = {{"decls", {"a", "b", "c"}}};
+  json invalid_json = {{"decls", {"a", 21, "c"}}};
 
-  std::string schema_path = std::string(schema_base_directory) + "murphi_type.json";
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_MurphiType.json";
   ASSERT_TRUE(validate_json(schema_path, valid_json));
   ASSERT_FALSE(validate_json(schema_path, invalid_json));
+}
+
+TEST(MurphiCodeGen, emitNetworkDefinitionJson) {
+  json j = detail::emitNetworkDefinitionJson();
+  // for each decl - validate that it is a valid type_decl
+  std::string schema_path = std::string(schema_base_directory) + "gen_TypeDecl.json";
+  for (auto &decl : j) {
+    ASSERT_TRUE(validate_json(schema_path, decl));
+  }
 }

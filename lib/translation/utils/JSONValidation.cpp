@@ -5,22 +5,22 @@ namespace JSONValidation {
 namespace {
 // Callback functions for fetching remote documents
 const rapidjson::Document *fetch_doc(const std::string &uri) {
-
+  // heap allocate a new rapidjson document
   auto *fetchedRoot = new rapidjson::Document();
 
   // load the documents from within the base directory
   std::string doc_path = std::string(schema_base_directory) + uri;
-  if(!valijson::utils::loadDocument(doc_path, *fetchedRoot)){
+  if (!valijson::utils::loadDocument(doc_path, *fetchedRoot)) {
+    // make sure that you delete the object before throwing exception
     delete fetchedRoot;
-    std::string error_msg = doc_path + " : is an invalid reference to a document";
+    std::string error_msg =
+        doc_path + " : is an invalid reference to a document";
     throw std::runtime_error(error_msg.c_str());
   }
-    return fetchedRoot;
+  return fetchedRoot;
 }
 
-void free_doc(const rapidjson::Document *adapter) {
-  delete adapter;
-}
+void free_doc(const rapidjson::Document *adapter) { delete adapter; }
 } // namespace
 
 bool validate_json_doc(const std::string &schema_path,
@@ -35,8 +35,7 @@ bool validate_json_doc(const std::string &schema_path,
   {
     valijson::SchemaParser schemaParser;
     valijson::adapters::RapidJsonAdapter schemaAdapter(schema_doc);
-    schemaParser.populateSchema(schemaAdapter, schema, fetch_doc,
-                                free_doc);
+    schemaParser.populateSchema(schemaAdapter, schema, fetch_doc, free_doc);
   }
 
   // run the validation

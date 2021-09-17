@@ -26,7 +26,7 @@ type Decl = ConstDecl | TypeDecl | VarDecl;
 // ***** TYPES ***** //
 
 type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset" | "scalarset";
-interface Record {
+interface MurphiRecord {
     decls:[
         {
             id: string;
@@ -61,7 +61,7 @@ interface ScalarsetType {
 }
 
 type ID = string;
-type MurphiType = Record | Enum | IntegerSubRange | MurphiArray | ID | MultisetType | ScalarsetType;
+type MurphiType = MurphiRecord | Enum | IntegerSubRange | MurphiArray | ID | MultisetType | ScalarsetType;
 
 
 // ***** METHODS ***** //
@@ -82,7 +82,6 @@ interface MessageConstructor {
     msgId: string;
     additionalParameters: IdAndType[]
 }
-
 
 
 interface Murphi_json_schema {

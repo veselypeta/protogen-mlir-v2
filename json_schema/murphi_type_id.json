@@ -1,8 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "murphi_type_id_schema",
-  "title": "murphi_type_id",
-  "description": "validate the MurphiTypeID Interface",
-  "type":"string",
-  "enum": ["record", "enum", "sub_range", "array", "ID", "multiset", "scalarset"]
-}
