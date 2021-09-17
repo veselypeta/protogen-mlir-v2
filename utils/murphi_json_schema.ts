@@ -66,21 +66,10 @@ type MurphiType = MurphiRecord | Enum | IntegerSubRange | MurphiArray | ID | Mul
 
 // ***** METHODS ***** //
 
-type MurphiMethods = undefined;
-
 interface IdAndType {
     id: string;
     typeId: MurphiTypeId;
     type: MurphiType;
-}
-
-interface GlobalMessageType {
-    fields: IdAndType[]
-}
-
-interface MessageConstructor {
-    msgId: string;
-    additionalParameters: IdAndType[]
 }
 
 
@@ -90,5 +79,4 @@ interface Murphi_json_schema {
         type_decls?: TypeDecl[];
         var_decls?: VarDecl[];
     };
-    global_message_type: GlobalMessageType;
 }

@@ -109,6 +109,7 @@ void to_json(json &j, const Enum &c);
 
 json emitNetworkDefinitionJson();
 
+bool validateMurphiJSON(const json &j);
 }
 /*
  * Murphi Translation Class

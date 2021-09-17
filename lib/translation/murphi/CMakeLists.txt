@@ -11,4 +11,4 @@ add_mlir_dialect_library(trans-murphi STATIC
         translation-utils
         )
 
-target_link_libraries(trans-murphi PUBLIC MLIRIR)
+target_link_libraries(trans-murphi PUBLIC translation-utils)

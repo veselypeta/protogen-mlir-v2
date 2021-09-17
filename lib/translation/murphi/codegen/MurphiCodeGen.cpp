@@ -1,10 +1,11 @@
 #include "translation/murphi/codegen/MurphiCodeGen.h"
+#include "translation/utils/JSONValidation.h"
 
-namespace murphi{
+namespace murphi {
 /*
  * Implementation Details
  */
-namespace detail{
+namespace detail {
 /*
  * ConstDecl to_json helper method
  */
@@ -32,12 +33,12 @@ json emitNetworkDefinitionJson() {
         {{"index", {{"typeId", "ID"}, {"type", k_machines}}},
          {"type",
           {{"typeId", "array"},
-              {"type",
-               {{"index",
-                 {{"typeId", "sub_range"},
-                  {"type",
-                   {{"start", 0}, {"stop", std::string(c_ordered) + "-1"}}}}},
-                {"type", {{"typeId", "ID"}, {"type", r_message}}}}}
+           {"type",
+            {{"index",
+              {{"typeId", "sub_range"},
+               {"type",
+                {{"start", 0}, {"stop", std::string(c_ordered) + "-1"}}}}},
+             {"type", {{"typeId", "ID"}, {"type", r_message}}}}}
 
           }}}}},
       {{"id", ord_type_count_name},
@@ -60,7 +61,14 @@ json emitNetworkDefinitionJson() {
              {"type", {{"typeId", "ID"}, {"type", r_message}}}}}}}}}}};
   return j;
 }
+
+bool validateMurphiJSON(const json &j) {
+  const std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) +
+      "gen_Murphi_json_schema.json";
+  return JSONValidation::validate_json(schema_path, j);
 }
+} // namespace detail
 
 mlir::LogicalResult MurphiCodeGen::translate() {
   generateConstants();
@@ -76,8 +84,10 @@ void MurphiCodeGen::generateConstants() {
   }
 
   // boilerplate constants
-  data["decls"]["const_decls"].push_back(detail::ConstDecl{detail::c_val_cnt_id, detail::c_val_max});
-  data["decls"]["const_decls"].push_back(detail::ConstDecl{detail::c_adr_cnt_id, detail::c_adr_cnt});
+  data["decls"]["const_decls"].push_back(
+      detail::ConstDecl{detail::c_val_cnt_id, detail::c_val_max});
+  data["decls"]["const_decls"].push_back(
+      detail::ConstDecl{detail::c_adr_cnt_id, detail::c_adr_cnt});
   data["decls"]["const_decls"].push_back(
       detail::ConstDecl{detail::c_ordered, detail::c_ordered_size});
   data["decls"]["const_-decls"].push_back(
@@ -94,6 +104,9 @@ void MurphiCodeGen::generateTypes() {
 }
 
 mlir::LogicalResult MurphiCodeGen::render() {
+  // validate json
+//  assert(detail::validateMurphiJSON(data) &&
+//         "JSON from codegen does not validate with the json schema");
   auto &env = InjaEnvSingleton::getInstance();
   auto tmpl = env.parse_template("murphi_base.tmpl");
   auto result = env.render(tmpl, data);
@@ -114,22 +127,23 @@ void MurphiCodeGen::_typeEnums() {
   data["decls"]["type_decls"].push_back(
       detail::Enum{detail::k_access, {"none", "load", "store"}});
   // messages enum
-  data["decls"]["type_decls"].push_back(
-      detail::Enum{detail::k_message_type, moduleInterpreter.getEnumMessageTypes()});
+  data["decls"]["type_decls"].push_back(detail::Enum{
+      detail::k_message_type, moduleInterpreter.getEnumMessageTypes()});
   // cache state
-  data["decls"]["type_decls"].push_back(
-      detail::Enum{k_cache_state_t(),
-                   moduleInterpreter.getEnumMachineStates(detail::machines.cache.str())});
-  data["decls"]["type_decls"].push_back(
-      detail::Enum{k_directory_state_t(),
-                   moduleInterpreter.getEnumMachineStates(detail::machines.directory.str())});
+  data["decls"]["type_decls"].push_back(detail::Enum{
+      k_cache_state_t(),
+      moduleInterpreter.getEnumMachineStates(detail::machines.cache.str())});
+  data["decls"]["type_decls"].push_back(detail::Enum{
+      k_directory_state_t(), moduleInterpreter.getEnumMachineStates(
+                                 detail::machines.directory.str())});
 }
 
 void MurphiCodeGen::_typeStatics() {
   // Address type
-  data["decls"]["type_decls"].push_back({{"id", detail::k_address},
-                                         {"typeId", "scalarset"},
-                                         {"type", {{"type", detail::c_adr_cnt_id}}}});
+  data["decls"]["type_decls"].push_back(
+      {{"id", detail::k_address},
+       {"typeId", "scalarset"},
+       {"type", {{"type", detail::c_adr_cnt_id}}}});
   // ClValue type
   data["decls"]["type_decls"].push_back(
       {{"id", detail::k_cache_val},
@@ -149,7 +163,8 @@ void MurphiCodeGen::_typeMachines() {
   _getMachineEntry(cacheOp.getOperation());
 
   // *** directory *** //
-  //    mlir::pcc::DirectoryDeclOp directoryOp = moduleInterpreter.getDirectory();
+  //    mlir::pcc::DirectoryDeclOp directoryOp =
+  //    moduleInterpreter.getDirectory();
 }
 
 void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
@@ -158,8 +173,9 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
   assert(opIdent == detail::opStringMap.cache_decl ||
          opIdent == detail::opStringMap.dir_decl &&
              "invalid operation passed to generation machine function");
-  auto machineIdent =
-      opIdent == detail::opStringMap.cache_decl ? detail::machines.cache : detail::machines.directory;
+  auto machineIdent = opIdent == detail::opStringMap.cache_decl
+                          ? detail::machines.cache
+                          : detail::machines.directory;
   json r_cache;
   for (auto &attr : machineOp->getAttrs()) {
     if (attr.first != "id") {
@@ -176,7 +192,6 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
        {"typeId", "record"},
        {"type", r_cache}});
 }
-
 
 void MurphiCodeGen::_typeMessage() {
   json msgJson = {
@@ -197,19 +212,17 @@ void MurphiCodeGen::_typeMessage() {
   data["decls"]["type_decls"].push_back(msgJson);
 }
 
-
-
-
 // Free Functions
 std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
-                                           const llvm::StringRef mach) {
+                                    const llvm::StringRef mach) {
   if (t.isa<mlir::pcc::DataType>()) {
     return detail::k_cache_val;
   }
   if (t.isa<mlir::pcc::StateType>()) {
-    return mach == detail::machines.cache ? k_cache_state_t() : k_directory_state_t();
+    return mach == detail::machines.cache ? k_cache_state_t()
+                                          : k_directory_state_t();
   }
   // TODO - add support for more types
   assert(0 && "currently using an unsupported type!");
 }
-}
+} // namespace murphi
