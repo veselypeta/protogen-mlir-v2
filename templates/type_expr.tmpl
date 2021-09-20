@@ -20,3 +20,6 @@
 {% if typeId == "scalarset" %}
     {{- render_template("scalarset_type.tmpl", type) -}}
 {% endif %}
+{% if typeId == "union" %}
+    {{- render_template("union_type.tmpl", type) -}}
+{% endif %}

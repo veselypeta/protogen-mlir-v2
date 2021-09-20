@@ -33,6 +33,35 @@ TEST(MurphiCodeGen, EnumDecl_to_json) {
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
+TEST(MurphiCodeGen, Union_to_json){
+  detail::Union testUnion{"my_union", {"aaa", "bbb", "ccc"}};
+  json j = testUnion;
+
+  ASSERT_STREQ(std::string(j["id"]).c_str(), "my_union");
+  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "union");
+  auto elems = j["type"]["listElems"].get<std::vector<std::string>>();
+  ASSERT_EQ(elems.size(), 3);
+  ASSERT_STREQ(elems.at(0).c_str(), "aaa");
+  ASSERT_STREQ(elems.at(1).c_str(), "bbb");
+  ASSERT_STREQ(elems.at(2).c_str(), "ccc");
+
+  // json validation
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_TypeDecl.json";
+
+  ASSERT_TRUE(validate_json(schema_path, j));
+}
+
+TEST(MurphiCodeGen, Union_to_json_too_short){
+  detail::Union testUnion{"my_union", {"aaa"}};
+  json j = testUnion;
+  // json validation
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_TypeDecl.json";
+
+  ASSERT_FALSE(validate_json(schema_path, j));
+}
+
 TEST(MurphiCodeGen, MurphiType_schema_validation) {
   json valid_json = {{"decls", {"a", "b", "c"}}};
   json invalid_json = {{"decls", {"a", 21, "c"}}};

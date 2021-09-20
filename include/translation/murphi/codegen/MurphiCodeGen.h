@@ -1,24 +1,38 @@
 #pragma once
 #include "inja/inja.hpp"
 #include "mlir/IR/BuiltinDialect.h"
-#include "translation/utils/ModuleInterpreter.h"
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
+#include "translation/utils/ModuleInterpreter.h"
 
+// For a manual on the Murphi Programming Language :
+// https://www.cs.ubc.ca/~ajh/courses/cpsc513/assign-token/User.Manual
 namespace murphi {
 using namespace inja;
 
-namespace detail{
+namespace detail {
 
 /*
  * Some useful constants to have for compiling murphi
  */
 
+// ** Naming Conventions **
+
+// Suffixes
+// _t : refers to a type
+
+// Prefixes
+// c_   : refers to a constant
+// e_   : refers to an enum
+// ss_  : refers to a ScalarSet
+// sr_  : refers to an integer SubRange
+// r_   : refers to a record
+
 constexpr char state_suffix[] = "_state";
 
 // *** CONST *** //
-constexpr char c_val_cnt_id[] = "VAL_COUNT";
+constexpr char c_val_cnt_t[] = "VAL_COUNT";
 constexpr size_t c_val_max = 1;
-constexpr char c_adr_cnt_id[] = "ADR_COUNT";
+constexpr char c_adr_cnt_t[] = "ADR_COUNT";
 constexpr size_t c_adr_cnt = 1;
 
 // *** Keys *** //
@@ -27,26 +41,24 @@ constexpr char EntryKey[] = "ENTRY_";
 constexpr char MachKey[] = "MACH_";
 constexpr char ObjKey[] = "OBJ_";
 constexpr char Initval[] = "INITVAL";
-constexpr char CLIdent[] = "CL";
+constexpr char CLIdent_t[] = "CL";
 
 // Network Parameters
-constexpr char c_ordered[] = "O_NET_MAX";
-constexpr char c_unordered[] = "U_NET_MAX";
+constexpr char c_ordered_t[] = "O_NET_MAX";
+constexpr char c_unordered_t[] = "U_NET_MAX";
 constexpr char ordered[] = "Ordered";
 constexpr char ordered_cnt[] = "Orderedcnt";
-constexpr char k_o_network[] = "onet_";
 constexpr char unordered[] = "Unordered";
-constexpr char k_u_network[] = "unet_";
 
 // *** Enum Keywords **** //
-constexpr char k_access[] = "Access";
-constexpr char k_message_type[] = "MessageType";
-constexpr char k_address[] = "Address";
-constexpr char k_cache_val[] = "ClValue";
-constexpr char k_machines[] = "Machines";
+constexpr char e_access_t[] = "Access";
+constexpr char e_message_type_t[] = "MessageType";
+constexpr char ss_address_t[] = "Address";
+constexpr char sr_cache_val_t[] = "ClValue";
+constexpr char e_machines_t[] = "Machines";
 
 // *** Record Keywords *** //
-constexpr char r_message[] = "Message";
+constexpr char r_message_t[] = "Message";
 
 // *** MSG ***
 // default msg fields
@@ -61,10 +73,10 @@ constexpr char c_dle[] = "dle";
 constexpr char c_inmsg[] = "inmsg";
 
 const std::array<std::pair<std::string, std::string>, 4> BaseMsg{
-    std::make_pair(c_adr, k_address), // target address
-    {c_mtype, k_message_type},        // message type
-    {c_src, k_machines},              // source
-    {c_dst, k_machines}               // destination
+    std::make_pair(c_adr, ss_address_t), // target address
+    {c_mtype, e_message_type_t},         // message type
+    {c_src, e_machines_t},               // source
+    {c_dst, e_machines_t}                // destination
 };
 
 const std::vector<std::pair<std::string, std::string>> SuperMsg{};
@@ -107,10 +119,20 @@ struct Enum {
 
 void to_json(json &j, const Enum &c);
 
+struct Union {
+  std::string id;
+  std::vector<std::string> elems;
+};
+
+void to_json(json &j, const Union &c);
+
+/*
+ * Helper Generating Functions
+ */
 json emitNetworkDefinitionJson();
 
 bool validateMurphiJSON(const json &j);
-}
+} // namespace detail
 /*
  * Murphi Translation Class
  */
@@ -133,10 +155,10 @@ public:
   void _typeEnums();
   void _typeStatics();
   void _typeMachines();
+  void _typeMachinesUnion(const std::vector<std::string>& elems);
   void _typeMessage();
   void _typeNetworkObjects();
-  void _getMachineEntry(mlir::Operation *machineOp);
-
+  std::string _getMachineEntry(mlir::Operation *machineOp);
 
   mlir::LogicalResult render();
 
@@ -146,8 +168,6 @@ private:
   json data;
 };
 
-
 // Free Functions
-std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
-                                    llvm::StringRef mach);
-}
+std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t, llvm::StringRef mach);
+} // namespace murphi

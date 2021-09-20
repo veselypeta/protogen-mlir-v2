@@ -155,6 +155,9 @@
                     "$ref": "#/definitions/ScalarsetType"
                 },
                 {
+                    "$ref": "#/definitions/UnionType"
+                },
+                {
                     "type": "string"
                 }
             ],
@@ -168,7 +171,8 @@
                 "multiset",
                 "record",
                 "scalarset",
-                "sub_range"
+                "sub_range",
+                "union"
             ],
             "title": "MurphiTypeId",
             "type": "string"
@@ -225,6 +229,31 @@
                 "typeId"
             ],
             "title": "TypeDescription",
+            "type": "object"
+        },
+        "UnionType": {
+            "properties": {
+                "listElems": {
+                    "additionalItems": {
+                        "type": "string"
+                    },
+                    "items": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "minItems": 2,
+                    "title": "listElems",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "listElems"
+            ],
+            "title": "UnionType",
             "type": "object"
         },
         "VarDecl": {

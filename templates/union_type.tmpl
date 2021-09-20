@@ -1,0 +1,9 @@
+union {
+    {% for elem in listElems %}
+    {% if loop/is_last %}
+    {{ elem }}
+    {% else %}
+    {{elem}},
+    {% endif %}
+    {% endfor %}
+}
