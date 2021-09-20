@@ -1,5 +1,6 @@
 #include "translation/murphi/codegen/MurphiCodeGen.h"
 #include "translation/utils/JSONValidation.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include <gtest/gtest.h>
 
 using namespace murphi;
@@ -49,4 +50,38 @@ TEST(MurphiCodeGen, emitNetworkDefinitionJson) {
   for (auto &decl : j) {
     ASSERT_TRUE(validate_json(schema_path, decl));
   }
+}
+
+
+class ModuleOpFixture: public ::testing::Test {
+public :
+  ModuleOpFixture(): builder{&ctx} {
+    ctx.getOrLoadDialect<mlir::pcc::PCCDialect>();
+    ctx.getOrLoadDialect<mlir::StandardOpsDialect>();
+    theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+    builder.setInsertionPointToStart(theModule.getBody());
+  }
+
+  void add_test_const_decls(){
+    builder.create<mlir::pcc::ConstantOp>(builder.getUnknownLoc(), "NrCaches", 4);
+  }
+
+  mlir::MLIRContext ctx;
+  mlir::OpBuilder builder;
+  mlir::ModuleOp theModule;
+};
+
+TEST_F(ModuleOpFixture, validate_wo_const_decls){
+  MurphiCodeGen codeGen(theModule, llvm::outs());
+  ASSERT_TRUE(codeGen.is_json_valid());
+  codeGen.generateConstants();
+  ASSERT_TRUE(codeGen.is_json_valid());
+}
+
+TEST_F(ModuleOpFixture, validate_w_const_decls){
+  add_test_const_decls();
+  MurphiCodeGen codeGen(theModule, llvm::outs());
+  ASSERT_TRUE(codeGen.is_json_valid());
+  codeGen.generateConstants();
+  ASSERT_TRUE(codeGen.is_json_valid());
 }

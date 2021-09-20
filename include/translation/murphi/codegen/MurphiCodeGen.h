@@ -80,7 +80,7 @@ constexpr struct {
   const llvm::StringRef constant = "pcc.constant";
   const llvm::StringRef net_decl = "pcc.net_decl";
   const llvm::StringRef cache_decl = "pcc.cache_decl";
-  const llvm::StringRef dir_decl = "pcc.dir_decl";
+  const llvm::StringRef dir_decl = "pcc.directory_decl";
 } opStringMap;
 
 // a map to each type of machine
@@ -117,12 +117,17 @@ bool validateMurphiJSON(const json &j);
 class MurphiCodeGen {
 public:
   MurphiCodeGen(mlir::ModuleOp op, mlir::raw_ostream &output)
-      : moduleInterpreter{ModuleInterpreter{op}}, output{output} {}
+      : moduleInterpreter{ModuleInterpreter{op}}, output{output} {
+    // initialize decls
+    data["decls"] = json::object();
+  }
 
   mlir::LogicalResult translate();
 
   void generateConstants();
   void generateTypes();
+  // validate json
+  bool is_json_valid();
 
   // Type functions
   void _typeEnums();

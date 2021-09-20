@@ -76,6 +76,8 @@ mlir::LogicalResult MurphiCodeGen::translate() {
   return render();
 }
 
+bool MurphiCodeGen::is_json_valid() { return detail::validateMurphiJSON(data); }
+
 void MurphiCodeGen::generateConstants() {
   // add the defined constants
   for (auto constantOp : moduleInterpreter.getConstants()) {
@@ -105,8 +107,8 @@ void MurphiCodeGen::generateTypes() {
 
 mlir::LogicalResult MurphiCodeGen::render() {
   // validate json
-//  assert(detail::validateMurphiJSON(data) &&
-//         "JSON from codegen does not validate with the json schema");
+  //  assert(detail::validateMurphiJSON(data) &&
+  //         "JSON from codegen does not validate with the json schema");
   auto &env = InjaEnvSingleton::getInstance();
   auto tmpl = env.parse_template("murphi_base.tmpl");
   auto result = env.render(tmpl, data);
@@ -163,30 +165,46 @@ void MurphiCodeGen::_typeMachines() {
   _getMachineEntry(cacheOp.getOperation());
 
   // *** directory *** //
-  //    mlir::pcc::DirectoryDeclOp directoryOp =
-  //    moduleInterpreter.getDirectory();
+  mlir::pcc::DirectoryDeclOp directoryOp = moduleInterpreter.getDirectory();
+  _getMachineEntry(directoryOp.getOperation());
 }
 
 void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
   // Check that the operation is either cache or directory decl
-  auto opIdent = machineOp->getName().getIdentifier().strref();
+  const auto opIdent = machineOp->getName().getIdentifier().strref();
   assert(opIdent == detail::opStringMap.cache_decl ||
          opIdent == detail::opStringMap.dir_decl &&
              "invalid operation passed to generation machine function");
-  auto machineIdent = opIdent == detail::opStringMap.cache_decl
-                          ? detail::machines.cache
-                          : detail::machines.directory;
+  const auto machineIdent = opIdent == detail::opStringMap.cache_decl
+                                ? detail::machines.cache
+                                : detail::machines.directory;
   json r_cache;
-  for (auto &attr : machineOp->getAttrs()) {
-    if (attr.first != "id") {
-      std::string fieldID = attr.first.str();
-      mlir::TypeAttr typeAttr = attr.second.cast<mlir::TypeAttr>();
-      std::string fieldType =
-          MLIRTypeToMurphiTypeRef(typeAttr.getValue(), machineIdent);
-      json entry = {{"id", fieldID}, {"typeId", "ID"}, {"type", fieldType}};
-      r_cache["decls"].push_back(entry);
-    }
-  }
+
+  const auto is_id_attr = [](const mlir::NamedAttribute &attr) {
+    return attr.first == "id";
+  };
+
+  const auto generate_mach_attr_field =
+      [&r_cache, &machineIdent](const mlir::NamedAttribute &attr) {
+        std::string fieldID = attr.first.str();
+        mlir::TypeAttr typeAttr = attr.second.cast<mlir::TypeAttr>();
+        std::string fieldType =
+            MLIRTypeToMurphiTypeRef(typeAttr.getValue(), machineIdent);
+        json entry = {{"id", fieldID}, {"typeId", "ID"}, {"type", fieldType}};
+        r_cache["decls"].push_back(entry);
+      };
+
+  // for each attribute; generate a machine attribute
+  std::for_each(machineOp->getAttrs().begin(), machineOp->getAttrs().end(),
+                [&](const mlir::NamedAttribute &attribute) {
+                  const mlir::NamedAttribute named_attr =
+                      static_cast<mlir::NamedAttribute>(attribute);
+                  if (!is_id_attr(named_attr)) {
+                    generate_mach_attr_field(named_attr);
+                  }
+                });
+
+  // generate the corret murphi declaration
   data["decls"]["type_decls"].push_back(
       {{"id", std::string(detail::EntryKey) + detail::machines.cache.str()},
        {"typeId", "record"},
@@ -221,6 +239,9 @@ std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
   if (t.isa<mlir::pcc::StateType>()) {
     return mach == detail::machines.cache ? k_cache_state_t()
                                           : k_directory_state_t();
+  }
+  if (t.isa<mlir::pcc::IDType>()) {
+    return detail::k_machines;
   }
   // TODO - add support for more types
   assert(0 && "currently using an unsupported type!");
