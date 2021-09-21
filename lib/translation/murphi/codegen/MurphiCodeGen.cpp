@@ -1,7 +1,5 @@
 #include "translation/murphi/codegen/MurphiCodeGen.h"
 #include "translation/utils/JSONValidation.h"
-#include <cstdarg>
-
 
 namespace murphi {
 /*
@@ -26,6 +24,29 @@ void to_json(json &j, const Enum &c) {
  */
 void to_json(json &j, const Union &u) {
   j = {{"id", u.id}, {"typeId", "union"}, {"type", {{"listElems", u.elems}}}};
+}
+
+/*
+ * Record to_json helper method
+ */
+void to_json(json &j, const Record &r) {
+  json decls = json::array();
+  std::for_each(std::begin(r.elems), std::end(r.elems), [&decls](auto &elem) {
+    decls.push_back(
+        {{"id", elem.first}, {"typeId", "ID"}, {"type", elem.second}});
+  });
+  j = {{"id", r.id}, {"typeId", "record"}, {"type", {{"decls", decls}}}};
+}
+
+/*
+ * ScalarSet to_json helper functions
+ */
+void to_json(json &j, const ScalarSet<std::string> &ss) {
+  j = {{"id", ss.id}, {"typeId", "scalarset"}, {"type", {{"type", ss.value}}}};
+}
+void to_json(json &j, const ScalarSet<size_t> &ss) {
+  size_t val = ss.value;
+  j = {{"id", ss.id}, {"typeId", "scalarset"}, {"type", {{"type", val}}}};
 }
 
 /*
@@ -77,6 +98,18 @@ bool validateMurphiJSON(const json &j) {
       "gen_Murphi_json_schema.json";
   return JSONValidation::validate_json(schema_path, j);
 }
+[[nodiscard]] static std::string e_directory_state_t() {
+  return machines.directory.str() + state_suffix;
+}
+[[nodiscard]] static std::string e_cache_state_t() {
+  return machines.cache.str() + state_suffix;
+}
+[[nodiscard]] static std::string r_cache_entry_t() {
+  return std::string(EntryKey) + machines.cache.str();
+}
+[[nodiscard]] static std::string r_directory_entry_t() {
+  return std::string(EntryKey) + machines.directory.str();
+}
 } // namespace detail
 
 mlir::LogicalResult MurphiCodeGen::translate() {
@@ -108,29 +141,21 @@ void MurphiCodeGen::generateConstants() {
 void MurphiCodeGen::generateTypes() {
   _typeEnums();
   _typeStatics();
-  _typeMachines();
-  // TODO - type machines
+  _typeMachineSets();
+  _typeMachineEntry();
   _typeMessage();
   _typeNetworkObjects();
 }
 
 mlir::LogicalResult MurphiCodeGen::render() {
   // validate json
-  //  assert(detail::validateMurphiJSON(data) &&
-  //         "JSON from codegen does not validate with the json schema");
+  assert(detail::validateMurphiJSON(data) &&
+         "JSON from codegen does not validate with the json schema");
   auto &env = InjaEnvSingleton::getInstance();
   auto tmpl = env.parse_template("murphi_base.tmpl");
   auto result = env.render(tmpl, data);
   output << result;
   return mlir::success();
-}
-
-[[nodiscard]] static std::string e_directory_state_t() {
-  return detail::machines.directory.str() + detail::state_suffix;
-}
-
-[[nodiscard]] static std::string e_cache_state_t() {
-  return detail::machines.cache.str() + detail::state_suffix;
 }
 
 void MurphiCodeGen::_typeEnums() {
@@ -142,24 +167,53 @@ void MurphiCodeGen::_typeEnums() {
       detail::e_message_type_t, moduleInterpreter.getEnumMessageTypes()});
   // cache state
   data["decls"]["type_decls"].push_back(detail::Enum{
-      e_cache_state_t(),
+      detail::e_cache_state_t(),
       moduleInterpreter.getEnumMachineStates(detail::machines.cache.str())});
   data["decls"]["type_decls"].push_back(detail::Enum{
-      e_directory_state_t(), moduleInterpreter.getEnumMachineStates(
-                                 detail::machines.directory.str())});
+      detail::e_directory_state_t(), moduleInterpreter.getEnumMachineStates(
+                                         detail::machines.directory.str())});
 }
 
 void MurphiCodeGen::_typeStatics() {
   // Address type
-  data["decls"]["type_decls"].push_back(
-      {{"id", detail::ss_address_t},
-       {"typeId", "scalarset"},
-       {"type", {{"type", detail::c_adr_cnt_t}}}});
+  data["decls"]["type_decls"].push_back(detail::ScalarSet<std::string>{
+      detail::ss_address_t, detail::c_val_cnt_t});
   // ClValue type
+  // TODO - maybe create a sub-range struct
   data["decls"]["type_decls"].push_back(
       {{"id", detail::sr_cache_val_t},
        {"typeId", "sub_range"},
        {"type", {{"start", 0}, {"stop", detail::c_val_cnt_t}}}});
+}
+
+void MurphiCodeGen::_typeMachineSets() {
+  auto add_mach_decl_type = [&](const std::string &machine,
+                                const mlir::pcc::PCCType &type) {
+    std::string typeIdent = machine == detail::machines.cache
+                                ? detail::cache_set_t()
+                                : detail::directory_set_t();
+    if (type.isa<mlir::pcc::SetType>()) {
+      auto setSize = type.cast<mlir::pcc::SetType>().getNumElements();
+      data["decls"]["type_decls"].push_back(
+          detail::ScalarSet<size_t>(detail::cache_set_t(), setSize));
+    } else {
+      // must be a struct type
+      assert(type.isa<mlir::pcc::StructType>() &&
+             "machine was not of set/struct type!");
+      data["decls"]["type_decls"].push_back(detail::Enum{typeIdent, {machine}});
+    }
+  };
+
+  // add the cache set
+  add_mach_decl_type(detail::machines.cache.str(),
+                     moduleInterpreter.getCache().getType());
+  add_mach_decl_type(detail::machines.directory.str(),
+                     moduleInterpreter.getDirectory().getType());
+
+  // push a union of these for the Machines type
+  data["decls"]["type_decls"].push_back(
+      detail::Union{detail::e_machines_t,
+                    {detail::cache_set_t(), detail::directory_set_t()}});
 }
 
 void MurphiCodeGen::_typeNetworkObjects() {
@@ -168,19 +222,17 @@ void MurphiCodeGen::_typeNetworkObjects() {
   }
 }
 
-void MurphiCodeGen::_typeMachines() {
+void MurphiCodeGen::_typeMachineEntry() {
   // *** cache *** //
   mlir::pcc::CacheDeclOp cacheOp = moduleInterpreter.getCache();
-  std::string cache_mach = _getMachineEntry(cacheOp.getOperation());
+  _getMachineEntry(cacheOp.getOperation());
 
   // *** directory *** //
   mlir::pcc::DirectoryDeclOp directoryOp = moduleInterpreter.getDirectory();
-  std::string dir_mach = _getMachineEntry(directoryOp.getOperation());
-
-  _typeMachinesUnion({cache_mach, dir_mach});
+  _getMachineEntry(directoryOp.getOperation());
 }
 
-std::string MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
+void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
   // Check that the operation is either cache or directory decl
   const auto opIdent = machineOp->getName().getIdentifier().strref();
   assert(opIdent == detail::opStringMap.cache_decl ||
@@ -189,20 +241,20 @@ std::string MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
   const auto machineIdent = opIdent == detail::opStringMap.cache_decl
                                 ? detail::machines.cache
                                 : detail::machines.directory;
-  json r_cache;
 
   const auto is_id_attr = [](const mlir::NamedAttribute &attr) {
     return attr.first == "id";
   };
 
+  std::vector<std::pair<std::string, std::string>> record_elems;
+
   const auto generate_mach_attr_field =
-      [&r_cache, &machineIdent](const mlir::NamedAttribute &attr) {
+      [&record_elems, &machineIdent](const mlir::NamedAttribute &attr) {
         std::string fieldID = attr.first.str();
         mlir::TypeAttr typeAttr = attr.second.cast<mlir::TypeAttr>();
         std::string fieldType =
             MLIRTypeToMurphiTypeRef(typeAttr.getValue(), machineIdent);
-        json entry = {{"id", fieldID}, {"typeId", "ID"}, {"type", fieldType}};
-        r_cache["decls"].push_back(entry);
+        record_elems.emplace_back(fieldID, fieldType);
       };
 
   // for each attribute; generate a machine attribute
@@ -215,36 +267,27 @@ std::string MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
                   }
                 });
 
-  std::string machine_id_t = std::string(detail::EntryKey) + machineIdent.str();
-  // generate the corret murphi declaration
+  std::string machine_id_t = machineIdent == detail::machines.cache
+                                 ? detail::r_cache_entry_t()
+                                 : detail::r_directory_entry_t();
+  // generate the correct murphi declaration
   data["decls"]["type_decls"].push_back(
-      {{"id", machine_id_t },
-       {"typeId", "record"},
-       {"type", r_cache}});
-  return machine_id_t;
-}
-
-void MurphiCodeGen::_typeMachinesUnion(const std::vector<std::string>& elems) {
-  data["decls"]["type_decls"].push_back(detail::Union{detail::e_machines_t, elems});
+      detail::Record{machine_id_t, record_elems});
 }
 
 void MurphiCodeGen::_typeMessage() {
-  json msgJson = {
-      {"id", detail::r_message_t},
-      {"typeId", "record"},
-      {"type", {{"decls", json::array() /* initialize an empty array */}}}};
-  // default types
-  for (auto &defMsgType : detail::BaseMsg) {
-    msgJson["type"]["decls"].push_back({{"id", defMsgType.first},
-                                        {"typeId", "ID"},
-                                        {"type", defMsgType.second}});
+  // basic_msg
+  std::vector<std::pair<std::string, std::string>> base_msg_types;
+  base_msg_types.reserve(detail::BaseMsg.size());
+for (auto &defMsgType : detail::BaseMsg) {
+    base_msg_types.emplace_back(defMsgType.first, defMsgType.second);
   }
+  detail::Record glob_msg = detail::Record{detail::r_message_t, base_msg_types};
   // extra types
   for (auto &adiType : detail::SuperMsg) {
-    msgJson["type"]["decls"].push_back(
-        {{"id", adiType.first}, {"typeId", "ID"}, {"type", adiType.second}});
+    glob_msg.elems.push_back(adiType);
   }
-  data["decls"]["type_decls"].push_back(msgJson);
+  data["decls"]["type_decls"].push_back(glob_msg);
 }
 
 // Free Functions
@@ -254,8 +297,8 @@ std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
     return detail::sr_cache_val_t;
   }
   if (t.isa<mlir::pcc::StateType>()) {
-    return mach == detail::machines.cache ? e_cache_state_t()
-                                          : e_directory_state_t();
+    return mach == detail::machines.cache ? detail::e_cache_state_t()
+                                          : detail::e_directory_state_t();
   }
   if (t.isa<mlir::pcc::IDType>()) {
     return detail::e_machines_t;

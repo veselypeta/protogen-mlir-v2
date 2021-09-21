@@ -64,7 +64,7 @@ def CacheDeclOp : PCC_Op<"cache_decl">{
 
     let builders = [OpBuilderDAG<(ins
                     "StringRef":$cacheId,
-                    "Type":$type,
+                    "PCCType":$type,
                     CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs
                     )>];
     let extraClassDeclaration = [{
@@ -88,7 +88,7 @@ def DirectoryDeclOp : PCC_Op<"directory_decl">{
     }];
 
     let builders = [OpBuilderDAG<(ins "StringRef":$dirId,
-                    "Type":$type,
+                    "PCCType":$type,
                     CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)
                             >];
     let extraClassDeclaration = [{

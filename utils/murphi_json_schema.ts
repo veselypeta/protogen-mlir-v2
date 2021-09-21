@@ -27,13 +27,13 @@ type Decl = ConstDecl | TypeDecl | VarDecl;
 
 type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset" | "scalarset" | "union";
 interface MurphiRecord {
-    decls:[
+    decls:
         {
             id: string;
             typeId: MurphiTypeId;
             type: MurphiType;
-        }
-    ];
+        }[]
+    ;
 }
 
 interface Enum {
@@ -57,7 +57,7 @@ interface MultisetType {
 }
 
 interface ScalarsetType {
-    type: string;
+    type: ID | number;
 }
 
 type ArrayTwoOrMore<T> = [T, T, ...T[]];
@@ -76,6 +76,10 @@ interface IdAndType {
     typeId: MurphiTypeId;
     type: MurphiType;
 }
+//
+// interface CodeComment {
+//     text: string;
+// }
 
 
 interface Murphi_json_schema {

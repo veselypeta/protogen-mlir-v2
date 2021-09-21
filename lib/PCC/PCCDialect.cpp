@@ -47,7 +47,7 @@ void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
 //===----------------------------------------------------------------------===//
 void CacheDeclOp::build(::mlir::OpBuilder &odsBuilder,
                         ::mlir::OperationState &odsState, StringRef cacheId,
-                        Type type, ArrayRef<NamedAttribute> attrs) {
+                        PCCType type, ArrayRef<NamedAttribute> attrs) {
   // FIXME - the use of "id" here is dangerous since if changed id TableGen will break here
   odsState.addAttribute("id", odsBuilder.getStringAttr(cacheId));
   odsState.addTypes(type);
@@ -59,7 +59,7 @@ void CacheDeclOp::build(::mlir::OpBuilder &odsBuilder,
 //===----------------------------------------------------------------------===//
 void DirectoryDeclOp::build(::mlir::OpBuilder &odsBuilder,
                         ::mlir::OperationState &odsState, StringRef dirId,
-                        Type type, ArrayRef<NamedAttribute> attrs) {
+                        PCCType type, ArrayRef<NamedAttribute> attrs) {
   // FIXME - the use of "id" here is dangerous since if changed id TableGen will break here
   odsState.addAttribute("id", odsBuilder.getStringAttr(dirId));
   odsState.addTypes(type);

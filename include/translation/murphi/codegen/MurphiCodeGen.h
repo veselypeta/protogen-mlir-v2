@@ -3,6 +3,7 @@
 #include "mlir/IR/BuiltinDialect.h"
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include "translation/utils/ModuleInterpreter.h"
+#include <type_traits>
 
 // For a manual on the Murphi Programming Language :
 // https://www.cs.ubc.ca/~ajh/courses/cpsc513/assign-token/User.Manual
@@ -26,6 +27,12 @@ namespace detail {
 // ss_  : refers to a ScalarSet
 // sr_  : refers to an integer SubRange
 // r_   : refers to a record
+
+// a map to each type of machine
+constexpr struct {
+  const llvm::StringRef cache = "cache";
+  const llvm::StringRef directory = "directory";
+} machines;
 
 constexpr char state_suffix[] = "_state";
 
@@ -55,7 +62,20 @@ constexpr char e_access_t[] = "Access";
 constexpr char e_message_type_t[] = "MessageType";
 constexpr char ss_address_t[] = "Address";
 constexpr char sr_cache_val_t[] = "ClValue";
+
+// *** Machine Keywords *** //
+static std::string cache_set_t() {
+  return std::string(SetKey) + machines.cache.str();
+}
+static std::string directory_set_t() {
+  return std::string(SetKey) + machines.directory.str();
+}
 constexpr char e_machines_t[] = "Machines";
+
+static std::string e_directory_state_t();
+[[nodiscard]] static std::string e_cache_state_t();
+[[nodiscard]] static std::string r_cache_entry_t();
+[[nodiscard]] static std::string r_directory_entry_t();
 
 // *** Record Keywords *** //
 constexpr char r_message_t[] = "Message";
@@ -95,16 +115,11 @@ constexpr struct {
   const llvm::StringRef dir_decl = "pcc.directory_decl";
 } opStringMap;
 
-// a map to each type of machine
-constexpr struct {
-  const llvm::StringRef cache = "cache";
-  const llvm::StringRef directory = "directory";
-} machines;
-
 /*
  * Helper Structs to generate JSON
  */
 
+// *** ConstDecl
 struct ConstDecl {
   std::string id;
   size_t value;
@@ -112,6 +127,7 @@ struct ConstDecl {
 
 void to_json(json &j, const ConstDecl &c);
 
+// *** Enum
 struct Enum {
   std::string id;
   std::vector<std::string> elems;
@@ -119,12 +135,45 @@ struct Enum {
 
 void to_json(json &j, const Enum &c);
 
+// *** Union
 struct Union {
   std::string id;
   std::vector<std::string> elems;
 };
 
 void to_json(json &j, const Union &c);
+
+// *** Record
+struct Record {
+  std::string id;
+  std::vector<std::pair<std::string, std::string>> elems;
+};
+
+void to_json(json &j, const Record &record);
+
+// *** ScalarSet
+template <class T>
+struct is_string : public std::is_same<std::string, typename std::decay_t<T>> {
+};
+
+template <class T> class ScalarSet {
+public:
+  ScalarSet() = delete;
+  ScalarSet(const std::string &id, T value) {
+    static_assert(std::is_integral<T>() || is_string<T>::value,
+                  "ScalarSet value must be integral or string");
+
+    this->id = id;
+    this->value = value;
+  }
+  std::string id;
+  T value;
+};
+
+void to_json(json &j, const ScalarSet<std::string> &ss);
+void to_json(json &j, const ScalarSet<size_t> &ss);
+
+
 
 /*
  * Helper Generating Functions
@@ -154,11 +203,11 @@ public:
   // Type functions
   void _typeEnums();
   void _typeStatics();
-  void _typeMachines();
-  void _typeMachinesUnion(const std::vector<std::string>& elems);
+  void _typeMachineSets();
+  void _typeMachineEntry();
   void _typeMessage();
   void _typeNetworkObjects();
-  std::string _getMachineEntry(mlir::Operation *machineOp);
+  void _getMachineEntry(mlir::Operation *machineOp);
 
   mlir::LogicalResult render();
 
