@@ -12,6 +12,7 @@ struct SetTypeStorage;
 struct StateTypeStorage;
 struct StructTypeStorage;
 struct IntRangeTypeStorage;
+struct MsgIdTypeStorage;
 } // namespace detail
 
 // Types
@@ -22,6 +23,7 @@ class SetType;
 class StateType;
 class StructType;
 class IntRangeType;
+class MsgIdType;
 
 //===----------------------------------------------------------------------===//
 // PCC Type
@@ -138,6 +140,26 @@ public:
 };
 } // namespace pcc
 } // namespace mlir
+
+
+//===----------------------------------------------------------------------===//
+// MsgId Type
+//===----------------------------------------------------------------------===//
+namespace mlir{
+namespace pcc{
+
+class MsgIdType
+    : public PCCType::TypeBase<MsgIdType, PCCType, detail::MsgIdTypeStorage>{
+public:
+  using Base::Base;
+
+  static MsgIdType get(MLIRContext *ctx, const std::string &mtype);
+  std::string getMsgType();
+};
+
+}
+}
+
 namespace llvm {
 
 // Type hash just like pointers.

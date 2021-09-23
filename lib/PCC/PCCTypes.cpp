@@ -45,6 +45,9 @@ void PCCType::print(raw_ostream &os) const {
         os << "int_range<" << intRangeType.getStartRange() << ", "
            << intRangeType.getEndRange() << ">";
       })
+      .Case<MsgIdType>([&](MsgIdType &msgIdType) {
+        os << "mtype<" << msgIdType.getMsgType() << ">";
+      })
       .Default([](Type) { assert(0 && "unknown dialect type to print!"); });
 }
 
@@ -157,6 +160,16 @@ static ParseResult parseType(PCCType &result, DialectAsmParser &parser) {
       return failure();
     return result = IntRangeType::get(context, startRange, endRange), success();
   }
+  // END - IntRangeType Parsing
+  else if (name.equals("mtype")) {
+    llvm::StringRef mtype;
+    if (parser.parseLess() || parser.parseKeyword(&mtype) ||
+        parser.parseGreater()) {
+      return failure();
+    }
+    return result = MsgIdType::get(context, mtype.str()), success();
+  }
+  // END - MsgIdType parsing
   return parser.emitError(parser.getNameLoc(), "unknown pcc type"), failure();
 }
 
@@ -411,10 +424,40 @@ IntRangeType IntRangeType::get(MLIRContext *context, size_t startRange,
 size_t IntRangeType::getStartRange() { return getImpl()->value.first; }
 size_t IntRangeType::getEndRange() { return getImpl()->value.second; }
 
+//===----------------------------------------------------------------------===//
+// MsgId Type
+//===----------------------------------------------------------------------===//
+
+namespace mlir {
+namespace pcc {
+namespace detail {
+struct MsgIdTypeStorage : public mlir::TypeStorage {
+  using KeyTy = std::string;
+
+  explicit MsgIdTypeStorage(std::string mtype) : value{std::move(mtype)} {}
+  bool operator==(const KeyTy &key) const { return key == value; }
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  static MsgIdTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                     const KeyTy &key) {
+    return new (allocator.allocate<MsgIdTypeStorage>()) MsgIdTypeStorage(key);
+  }
+  KeyTy value;
+};
+} // namespace detail
+MsgIdType MsgIdType::get(mlir::MLIRContext *ctx, const std::string &mtype) {
+  return Base::get(ctx, mtype);
+}
+
+std::string MsgIdType::getMsgType() { return getImpl()->value; }
+} // namespace pcc
+} // namespace mlir
 
 // Register Newly Created types to the dialect
 
 void PCCDialect::registerTypes() {
   addTypes<IDType, DataType, NetworkType, StateType, SetType, StructType,
-           IntRangeType>();
+           IntRangeType, MsgIdType>();
 }

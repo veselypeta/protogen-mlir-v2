@@ -29,5 +29,7 @@ def IntRangeType : DialectType<PCC_Dialect, CPred<"$_self.isa<IntRangeType>()">,
 def DataType : DialectType<PCC_Dialect, CPred<"$_self.isa<DataType>()">,
         "data", "::mlir::pcc::DataType">, BuildableType<"DataType::get($_builder.getContext())">;
 
-
+// a msg id type is used to represent the type of message being sent i.e. a GetM request
+def MsgIdType : DialectType<PCC_Dialect, CPred<"$_self.isa<MsgIdType>()">,
+        "mtype", "::mlir::pcc::MsgIdType">, BuildableType<"MsgIdType::get($_builder.getContext()">;
 #endif //PCC_TYPES

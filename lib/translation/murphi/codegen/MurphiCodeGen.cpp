@@ -276,18 +276,40 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
 }
 
 void MurphiCodeGen::_typeMessage() {
-  // basic_msg
-  std::vector<std::pair<std::string, std::string>> base_msg_types;
-  base_msg_types.reserve(detail::BaseMsg.size());
-for (auto &defMsgType : detail::BaseMsg) {
-    base_msg_types.emplace_back(defMsgType.first, defMsgType.second);
-  }
-  detail::Record glob_msg = detail::Record{detail::r_message_t, base_msg_types};
-  // extra types
-  for (auto &adiType : detail::SuperMsg) {
-    glob_msg.elems.push_back(adiType);
-  }
+
+  auto msg_decl_type = get_glob_msg_type();
+
+  // generate the glob msg
+  detail::Record glob_msg = detail::Record{detail::r_message_t, msg_decl_type};
+
   data["decls"]["type_decls"].push_back(glob_msg);
+}
+
+std::vector<std::pair<std::string, std::string>> MurphiCodeGen::get_glob_msg_type(){
+  std::map<std::string, std::string> glob_msg_type;
+  auto all_msg_types = moduleInterpreter.getMessages();
+
+
+  std::for_each(all_msg_types.begin(), all_msg_types.end(), [&](const mlir::pcc::MsgDeclOp &msgDeclOp){
+    std::for_each(msgDeclOp->getAttrs().begin(), msgDeclOp->getAttrs().end(), [&](const mlir::NamedAttribute &named_attr){
+      if(named_attr.first != "id"){ // skip the id field
+        mlir::TypeAttr typeAttr = named_attr.second.cast<mlir::TypeAttr>();
+        glob_msg_type.insert({named_attr.first.str(), MLIRTypeToMurphiTypeRef(typeAttr.getValue(), "")});
+      }
+    });
+  });
+
+  // copy to vector
+  std::vector<std::pair<std::string, std::string>> msg_decl_type;
+  msg_decl_type.reserve(glob_msg_type.size() + 1);
+  for(auto &mv : glob_msg_type){
+    msg_decl_type.emplace_back(mv);
+  }
+
+  // push back the address type also
+  msg_decl_type.emplace_back(detail::c_adr, detail::ss_address_t );
+
+  return msg_decl_type;
 }
 
 // Free Functions
@@ -303,6 +325,24 @@ std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
   if (t.isa<mlir::pcc::IDType>()) {
     return detail::e_machines_t;
   }
+  if (t.isa<mlir::pcc::MsgIdType>()) {
+    return detail::r_message_t;
+  }
+  // TODO - fix this implementation
+  // we're better off if we declare a type for this first
+  // and then referr to it.
+  if (t.isa<mlir::pcc::SetType>()){
+    // create a type that we can refer to. This may be more challenging now
+    mlir::pcc::SetType st = t.cast<mlir::pcc::SetType>();
+
+    return "multiset [ " + std::to_string(st.getNumElements()) + " ] of " + MLIRTypeToMurphiTypeRef(st.getElementType(), "");
+  }
+
+  if (t.isa<mlir::pcc::IntRangeType>()){
+    mlir::pcc::IntRangeType intRangeType = t.cast<mlir::pcc::IntRangeType>();
+    return std::to_string(intRangeType.getStartRange()) + ".." + std::to_string(intRangeType.getEndRange());
+  }
+
   // TODO - add support for more types
   assert(0 && "currently using an unsupported type!");
 }

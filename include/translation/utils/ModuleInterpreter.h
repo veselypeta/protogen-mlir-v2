@@ -22,6 +22,10 @@ public:
   // FIXME - stub implementation
   std::vector<std::string> getEnumMachineStates(const std::string &mach);
 
+  std::vector<mlir::pcc::MsgDeclOp> getMessages();
+
+  mlir::pcc::MsgDeclOp getMessage(llvm::StringRef constructor);
+
 private:
   mlir::ModuleOp theModule;
   mlir::Block &getModuleBody() {

@@ -82,10 +82,10 @@ constexpr char r_message_t[] = "Message";
 
 // *** MSG ***
 // default msg fields
-constexpr char c_adr[] = "adr";
-constexpr char c_mtype[] = "mtype";
-constexpr char c_src[] = "src";
-constexpr char c_dst[] = "dst";
+constexpr auto c_adr = "adr";
+constexpr auto c_mtype = "mtype";
+constexpr auto c_src = "src";
+constexpr auto c_dst = "dst";
 
 constexpr char c_mach[] = "m";
 constexpr char c_cle[] = "cle";
@@ -210,6 +210,9 @@ public:
   void _getMachineEntry(mlir::Operation *machineOp);
 
   mlir::LogicalResult render();
+
+  // helpers
+  std::vector<std::pair<std::string, std::string>> get_glob_msg_type();
 
 private:
   ModuleInterpreter moduleInterpreter;

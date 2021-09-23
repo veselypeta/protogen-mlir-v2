@@ -100,6 +100,28 @@ def DirectoryDeclOp : PCC_Op<"directory_decl">{
     }];
 }
 
+def MsgDeclOp : PCC_Op<"msg_decl">{
+    let summary = "Declare a global message type";
+    let description = [{
+        An op to declare a global message type that allows caches or directory to send messages of this type.
+    }];
+    let arguments = (ins SymbolNameAttr:$id);
+    let results = (outs PCCType:$result);
+    let assemblyFormat = [{
+        attr-dict `:` type($result)
+    }];
+    let builders = [
+            OpBuilderDAG<(ins "StringRef":$m_type, "StructType":$type, CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)>
+            ];
+    let extraClassDeclaration = [{
+        TypeAttr getFieldAttr(llvm::StringRef name){
+            bool hasAttr = getOperation()->hasAttr(name);
+            assert(hasAttr && "The Message type does not contain the attribute!");
+            return getOperation()->getAttr(name).dyn_cast<mlir::TypeAttr>();
+        }
+    }];
+}
+
 def ProcessOp : PCC_Op<"process", [FunctionLike]>{
     let summary = "Process handler operations";
     let description = "A Op which represents a particular action and events to be triggered on a cache or directory";

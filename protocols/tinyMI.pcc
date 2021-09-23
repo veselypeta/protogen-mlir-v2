@@ -8,12 +8,15 @@ Network { Ordered fwd;    //FwdGetS, FwdGetM, Inv, PutAck
 Cache {
     State I;
     Data cl;
+    int[0..NrCaches] acksReceived = 0;
+    int[0..NrCaches] acksExpected = 0;
 } set[NrCaches] cache;
 
 Directory {
     State I;
     Data cl;
     ID owner;
+    set[NrCaches] ID cache;
 } directory;
 
 Message Request{};

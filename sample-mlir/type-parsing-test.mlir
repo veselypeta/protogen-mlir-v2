@@ -7,4 +7,5 @@ module {
     %5 = "pcc.foo" () : () -> !pcc.set<!pcc.state<I>, 5>
     %6 = "pcc.foo" () : () -> !pcc.struct<!pcc.state<I>, !pcc.id, !pcc.network<ordered>>
     %7 = "pcc.foo" () : () -> !pcc.int_range<0, 10>
+    %8 = "pcc.foo" () : () -> !pcc.mtype<GetM>
 }

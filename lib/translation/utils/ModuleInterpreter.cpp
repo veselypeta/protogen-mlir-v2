@@ -1,4 +1,5 @@
 #include "translation/utils/ModuleInterpreter.h"
+#include <algorithm>
 
 template <class T> std::vector<T> ModuleInterpreter::getOperations() {
   std::vector<T> ops;
@@ -42,4 +43,17 @@ ModuleInterpreter::getEnumMachineStates(const std::string &mach) {
   std::for_each(states.begin(), states.end(),
                 [&mach](auto &state) { state = mach + "_" + state; });
   return states;
+}
+
+std::vector<mlir::pcc::MsgDeclOp> ModuleInterpreter::getMessages() {
+  return getOperations<mlir::pcc::MsgDeclOp>();
+}
+
+mlir::pcc::MsgDeclOp ModuleInterpreter::getMessage(llvm::StringRef constructor) {
+  auto allMessageConstructorTypes = getMessages();
+  auto result = std::find_if(allMessageConstructorTypes.begin(), allMessageConstructorTypes.end(), [&constructor](mlir::pcc::MsgDeclOp &msgDeclOp){
+    return msgDeclOp.id() == constructor;
+  });
+  assert(result != allMessageConstructorTypes.end() && "Could not find Message constructor with that identifier!");
+  return *result;
 }

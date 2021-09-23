@@ -15,6 +15,16 @@
 #include <utility>
 
 namespace {
+
+/*
+ * Useful constants
+ */
+constexpr auto mtype_a = "mtype";
+constexpr auto default_mtype_t = "none";
+constexpr auto src_a = "src";
+constexpr auto dst_a = "dst";
+constexpr auto id_a = "id";
+
 class MLIRGenImpl {
 
 public:
@@ -24,11 +34,6 @@ public:
     theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
     // save the filename - used for location tracking
     filename = std::move(compFile);
-
-    // init initial msg types i.e. (name, src, dst) fields on the global map
-    TypeMapT globalMap;
-    initMsgDefaultMappings(globalMap);
-    msgTypeMap.insert({"global", globalMap});
 
     // set the insertion point to the start of the module
     builder.setInsertionPointToStart(theModule.getBody());
@@ -57,15 +62,23 @@ private:
   mlir::OpBuilder builder;
   std::string filename;
 
+  /*
+   * Message Inheritance
+   *
+   * All messages constructed in PCC inherit from the base Message type
+   * which has the following three fields
+   *
+   * mtype : a string-like identifier to the Message Type
+   * src : an identifier for the machine from which the message has been sent
+   * dst : an identifier for the machine from which the message is to be sent
+   */
   // A type map for mapping string -> mlir::Type
   using TypeMapT = std::map<std::string, mlir::Type>;
-
-  // hold message types in a map
-  std::map<std::string, TypeMapT> msgTypeMap;
-
-  // hold cache & directory type info
-  using MachMapT = std::map<std::string, TypeMapT>;
-  MachMapT machMap;
+  TypeMapT BaseMsg = {
+      std::make_pair(mtype_a, mlir::pcc::MsgIdType::get(builder.getContext(),
+                                                        default_mtype_t)),
+      {src_a, mlir::pcc::IDType::get(builder.getContext())},
+      {dst_a, mlir::pcc::IDType::get(builder.getContext())}};
 
   // used to hold underlying data for llvm::StringRef
   std::set<std::string> identStorage;
@@ -141,7 +154,7 @@ private:
     std::string constId = ctx->ID()->getText();
     std::string intText = ctx->INT()->getText();
     long constValue = strtol(ctx->INT()->getText().c_str(), nullptr, 10);
-    mlir::Location constDeclLocation = loc(*ctx->ID()->getSymbol());
+    mlir::Location constDeclLocation = loc(*ctx->ID());
 
     auto constOp = builder.create<mlir::pcc::ConstantOp>(constDeclLocation,
                                                          constId, constValue);
@@ -169,7 +182,7 @@ private:
       return mlir::success();
     for (auto network : ctx->network_element()) {
       std::string networkId = network->ID()->getText();
-      mlir::Location netLoc = loc(*network->ID()->getSymbol());
+      mlir::Location netLoc = loc(*network->ID());
       std::string orderingStr = network->element_type()->getText();
       // lowercase the string
       std::transform(orderingStr.begin(), orderingStr.end(),
@@ -194,22 +207,40 @@ private:
     if (ctx == nullptr)
       return mlir::success();
 
+    // get necessary info for operation construction
+    std::string msgId = ctx->ID()->getText(); // i.e. Resp
+    mlir::Location msgLoc = loc(*ctx->ID());
+
+    // initialize arrays for operation construction
+    std::vector<mlir::NamedAttribute> field_attrs;
+    std::vector<mlir::Type> struct_types;
+    field_attrs.reserve(ctx->declarations().size());
+    struct_types.reserve(ctx->declarations().size());
+
     // initialize a local msg type map for individual MsgTypes
     // i.e. Resp
-    TypeMapT localMsgTypeMap;
-    initMsgDefaultMappings(localMsgTypeMap);
+    TypeMapT localMsgTypeMap = BaseMsg; // copy the BaseMsg
 
-    std::string msgId = ctx->ID()->getText();
-    //    mlir::Location msgLoc = loc(*ctx->ID()->getSymbol());
+    auto add_to_declarations =
+        [&](std::pair<std::string, mlir::Type> &&declPair) {
+          struct_types.emplace_back(declPair.second);
+          field_attrs.emplace_back(std::make_pair(
+              mlir::Identifier::get(declPair.first, builder.getContext()),
+              mlir::TypeAttr::get(declPair.second)));
+        };
+
+    std::for_each(localMsgTypeMap.begin(), localMsgTypeMap.end(),
+                  add_to_declarations);
+
     for (auto msgDecl : ctx->declarations()) {
-      auto idTypePair = mlirTypeGen(msgDecl);
-      // insert into both local and global maps
-      getGlobalMsgMap().insert(idTypePair);
-      localMsgTypeMap.insert(idTypePair);
+      add_to_declarations(mlirTypeGen(msgDecl));
     }
-    // insert into local msg type map
-    msgTypeMap.insert({msgId, localMsgTypeMap});
-    return mlir::success();
+
+    mlir::pcc::StructType msg_struct_type =
+        mlir::pcc::StructType::get(struct_types);
+    mlir::pcc::MsgDeclOp msg_decl = builder.create<mlir::pcc::MsgDeclOp>(
+        msgLoc, msgId, msg_struct_type, field_attrs);
+    return declare(msgId, msg_decl);
   }
 
   std::pair<std::string, mlir::Type>
@@ -234,8 +265,9 @@ private:
     std::string intDeclId = ctx->ID()->getText();
 
     // get a reference to the start and end sub-range decls
-    auto startRange = ctx->range()->val_range()[0];
-    auto endRange = ctx->range()->val_range()[1];
+    auto startRange = ctx->range()->val_range().at(0);
+    auto endRange = ctx->range()->val_range().at(1);
+    // will always be 2 long due to grammar rules
 
     // determine the value of each sub-range
     size_t startRangeVal = getIntFromValRange(startRange);
@@ -288,66 +320,6 @@ private:
     return std::make_pair(declId, dataType);
   }
 
-  [[nodiscard]] mlir::pcc::StructType getUniqueMsgType(std::string &msgTypeId) {
-    if (msgTypeMap.count(msgTypeId) == 0) {
-      assert(0 && "looking up a msg type that doesn't exist, or has not been "
-                  "declared yet");
-    }
-    auto typeMap = msgTypeMap.find(msgTypeId)->second;
-    std::vector<mlir::Type> elemTypes = getElemTypesFromMap(typeMap);
-    return mlir::pcc::StructType::get(elemTypes);
-  }
-
-  [[nodiscard]] TypeMapT &getGlobalMsgMap() {
-    static std::string global = "global";
-    return getMsgMap(global);
-  }
-
-  [[nodiscard]] TypeMapT &getMsgMap(std::string &msgId) {
-    auto map = msgTypeMap.find(msgId);
-    assert(map != msgTypeMap.end() && "invalid msg id provided!");
-    return map->second;
-  }
-
-  [[nodiscard]] mlir::pcc::StructType getGlobalMsgType() {
-    TypeMapT &globMap = getGlobalMsgMap();
-    std::vector<mlir::Type> elemTypes = getElemTypesFromMap(globMap);
-    return mlir::pcc::StructType::get(elemTypes);
-  }
-
-  [[nodiscard]] static std::vector<mlir::Type>
-  getElemTypesFromMap(std::map<std::string, mlir::Type> &map,
-                      bool reversed = true) {
-    std::vector<mlir::Type> elemTypes;
-    elemTypes.reserve(map.size());
-    for (auto &mapValue : map) {
-      elemTypes.push_back(mapValue.second);
-    }
-    // reverse if required
-    if (reversed)
-      std::reverse(elemTypes.begin(), elemTypes.end());
-    return elemTypes;
-  }
-
-  [[nodiscard]] static std::vector<std::string>
-  getFieldIdsFromMap(TypeMapT &map, bool reversed = true) {
-    std::vector<std::string> ids;
-    ids.reserve(map.size());
-    for (auto &mapVal : map) {
-      ids.push_back(mapVal.first);
-    }
-    if (reversed)
-      std::reverse(ids.begin(), ids.end());
-    return ids;
-  }
-
-  // used to add (name, src, dst) types - to each msg initializer
-  void initMsgDefaultMappings(TypeMapT &map) {
-    // TODO - implement a String type for the MsgId
-    //    msgFieldIDTypeMap.insert(std::make_pair("msgId", mlir::));
-    map.insert({"src", mlir::pcc::IDType::get(builder.getContext())});
-    map.insert({"dst", mlir::pcc::IDType::get(builder.getContext())});
-  }
   // get integer value from value range
   size_t getIntFromValRange(ProtoCCParser::Val_rangeContext *ctx) {
     if (ctx == nullptr)
@@ -372,76 +344,80 @@ private:
       return mlir::success();
     // generate typedef for caches
     if (ctx->cache_block()) {
-      auto cacheBlckCtx = ctx->cache_block();
-      std::string cacheIdent = cacheBlckCtx->ID()->getText();
-      mlir::Location cacheLoc = loc(*cacheBlckCtx->ID()->getSymbol());
-
-      std::vector<mlir::NamedAttribute> namedAttrs;
-      // construct a map for each type in the cache definition i.e. State I
-      std::map<std::string, mlir::Type> cacheTypeMap;
-      for (auto cacheDecl : cacheBlckCtx->declarations()) {
-        auto declPair = mlirTypeGen(cacheDecl);
-        // Named Attribute Pair i.e. { cl : !pcc.data }
-        std::pair<mlir::Identifier, mlir::TypeAttr> namedAttrPair = {
-            mlir::Identifier::get(declPair.first, builder.getContext()),
-            mlir::TypeAttr::get(declPair.second)};
-        cacheTypeMap.insert(declPair);
-        namedAttrs.emplace_back(namedAttrPair);
-      }
-      // insert into the global map
-      machMap.insert({cacheIdent, cacheTypeMap});
-      // get the individual elem types for struct construction
-      std::vector<mlir::Type> elemTypes =
-          getElemTypesFromMap(cacheTypeMap, /*reversed*/ false);
-      auto cacheStruct = mlir::pcc::StructType::get(elemTypes);
-      // if we have a set decl then we add this additional step - skip otherwise
-      if (cacheBlckCtx->objset_decl()) {
-        size_t setSize =
-            getIntFromValRange(cacheBlckCtx->objset_decl()->val_range());
-        auto cacheSetType = mlir::pcc::SetType::get(cacheStruct, setSize);
-        mlir::pcc::CacheDeclOp cacheDeclOp =
-            builder.create<mlir::pcc::CacheDeclOp>(cacheLoc, cacheIdent,
-                                                   cacheSetType, namedAttrs);
-        return declare(cacheIdent, cacheDeclOp);
-      }
-      // no set declaration
-      mlir::pcc::CacheDeclOp cacheDeclOp =
-          builder.create<mlir::pcc::CacheDeclOp>(cacheLoc, cacheIdent,
-                                                 cacheStruct, namedAttrs);
-      return declare(cacheIdent, cacheDeclOp);
+      return mlirGen(ctx->cache_block());
     }
     if (ctx->dir_block()) {
-      auto dirBlockCtx = ctx->dir_block();
-      std::string dirId = dirBlockCtx->ID()->getText();
-      mlir::Location dirLoc = loc(*dirBlockCtx->ID()->getSymbol());
-
-      if (!dirBlockCtx->objset_decl().empty())
-        assert(0 && "currently set of directory decl is not supported");
-
-      std::vector<mlir::NamedAttribute> namedAttrsVec;
-      // Type map for directory i.e. ID owner;
-      std::map<std::string, mlir::Type> dirTypeMap;
-      for (auto dirDecl : dirBlockCtx->declarations()) {
-        auto declPair = mlirTypeGen(dirDecl);
-        std::pair<mlir::Identifier, mlir::TypeAttr> namedAttr = {
-            mlir::Identifier::get(declPair.first, builder.getContext()),
-            mlir::TypeAttr::get(declPair.second)};
-        dirTypeMap.insert(declPair);
-        namedAttrsVec.emplace_back(namedAttr);
-      }
-      machMap.insert(std::make_pair(dirId, dirTypeMap));
-      std::vector<mlir::Type> elemTypes =
-          getElemTypesFromMap(dirTypeMap, false);
-      mlir::pcc::StructType dirStruct = mlir::pcc::StructType::get(elemTypes);
-      // TODO - generate the correct supporting operation
-      mlir::pcc::DirectoryDeclOp dirDecl =
-          builder.create<mlir::pcc::DirectoryDeclOp>(dirLoc, dirId, dirStruct,
-                                                     namedAttrsVec);
-      return mlir::success();
+      return mlirGen(ctx->dir_block());
     }
     // fail if not cache or directory
     assert(0 &&
            "machine types other than (cache or directory) are not supported!");
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Cache_blockContext *ctx) {
+    std::string cache_id = ctx->ID()->getText();
+    mlir::Location cache_loc = loc(*ctx->ID());
+
+    std::vector<mlir::NamedAttribute> field_attributes;
+    field_attributes.reserve(ctx->declarations().size());
+    std::vector<mlir::Type> struct_types;
+    struct_types.reserve(ctx->declarations().size());
+
+    for (auto cache_decl : ctx->declarations()) {
+      auto declPair = mlirTypeGen(cache_decl);
+      assert(declPair.first != id_a && "field 'id' is a reserved identifier, "
+                                       "do not use in Cache definition");
+      // add the type pair to the named attributes
+      field_attributes.emplace_back(std::make_pair(
+          mlir::Identifier::get(declPair.first, builder.getContext()),
+          mlir::TypeAttr::get(declPair.second)));
+      struct_types.emplace_back(declPair.second);
+    }
+    // construct the cache struct type
+    mlir::pcc::StructType cache_struct =
+        mlir::pcc::StructType::get(struct_types);
+
+    // if a set of caches
+    if (ctx->objset_decl() != nullptr) {
+      auto set_size = getIntFromValRange(ctx->objset_decl()->val_range());
+      mlir::pcc::SetType set_type =
+          mlir::pcc::SetType::get(cache_struct, set_size);
+      mlir::pcc::CacheDeclOp cache_decl =
+          builder.create<mlir::pcc::CacheDeclOp>(cache_loc, cache_id, set_type,
+                                                 field_attributes);
+      return declare(cache_id, cache_decl);
+    }
+    mlir::pcc::CacheDeclOp cache_decl = builder.create<mlir::pcc::CacheDeclOp>(
+        cache_loc, cache_id, cache_struct, field_attributes);
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Dir_blockContext *ctx) {
+    std::string dir_id = ctx->ID()->getText();
+    mlir::Location dir_loc = loc(*ctx->ID());
+
+    std::vector<mlir::NamedAttribute> field_attrs;
+    std::vector<mlir::Type> struct_types;
+    field_attrs.reserve(ctx->declarations().size());
+    struct_types.reserve(ctx->declarations().size());
+
+    for (auto decl : ctx->declarations()) {
+      auto declPair = mlirTypeGen(decl);
+      assert(declPair.first != id_a && "field 'id' is a reserved identifier, "
+                                       "do not use in Directory definition");
+      struct_types.emplace_back(declPair.second);
+      field_attrs.emplace_back(std::make_pair(
+          mlir::Identifier::get(declPair.first, builder.getContext()),
+          mlir::TypeAttr::get(declPair.second)));
+    }
+    auto x = ctx->objset_decl();
+    assert(ctx->objset_decl().empty() &&
+           "sets in directory are not supported!");
+    mlir::pcc::StructType dir_struct = mlir::pcc::StructType::get(struct_types);
+    mlir::pcc::DirectoryDeclOp dir_decl_op =
+        builder.create<mlir::pcc::DirectoryDeclOp>(dir_loc, dir_id, dir_struct,
+                                                   field_attrs);
+    return declare(dir_id, dir_decl_op);
   }
 
   // MLIR generate for architecture blocks
@@ -450,65 +426,64 @@ private:
     if (!ctx)
       return mlir::success();
 
-    // Lookup the Arch we are targeting from the ID
-    std::string archId = ctx->ID()->getText();
-    mlir::Value archSSA = lookup(archId);
-
-    // Stable State Definitions ie. {M, S, I};
-    std::vector<std::string> stableStates;
-    ProtoCCParser::Stable_defContext *stableCtx =
-        ctx->arch_body()->stable_def();
-    for (auto stableState : stableCtx->ID()) {
-      stableStates.push_back(stableState->getText());
-    }
-
-    // for each process block
-    for (auto procBlockCtx : ctx->arch_body()->process_block()) {
-      // Get the Start State of the transaction
-      ProtoCCParser::Process_transContext *transContext =
-          procBlockCtx->process_trans();
-      std::string startState = transContext->ID()->getText();
-
-      // TODO -- we are just getting the string value of the action
-      // Better would be to discriminate between (ACCESS, EVICT, ID)
-      std::string action = transContext->process_events()->getText();
-
-      // get the final state if it exists
-      std::string finalState;
-      if (transContext->process_finalstate())
-        finalState =
-            transContext->process_finalstate()->process_finalident()->getText();
-
-      // TODO - create an operation that takes the correct types as parameters
-      auto archType = archSSA.getType();
-      auto msgType = getGlobalMsgType();
-      llvm::SmallVector<mlir::Type, 2> procArgs;
-      procArgs.push_back(archType);
-      procArgs.push_back(msgType);
-      auto procType = builder.getFunctionType(procArgs, llvm::None);
-
-      std::string processIdent = (startState += "_") += action;
-
-      auto procOpLocation = loc(*procBlockCtx->PROC()->getSymbol());
-      auto procOp = builder.create<mlir::pcc::ProcessOp>(
-          procOpLocation, processIdent, procType);
-      auto &entryBlock = *procOp.addEntryBlock();
-      builder.setInsertionPointToStart(&entryBlock);
-
-      // TODO -- insert Operations into the Process Operation
-      for (auto expr : procBlockCtx->process_expr()) {
-        // Generate Expressions
-        if (expr->expressions()) {
-          if (mlir::failed(mlirGen(expr->expressions()))) {
-            return mlir::failure();
-          }
-        }
-      }
-
-      builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
-      // reset the insertion point to after the Process op
-      builder.setInsertionPointAfter(procOp);
-    }
+    //    // Lookup the Arch we are targeting from the ID
+    //    std::string archId = ctx->ID()->getText();
+    //    mlir::Value archSSA = lookup(archId);
+    //
+    //    // Stable State Definitions ie. {M, S, I};
+    //    std::vector<std::string> stableStates;
+    //    ProtoCCParser::Stable_defContext *stableCtx =
+    //        ctx->arch_body()->stable_def();
+    //    for (auto stableState : stableCtx->ID()) {
+    //      stableStates.push_back(stableState->getText());
+    //    }
+    //
+    //    // for each process block
+    //    for (auto procBlockCtx : ctx->arch_body()->process_block()) {
+    //      // Get the Start State of the transaction
+    //      ProtoCCParser::Process_transContext *transContext =
+    //          procBlockCtx->process_trans();
+    //      std::string startState = transContext->ID()->getText();
+    //
+    //      // TODO -- we are just getting the string value of the action
+    //      // Better would be to discriminate between (ACCESS, EVICT, ID)
+    //      std::string action = transContext->process_events()->getText();
+    //
+    //      // get the final state if it exists
+    //      std::string finalState;
+    //      if (transContext->process_finalstate())
+    //        finalState =
+    //            transContext->process_finalstate()->process_finalident()->getText();
+    //
+    //      // TODO - create an operation that takes the correct types as
+    //      parameters auto archType = archSSA.getType(); auto msgType =
+    //      getGlobalMsgType(); llvm::SmallVector<mlir::Type, 2> procArgs;
+    //      procArgs.push_back(archType);
+    //      procArgs.push_back(msgType);
+    //      auto procType = builder.getFunctionType(procArgs, llvm::None);
+    //
+    //      std::string processIdent = (startState += "_") += action;
+    //
+    //      auto procOpLocation = loc(*procBlockCtx->PROC());
+    //      auto procOp = builder.create<mlir::pcc::ProcessOp>(
+    //          procOpLocation, processIdent, procType);
+    //      auto &entryBlock = *procOp.addEntryBlock();
+    //      builder.setInsertionPointToStart(&entryBlock);
+    //
+    //      // TODO -- insert Operations into the Process Operation
+    //      for (auto expr : procBlockCtx->process_expr()) {
+    //        // Generate Expressions
+    //        if (expr->expressions()) {
+    //          if (mlir::failed(mlirGen(expr->expressions()))) {
+    //            return mlir::failure();
+    //          }
+    //        }
+    //      }
+    //
+    //      builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
+    //      // reset the insertion point to after the Process op
+    //      builder.setInsertionPointAfter(procOp);
+    //    }
     return mlir::success();
   }
 
@@ -519,22 +494,25 @@ private:
           ctx->assignment()->process_finalident()->getText();
       auto assignTypesCtx = ctx->assignment()->assign_types();
       // inline for now
-      if (assignTypesCtx->message_constr()) {
-        // get the type of msg being constructed i.e. Request
-        std::string msgTypeId =
-            assignTypesCtx->message_constr()->ID()->getText();
-        // find the type of the message we wish to construct
-        auto msgConstrTypeMap = getMsgMap(msgTypeId);
-        auto msgConstrParams = assignTypesCtx->message_constr()->message_expr();
-        // TODO -- this can be uncommented once we push the name parameter to
-        // msg type assert(msgConstrTypeMap.size() == msgConstrParams.size() &&
-        // "parameter length should match!");
-        auto fields = getFieldIdsFromMap(msgConstrTypeMap);
-        for (size_t i = 0; i < msgConstrTypeMap.size(); i++) {
-          auto paramCtx = msgConstrParams[i];
-          mlirGen(paramCtx);
-        }
-      }
+      //      if (assignTypesCtx->message_constr()) {
+      //        // get the type of msg being constructed i.e. Request
+      //        std::string msgTypeId =
+      //            assignTypesCtx->message_constr()->ID()->getText();
+      //        // find the type of the message we wish to construct
+      //        auto msgConstrTypeMap = getMsgMap(msgTypeId);
+      //        auto msgConstrParams =
+      //        assignTypesCtx->message_constr()->message_expr();
+      //        // TODO -- this can be uncommented once we push the name
+      //        parameter to
+      //        // msg type assert(msgConstrTypeMap.size() ==
+      //        msgConstrParams.size() &&
+      //        // "parameter length should match!");
+      //        auto fields = getFieldIdsFromMap(msgConstrTypeMap);
+      //        for (size_t i = 0; i < msgConstrTypeMap.size(); i++) {
+      //          auto paramCtx = msgConstrParams[i];
+      //          mlirGen(paramCtx);
+      //        }
+      //      }
     }
     return mlir::success();
   }
