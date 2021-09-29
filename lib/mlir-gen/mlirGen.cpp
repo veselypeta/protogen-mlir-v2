@@ -1,5 +1,6 @@
 #include "mlir-gen/mlirGen.h"
 #include "PCC/PCCOps.h"
+#include "ProtoCCBaseVisitor.h"
 
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Attributes.h"
@@ -40,6 +41,9 @@ public:
 
     // declare a global scope
     SymbolTableScopeT global_scope(symbolTable);
+
+    // preprocess message names
+    preprocessMsgNames(ctx);
 
     // recursively call mlirGen
     if (mlir::failed(mlirGen(ctx))) {
@@ -92,6 +96,31 @@ private:
 
   // It's useful to hold a map for struct like cache/directory
   std::map<std::string, TypeMapT> machStructMap;
+
+  std::map<std::string, std::string> msgNameToMsgTypeMap;
+
+  void preprocessMsgNames(ProtoCCParser::DocumentContext *ctx){
+    class MsgConstructorVisitor : public ProtoCCBaseVisitor {
+    public:
+      antlrcpp::Any visitMessage_constr(ProtoCCParser::Message_constrContext *ctx) override {
+        std::string msgName = ctx->message_expr().at(0)->toString();
+        std::string msgType = ctx->ID()->getText();
+        msgNameMap.insert({msgName, msgType});
+        return visitChildren(ctx);
+      }
+    std::map<std::string, std::string> msgNameMap;
+    };
+
+    MsgConstructorVisitor msgVisitor;
+    ctx->accept(&msgVisitor);
+    msgNameToMsgTypeMap = msgVisitor.msgNameMap;
+  }
+
+  std::string resolveMsgId(const std::string &id){
+    auto find = msgNameToMsgTypeMap.find(id);
+    assert(find != msgNameToMsgTypeMap.end() && "could not a mapping for message name to a specific type");
+    return find->second;
+  }
 
   // return an mlir::Location object for builder operations
   mlir::Location loc(const antlr4::Token &tok) const {
