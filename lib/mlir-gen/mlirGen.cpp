@@ -14,7 +14,7 @@
 #include <set>
 #include <utility>
 
-namespace {
+namespace mlirGenImpl {
 
 /*
  * Useful constants
@@ -62,6 +62,8 @@ private:
   mlir::OpBuilder builder;
   std::string filename;
 
+  std::string curMach; // tells us which machine we are currently parsing for
+
   /*
    * Message Inheritance
    *
@@ -87,6 +89,9 @@ private:
   llvm::ScopedHashTable<llvm::StringRef, mlir::Value> symbolTable;
   using SymbolTableScopeT =
       llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value>;
+
+  // It's useful to hold a map for struct like cache/directory
+  std::map<std::string, TypeMapT> machStructMap;
 
   // return an mlir::Location object for builder operations
   mlir::Location loc(const antlr4::Token &tok) const {
@@ -116,7 +121,7 @@ private:
     return mlir::success();
   }
 
-  mlir::Value lookup(std::string &ident) {
+  mlir::Value lookup(const std::string &ident) {
     // Identifier must already be in the symbol table - otherwise error!
     if (!symbolTable.count(ident)) {
       assert(0 && "attempting to lookup ident which is not declared!");
@@ -354,6 +359,17 @@ private:
            "machine types other than (cache or directory) are not supported!");
   }
 
+  void registerStructType(llvm::StringRef structId,
+                          const std::vector<mlir::NamedAttribute> &attrs) {
+    TypeMapT typeMap;
+    for (auto attr : attrs) {
+      std::string fieldId = attr.first.str();
+      mlir::Type type = attr.second.cast<mlir::TypeAttr>().getValue();
+      typeMap.insert({fieldId, type});
+    }
+    machStructMap.insert({structId.str(), typeMap});
+  }
+
   mlir::LogicalResult mlirGen(ProtoCCParser::Cache_blockContext *ctx) {
     std::string cache_id = ctx->ID()->getText();
     mlir::Location cache_loc = loc(*ctx->ID());
@@ -376,6 +392,9 @@ private:
     // construct the cache struct type
     mlir::pcc::StructType cache_struct =
         mlir::pcc::StructType::get(struct_types);
+
+    // register the struct in the global struct map
+    registerStructType(cache_id, field_attributes);
 
     // if a set of caches
     if (ctx->objset_decl() != nullptr) {
@@ -417,6 +436,9 @@ private:
     mlir::pcc::DirectoryDeclOp dir_decl_op =
         builder.create<mlir::pcc::DirectoryDeclOp>(dir_loc, dir_id, dir_struct,
                                                    field_attrs);
+
+    // register the struct
+    registerStructType(dir_id, field_attrs);
     return declare(dir_id, dir_decl_op);
   }
 
@@ -426,107 +448,216 @@ private:
     if (!ctx)
       return mlir::success();
 
-    //    // Lookup the Arch we are targeting from the ID
-    //    std::string archId = ctx->ID()->getText();
-    //    mlir::Value archSSA = lookup(archId);
-    //
-    //    // Stable State Definitions ie. {M, S, I};
-    //    std::vector<std::string> stableStates;
-    //    ProtoCCParser::Stable_defContext *stableCtx =
-    //        ctx->arch_body()->stable_def();
-    //    for (auto stableState : stableCtx->ID()) {
-    //      stableStates.push_back(stableState->getText());
-    //    }
-    //
-    //    // for each process block
-    //    for (auto procBlockCtx : ctx->arch_body()->process_block()) {
-    //      // Get the Start State of the transaction
-    //      ProtoCCParser::Process_transContext *transContext =
-    //          procBlockCtx->process_trans();
-    //      std::string startState = transContext->ID()->getText();
-    //
-    //      // TODO -- we are just getting the string value of the action
-    //      // Better would be to discriminate between (ACCESS, EVICT, ID)
-    //      std::string action = transContext->process_events()->getText();
-    //
-    //      // get the final state if it exists
-    //      std::string finalState;
-    //      if (transContext->process_finalstate())
-    //        finalState =
-    //            transContext->process_finalstate()->process_finalident()->getText();
-    //
-    //      // TODO - create an operation that takes the correct types as
-    //      parameters auto archType = archSSA.getType(); auto msgType =
-    //      getGlobalMsgType(); llvm::SmallVector<mlir::Type, 2> procArgs;
-    //      procArgs.push_back(archType);
-    //      procArgs.push_back(msgType);
-    //      auto procType = builder.getFunctionType(procArgs, llvm::None);
-    //
-    //      std::string processIdent = (startState += "_") += action;
-    //
-    //      auto procOpLocation = loc(*procBlockCtx->PROC());
-    //      auto procOp = builder.create<mlir::pcc::ProcessOp>(
-    //          procOpLocation, processIdent, procType);
-    //      auto &entryBlock = *procOp.addEntryBlock();
-    //      builder.setInsertionPointToStart(&entryBlock);
-    //
-    //      // TODO -- insert Operations into the Process Operation
-    //      for (auto expr : procBlockCtx->process_expr()) {
-    //        // Generate Expressions
-    //        if (expr->expressions()) {
-    //          if (mlir::failed(mlirGen(expr->expressions()))) {
-    //            return mlir::failure();
-    //          }
-    //        }
-    //      }
-    //
-    //      builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
-    //      // reset the insertion point to after the Process op
-    //      builder.setInsertionPointAfter(procOp);
-    //    }
+    // Lookup the Arch we are targeting from the ID
+    std::string archId = ctx->ID()->getText();
+    mlir::Value archSSA = lookup(archId);
+    curMach = archId;
+
+    // TODO - do something with the stable state declarations
+    // Stable State Definitions ie. {M, S, I};
+    std::vector<std::string> stableStates;
+    ProtoCCParser::Stable_defContext *stableCtx =
+        ctx->arch_body()->stable_def();
+    for (auto stableState : stableCtx->ID()) {
+      stableStates.push_back(stableState->getText());
+    }
+
+
+    for (auto procBlockCtx : ctx->arch_body()->process_block()) {
+      if (!mlir::succeeded(mlirGen(procBlockCtx, archSSA)))
+        return mlir::failure();
+    }
     return mlir::success();
+  }
+
+  struct ProcessTransResponse {
+    enum class ActionKind { ID, EVICT, ACCESS };
+    std::string start_state;
+    std::string action;
+    ActionKind action_kind;
+    llvm::Optional<std::string> end_state;
+  };
+
+  static ProcessTransResponse
+  parseProcessTransCtx(ProtoCCParser::Process_transContext *ctx) {
+    std::string start_state = ctx->ID()->getText();
+    std::string action = ctx->process_events()->getText();
+    ProcessTransResponse::ActionKind action_kind;
+    if (ctx->process_events()->ACCESS())
+      action_kind = ProcessTransResponse::ActionKind::ACCESS;
+    if (ctx->process_events()->EVICT())
+      action_kind = ProcessTransResponse::ActionKind::EVICT;
+    if (ctx->process_events()->ID())
+      action_kind = ProcessTransResponse::ActionKind::ID;
+    llvm::Optional<std::string> end_state;
+    if (!ctx->process_finalstate()->process_finalident()->isEmpty()) {
+      end_state = ctx->process_finalstate()->process_finalident()->getText();
+    }
+    return {start_state, action, action_kind, end_state};
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Process_blockContext *ctx,
+                              mlir::Value archSSA) {
+    auto transContext = ctx->process_trans();
+    auto transResp = parseProcessTransCtx(transContext);
+
+    mlir::Location processOpLoc = loc(*transContext->ID());
+
+    auto archId = archSSA.getDefiningOp()
+                      ->getAttr("id")
+                      .cast<mlir::StringAttr>()
+                      .getValue()
+                      .str();
+
+    // Setup the parameter types
+    llvm::SmallVector<mlir::Type, 2> inputTypes;
+    if (mlir::pcc::SetType setType =
+            archSSA.getType().cast<mlir::pcc::SetType>()) {
+      assert(setType.getElementType().isa<mlir::pcc::StructType>() &&
+             "set type did not have struct as inner type");
+      inputTypes.push_back(setType.getElementType());
+    } else {
+      assert(archSSA.getType().isa<mlir::pcc::StructType>() &&
+             "directory must be struct");
+      inputTypes.push_back(archSSA.getType());
+    }
+
+    auto procType = builder.getFunctionType(inputTypes, llvm::None);
+
+    std::string procIdent =
+        archId + "_" + transResp.start_state + "_" + transResp.action;
+    auto procOp =
+        builder.create<mlir::pcc::ProcessOp>(processOpLoc, procIdent, procType);
+    // TODO - come back to implementing parameters for the function op
+    auto entryBlock = procOp.addEntryBlock();
+    builder.setInsertionPointToStart(entryBlock);
+
+    mlirGen(ctx->process_expr());
+
+    builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
+    builder.setInsertionPointAfter(procOp);
+    return mlir::success();
+  }
+
+  mlir::LogicalResult
+  mlirGen(const std::vector<ProtoCCParser::Process_exprContext *> &exprs) {
+    if (exprs.empty())
+      return mlir::success();
+    for (auto *exprCtx : exprs) {
+      if (mlir::failed(mlirGen(exprCtx)))
+        return mlir::failure();
+    }
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Process_exprContext *ctx) {
+    if (!ctx)
+      return mlir::failure();
+
+    if (ctx->expressions())
+      return mlirGen(ctx->expressions());
+
+    assert(0 && "Trying to parse expression types that are not supported");
   }
 
   mlir::LogicalResult mlirGen(ProtoCCParser::ExpressionsContext *ctx) {
-    if (ctx->assignment()) {
-      // get the assingment ident i.e. msg
-      std::string asignmentId =
-          ctx->assignment()->process_finalident()->getText();
-      auto assignTypesCtx = ctx->assignment()->assign_types();
-      // inline for now
-      //      if (assignTypesCtx->message_constr()) {
-      //        // get the type of msg being constructed i.e. Request
-      //        std::string msgTypeId =
-      //            assignTypesCtx->message_constr()->ID()->getText();
-      //        // find the type of the message we wish to construct
-      //        auto msgConstrTypeMap = getMsgMap(msgTypeId);
-      //        auto msgConstrParams =
-      //        assignTypesCtx->message_constr()->message_expr();
-      //        // TODO -- this can be uncommented once we push the name
-      //        parameter to
-      //        // msg type assert(msgConstrTypeMap.size() ==
-      //        msgConstrParams.size() &&
-      //        // "parameter length should match!");
-      //        auto fields = getFieldIdsFromMap(msgConstrTypeMap);
-      //        for (size_t i = 0; i < msgConstrTypeMap.size(); i++) {
-      //          auto paramCtx = msgConstrParams[i];
-      //          mlirGen(paramCtx);
-      //        }
-      //      }
+    if (!ctx)
+      return mlir::success();
+
+    if (ctx->assignment())
+      return mlirGen(ctx->assignment());
+
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::AssignmentContext *ctx) {
+    std::string assignmentId = ctx->process_finalident()->getText();
+    auto isState = ctx->process_finalident()->STATE() != nullptr;
+    if (!isState) {
+      mlir::Value val = mlirGen(ctx->assign_types());
+    } else {
+      // TODO - add an operation that sets the state
     }
     return mlir::success();
   }
 
-  void mlirGen(ProtoCCParser::Message_exprContext *ctx) {
+  mlir::Value mlirGen(ProtoCCParser::Assign_typesContext *ctx) {
+    if (ctx->message_constr())
+      return mlirGen(ctx->message_constr());
+    assert(0 && "currently unimplemented assignment types");
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Message_constrContext *ctx) {
+    std::string msgTypeId = ctx->ID()->getText();
+    mlir::Location msgLoc = loc(*ctx->ID());
+    // lookup the type
+    mlir::Value msgTypeConstr = lookup(msgTypeId);
+    mlir::pcc::MsgDeclOp msgDeclOp =
+        mlir::dyn_cast<mlir::pcc::MsgDeclOp>(lookup(msgTypeId).getDefiningOp());
+
+    assert(msgDeclOp->getAttrs().size() - 1 == ctx->message_expr().size() &&
+           "sizes match");
+    auto msg_id_node = ctx->message_expr().at(0);
+    auto srcVal = mlirGen(ctx->message_expr().at(1));
+    auto dstVal = mlirGen(ctx->message_expr().at(2));
+
+    mlir::pcc::MsgIdType msgType =
+        mlir::pcc::MsgIdType::get(builder.getContext(), msg_id_node->getText());
+
+    mlir::TypeAttr msgTypeAttr = mlir::TypeAttr::get(msgType);
+    return builder.create<mlir::pcc::MsgConstrOp>(
+        msgLoc, msgDeclOp.getType(), srcVal, dstVal, msgTypeAttr);
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Message_exprContext *ctx) {
     if (ctx->INT()) {
-      buildIntConstant(*ctx->INT());
+      return buildIntConstant(*ctx->INT());
     }
     if (ctx->BOOL()) {
-      buildBoolConstant(*ctx->BOOL());
+      return buildBoolConstant(*ctx->BOOL());
     }
     if (ctx->NID()) {
-      //      buildSelfIdReference(*ctx->NID());
+      return buildSelfIdReference(*ctx->NID());
     }
+    if (ctx->object_expr()) {
+      // currently, only support simple expressions
+
+      // this refers to references to directory or message
+      if (ctx->object_expr()->object_func()) {
+        auto fncCtx = ctx->object_expr()->object_func();
+        auto location = loc(*fncCtx->ID());
+        // HERE - we only allow reference to single object, and attribute
+        // i.e. directory.id or GetM.src
+
+        std::string rootObject = fncCtx->ID()->getText();
+        std::string index = fncCtx->object_idres()->getText();
+
+        // if the value can be looked up
+        if (symbolTable.count(rootObject)) {
+          auto typeMap = machStructMap.at(rootObject);
+          auto resultType = fncCtx->object_idres()->NID()
+                                ? mlir::pcc::IDType::get(builder.getContext())
+                                : typeMap.at(index);
+          return builder.create<mlir::pcc::StructAccessOp>(
+              location, resultType, lookup(rootObject),
+              builder.getStringAttr(index));
+        } else {
+          assert(0 && "Is msg type and not yet considered");
+        }
+      }
+
+      // this refers to a local struct access
+      if (ctx->object_expr()->object_id()) {
+        std::string index = ctx->object_expr()->object_id()->getText();
+        auto location = loc(*ctx->object_expr()->object_id()->ID());
+        // FIXME - I don't like the use of mach access here
+        auto mapEntry = machStructMap.at(curMach);
+        mlir::Type resultType = mapEntry.at(index);
+        return builder.create<mlir::pcc::StructAccessOp>(
+            location, resultType, builder.getBlock()->getArgument(0));
+      }
+    }
+    assert(0 && "fell of the end of message expression");
   }
 
   mlir::Value buildIntConstant(antlr4::tree::TerminalNode &intTok) {
@@ -543,15 +674,20 @@ private:
   }
 
   mlir::Value buildSelfIdReference(antlr4::tree::TerminalNode &nid) {
-    return builder.create<mlir::pcc::FooOp>(loc(nid), builder.getI64Type());
+    mlir::Location paramLoc = loc(nid);
+
+    return builder.create<mlir::pcc::StructAccessOp>(
+        paramLoc, mlir::pcc::IDType::get(builder.getContext()),
+        builder.getBlock()->getArgument(0),
+        builder.getStringAttr(nid.getText()));
   }
 };
-} // namespace
+} // namespace mlirGenImpl
 
 namespace pcc {
 mlir::ModuleOp mlirGen(mlir::MLIRContext &mlirCtx,
                        ProtoCCParser::DocumentContext *docCtx,
                        std::string filename) {
-  return MLIRGenImpl(mlirCtx).mlirGen(docCtx, std::move(filename));
+  return mlirGenImpl::MLIRGenImpl(mlirCtx).mlirGen(docCtx, std::move(filename));
 }
 } // namespace pcc

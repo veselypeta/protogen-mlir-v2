@@ -11,6 +11,36 @@ def FooOp : PCC_Op<"foo"> {
     }];
 }
 
+def MsgConstrOp : PCC_Op<"msg_constr"> {
+    let summary = "message constructor operation";
+    let description = [{}];
+
+    let arguments = (ins
+            IDType:$src,
+            IDType:$dst,
+            TypeAttr:$mtype // TODO -- make mtype a specific attribute type or constraint
+            );
+    let results = (outs PCCType:$results);
+    let assemblyFormat = [{
+        $src $dst attr-dict `:` type($results)
+    }];
+}
+
+def StructAccessOp : PCC_Op<"struct_access"> {
+    let summary = "access a field in a struct";
+    let description =[{}];
+
+    let arguments = (ins
+            StructType:$input,
+            StrAttr:$fieldId
+            );
+
+    let results = (outs PCCType:$results);
+    let assemblyFormat = [{
+       $input `[` $fieldId `]` attr-dict `:` type($input) `->` type($results)
+    }];
+}
+
 def ConstantOp : PCC_Op<"constant"> {
     let summary = "define a global integer constant at the root module level";
     let description = [{

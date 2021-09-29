@@ -1,7 +1,7 @@
 enable_testing()
 
 add_executable(protogen-mlir-test
-        mlirGenTest.cpp
+        mlirGen/mlirGenTest.cpp
         MurphiTemplatesTest.cpp
         InjaTests.cpp
         ValiJSONTests.cpp

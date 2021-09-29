@@ -21,7 +21,7 @@ def SetType : DialectType<PCC_Dialect, CPred<"$_self.isa<SetType>()">,
 
 // A struct type for representing PCC Objects i.e. cache/directory/msg types
 def StructType : DialectType<PCC_Dialect, CPred<"$_self.isa<StructType>()">,
-    "struct", "::mlir::pcc::StructType">, BuildableType<"StructType::get($_builder.getContext())">;
+    "struct", "::mlir::pcc::StructType">, BuildableType<"StructType::get(llvm::None)">;
 
 def IntRangeType : DialectType<PCC_Dialect, CPred<"$_self.isa<IntRangeType>()">,
         "int_range", "::mlir::pcc::IntRangeType">, BuildableType<"IntRangeType::get($_builder.getContext())">;
