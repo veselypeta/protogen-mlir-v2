@@ -11,7 +11,7 @@ def PCC_Dialect : Dialect {
     }];
     let cppNamespace = "::mlir::pcc";
       let extraClassDeclaration = [{
-        /// Register all FIRRTL types.
+        /// Register all PCC Types
         void registerTypes();
     }];
 }

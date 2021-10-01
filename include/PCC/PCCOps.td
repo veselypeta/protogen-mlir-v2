@@ -53,7 +53,7 @@ def ConstantOp : PCC_Op<"constant"> {
     let assemblyFormat = [{attr-dict `:` type($result)}];
 
     let builders = [
-            OpBuilderDAG<(ins "std::string":$id, "int64_t":$value), [{
+            OpBuilder<(ins "std::string":$id, "int64_t":$value), [{
                 build($_builder,
                       $_state,
                       $_builder.getI64Type(),
@@ -92,7 +92,7 @@ def CacheDeclOp : PCC_Op<"cache_decl">{
         attr-dict `:` type($result)
     }];
 
-    let builders = [OpBuilderDAG<(ins
+    let builders = [OpBuilder<(ins
                     "StringRef":$cacheId,
                     "PCCType":$type,
                     CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs
@@ -117,7 +117,7 @@ def DirectoryDeclOp : PCC_Op<"directory_decl">{
         attr-dict `:` type($result)
     }];
 
-    let builders = [OpBuilderDAG<(ins "StringRef":$dirId,
+    let builders = [OpBuilder<(ins "StringRef":$dirId,
                     "PCCType":$type,
                     CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)
                             >];
@@ -141,7 +141,7 @@ def MsgDeclOp : PCC_Op<"msg_decl">{
         attr-dict `:` type($result)
     }];
     let builders = [
-            OpBuilderDAG<(ins "StringRef":$m_type, "StructType":$type, CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)>
+            OpBuilder<(ins "StringRef":$m_type, "StructType":$type, CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)>
             ];
     let extraClassDeclaration = [{
         TypeAttr getFieldAttr(llvm::StringRef name){
@@ -162,7 +162,7 @@ def ProcessOp : PCC_Op<"process", [FunctionLike]>{
     // Single region with entry block
     let regions = (region AnyRegion:$body);
 
-    let builders = [OpBuilderDAG<(ins
+    let builders = [OpBuilder<(ins
                     "StringRef":$name, "FunctionType":$type,
                     CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
                     CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)

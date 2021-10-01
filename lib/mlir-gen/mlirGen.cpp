@@ -126,9 +126,9 @@ private:
 
   // return an mlir::Location object for builder operations
   mlir::Location loc(const antlr4::Token &tok) const {
-    return mlir::FileLineColLoc::get(filename, tok.getLine(),
-                                     tok.getCharPositionInLine(),
-                                     builder.getContext());
+    return mlir::FileLineColLoc::get(
+        mlir::Identifier::get(filename, builder.getContext()), tok.getLine(),
+        tok.getCharPositionInLine());
   }
 
   mlir::Location loc(antlr4::tree::TerminalNode &terminal) const {
@@ -721,8 +721,6 @@ private:
     mlir::Location transLoc = loc(*ctx->AWAIT());
     mlir::pcc::TransactionOp transOp =
         builder.create<mlir::pcc::TransactionOp>(transLoc);
-
-
 
     // TODO - add entry block
     return mlir::success();

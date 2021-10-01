@@ -8,7 +8,6 @@
 #include "mlir-gen/mlirGen.h"
 #include <iostream>
 
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"

@@ -1,5 +1,6 @@
 #include "PCC/PCCOps.h"
 #include <mlir/IR/SymbolTable.h>
+#include "mlir/IR/MLIRContext.h"
 
 using namespace mlir;
 using namespace mlir::pcc;
@@ -28,10 +29,7 @@ void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
   if (argAttrs.empty())
     return;
   assert(type.getNumInputs() == argAttrs.size());
-  SmallString<8> argAttrName;
-  for (unsigned i = 0, e = type.getNumInputs(); i != e; ++i)
-    if (DictionaryAttr argDict = argAttrs[i])
-      state.addAttribute(getArgAttrName(i, argAttrName), argDict);
+  function_like_impl::addArgAndResultAttrs(builder, state, argAttrs, llvm::None);
 }
 
 // ProcessOp ProcessOp::create(Location location, ProcessType type) {
@@ -81,3 +79,5 @@ void MsgDeclOp::build(::mlir::OpBuilder &odsBuilder,
   odsState.addTypes(msgMlirType);
   odsState.attributes.append(attrs.begin(), attrs.end());
 }
+
+#include "PCC/PCCDialect.cpp.inc"

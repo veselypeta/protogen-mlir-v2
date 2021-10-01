@@ -7,17 +7,17 @@ using namespace mlir::pcc;
 // - Process Op
 static void print(ProcessOp op, OpAsmPrinter &p) {
   auto procType = op.getType();
-  impl::printFunctionLikeOp(
+  mlir::function_like_impl::printFunctionLikeOp(
       p, op, procType.getInputs(), /*isVariadic=*/false, procType.getResults());
 }
 
 static ParseResult parseProcessOp(OpAsmParser &parser, OperationState &result) {
   auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes,
                           ArrayRef<Type> results,
-                          impl::VariadicFlag, std::string &) {
+                          mlir::function_like_impl::VariadicFlag, std::string &) {
     return builder.getFunctionType(argTypes, results);
   };
-  return impl::parseFunctionLikeOp(
+  return mlir::function_like_impl::parseFunctionLikeOp(
       parser, result, /*allowVariadic=*/false, buildFuncType);
 }
 
