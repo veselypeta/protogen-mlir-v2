@@ -104,7 +104,7 @@ private:
     public:
       antlrcpp::Any
       visitMessage_constr(ProtoCCParser::Message_constrContext *ctx) override {
-        std::string msgName = ctx->message_expr().at(0)->toString();
+        std::string msgName = ctx->message_expr().at(0)->getText();
         std::string msgType = ctx->ID()->getText();
         msgNameMap.insert({msgName, msgType});
         return visitChildren(ctx);
@@ -117,7 +117,7 @@ private:
     msgNameToMsgTypeMap = msgVisitor.msgNameMap;
   }
 
-  std::string resolveMsgId(const std::string &id) {
+  std::string resolveMsgName(const std::string &id) {
     auto find = msgNameToMsgTypeMap.find(id);
     assert(find != msgNameToMsgTypeMap.end() &&
            "could not a mapping for message name to a specific type");
@@ -562,9 +562,9 @@ private:
     auto entryBlock = procOp.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
 
-    mlirGen(ctx->process_expr());
+    if (mlir::failed(mlirGen(ctx->process_expr())))
+      return mlir::failure();
 
-    builder.create<mlir::pcc::BreakOp>(builder.getUnknownLoc());
     builder.setInsertionPointAfter(procOp);
     return mlir::success();
   }
@@ -687,6 +687,7 @@ private:
         // FIXME - I don't like the use of mach access here
         auto mapEntry = machStructMap.at(curMach);
         mlir::Type resultType = mapEntry.at(index);
+
         return builder.create<mlir::pcc::StructAccessOp>(
             location, resultType, builder.getBlock()->getArgument(0));
       }
@@ -724,10 +725,63 @@ private:
     mlir::Block *entry = transOp.addEntryBlock();
     builder.setInsertionPointToStart(entry);
 
-    // TODO - generate sub ops here
+    if(mlir::failed(mlirGen(ctx->trans())))
+        return mlir::failure();
 
     builder.setInsertionPointAfter(transOp);
 
+    return mlir::success();
+  }
+
+  mlir::LogicalResult
+  mlirGen(const std::vector<ProtoCCParser::TransContext *> &ctx) {
+    for (auto *transCtx : ctx) {
+      if (mlir::failed(mlirGen(transCtx)))
+        return mlir::failure();
+    }
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::TransContext *ctx) {
+    std::string msgName = ctx->ID()->getText();
+    mlir::Location transLoc = loc(*ctx->WHEN());
+    std::string msgTypeName = resolveMsgName(msgName);
+    mlir::pcc::PCCType msgType =
+        lookup(msgTypeName).getType().cast<mlir::pcc::StructType>();
+
+    mlir::pcc::TransitionOp transOp =  builder.create<mlir::pcc::TransitionOp>(
+        transLoc, builder.getStringAttr(msgName), mlir::TypeAttr::get(msgType));
+
+    mlir::Block *entry = transOp.addEntryBlock();
+    builder.setInsertionPointToStart(entry);
+
+    if(mlir::failed(mlirGen(ctx->trans_body())))
+      return mlir::failure();
+
+    builder.setInsertionPointAfter(transOp);
+
+    return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(const std::vector<ProtoCCParser::Trans_bodyContext *> &ctx){
+    for(auto *transBodyCtx : ctx){
+      if(mlir::failed(mlirGen(transBodyCtx)))
+        return mlir::failure();
+    }
+    return mlir::success();
+  }
+
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::Trans_bodyContext *ctx){
+    if(ctx->next_break()){
+      mlir::Location breakLoc = loc(*ctx->next_break()->BREAK());
+      builder.create<mlir::pcc::BreakOp>(breakLoc);
+      return mlir::success();
+    }
+    if(ctx->transaction()){
+      return mlirGen(ctx->transaction());
+    }
+    mlirGen(ctx->expressions());
     return mlir::success();
   }
 };

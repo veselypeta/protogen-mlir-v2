@@ -152,7 +152,7 @@ def MsgDeclOp : PCC_Op<"msg_decl">{
     }];
 }
 
-def ProcessOp : PCC_Op<"process", [FunctionLike]>{
+def ProcessOp : PCC_Op<"process", [FunctionLike, NoTerminator]>{
     let summary = "Process handler operations";
     let description = "A Op which represents a particular action and events to be triggered on a cache or directory";
 
@@ -194,7 +194,7 @@ def ProcessOp : PCC_Op<"process", [FunctionLike]>{
         }
     }];
 
-    let parser = [{ return ::parseProcessOp(parser, result); }];
+    let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
 }
 
@@ -213,15 +213,37 @@ def TransactionOp : PCC_Op<"await", [NoTerminator, NoRegionArguments, SingleBloc
 
     let extraClassDeclaration = [{
 
-Block *addEntryBlock(){
-  Block *block = new Block();
-  this->body().push_back(block);
-  return block;
-}
+    Block *addEntryBlock(){
+      Block *block = new Block();
+      this->body().push_back(block);
+      return block;
+    }
     }];
 
     let assemblyFormat = [{
-       attr-dict $body
+        attr-dict `:` $body
+    }];
+}
+
+
+def TransitionOp: PCC_Op<"when", [SingleBlockImplicitTerminator<"BreakOp">]>{
+    let summary = "";
+    let description = [{}];
+
+    let arguments = (ins StrAttr:$guard, TypeAttr:$msgType);
+    let regions = (region SizedRegion<1>:$body);
+
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+
+    let extraClassDeclaration = [{
+
+    Block *addEntryBlock(){
+      Block *block = new Block();
+      this->body().push_back(block);
+      block->addArgument(this->msgType());
+      return block;
+    }
     }];
 }
 

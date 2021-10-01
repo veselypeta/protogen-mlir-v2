@@ -2,7 +2,7 @@
 
 Network { Ordered fwd;    //FwdGetS, FwdGetM, Inv, PutAck
           Unordered resp; // Data, InvAck
-          Unordered req;  //GetS, GetM, PutM
+          Unordered req;   //GetS, GetM, PutM
           };
 
 Cache {
@@ -15,25 +15,37 @@ Cache {
 Directory {
     State I;
     Data cl;
-    ID owner;
     set[NrCaches] ID cache;
+    ID owner;
 } directory;
 
 Message Request{};
+
+Message Ack{};
 
 Message Resp{
     Data cl;
 };
 
+Message RespAck{
+    Data cl;
+    int[0..NrCaches] acksExpected;
+};
+
 Architecture cache {
 
-    Stable{I, M}
+    Stable{I, S, E, M}
 
-    Process(I, store, State){
-        msg = Request(GetM, ID, directory.ID);
+    // I ////////////////////////////////////////////////////////
+    Process(I, load, State){
+        msg = Request(GetS, ID, directory.ID);
+        // req.send(msg);
 
-        await {
-
+        await{
+            when GetS:
+                //cl=GetS.cl;
+                //State = S;
+                break;
         }
     }
 }

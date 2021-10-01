@@ -1,7 +1,7 @@
 #include "PCC/PCCOps.h"
-#include <mlir/IR/SymbolTable.h>
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
+#include <mlir/IR/SymbolTable.h>
 
 using namespace mlir;
 using namespace mlir::pcc;
@@ -17,11 +17,10 @@ static void print(ProcessOp op, OpAsmPrinter &p) {
 }
 
 static ParseResult parseProcessOp(OpAsmParser &parser, OperationState &result) {
-  auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes,
-                          ArrayRef<Type> results,
-                          mlir::function_like_impl::VariadicFlag, std::string &) {
-    return builder.getFunctionType(argTypes, results);
-  };
+  auto buildFuncType =
+      [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+         mlir::function_like_impl::VariadicFlag,
+         std::string &) { return builder.getFunctionType(argTypes, results); };
   return mlir::function_like_impl::parseFunctionLikeOp(
       parser, result, /*allowVariadic=*/false, buildFuncType);
 }
@@ -38,7 +37,8 @@ void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
   if (argAttrs.empty())
     return;
   assert(type.getNumInputs() == argAttrs.size());
-  function_like_impl::addArgAndResultAttrs(builder, state, argAttrs, llvm::None);
+  function_like_impl::addArgAndResultAttrs(builder, state, argAttrs,
+                                           llvm::None);
 }
 
 //===----------------------------------------------------------------------===//
@@ -82,32 +82,56 @@ void MsgDeclOp::build(::mlir::OpBuilder &odsBuilder,
 }
 
 //===----------------------------------------------------------------------===//
-// TransactionOp
+// TransitionOp
 //===----------------------------------------------------------------------===//
 
-//void TransactionOp::build(OpBuilder &builder, OperationState &state) {
-//
-//  Region *reg = state.addRegion();
-//  builder.createBlock(reg);
-//
-//}
+// Transition Op looks something like this:
+/*
+ * pcc.when [GetM] (%arg0: pcc.struct<>){
+ *  ....
+ * }
+ */
 
-static void print(TransactionOp op, OpAsmPrinter &p) {
-  p << op->getName() << ' ';
-  Region &body = op->getRegion(0);
-  p.printRegion(body);
+static void print(TransitionOp transitionOp, OpAsmPrinter &p) {
+  p << mlir::pcc::TransitionOp::getOperationName() << ' ';
+  p << "[ " << transitionOp.guard().str() << " ]" << ' ';
+  p << '(';
+  p.printRegionArgument(transitionOp.body().getArgument(0));
+  p << ')';
+  p.printRegion(transitionOp.body(), /*printEntryBlockArgs*/ false,
+                /*printBlockTerminators*/ true);
 }
 
-static ParseResult parseTransactionOp(OpAsmParser &parser, OperationState &result){
-  SmallVector<OpAsmParser::OperandType, 4> entryArgs;
-  auto *body = result.addRegion();
-  ParseResult parseResult = parser.parseRegion(*body);
-  llvm::SMLoc loc = parser.getCurrentLocation();
-  if(failed(parseResult))
+static ParseResult parseTransitionOp(OpAsmParser &parser,
+                                     OperationState &result) {
+  auto &builder = parser.getBuilder();
+  llvm::StringRef guardMsgName;
+  if (parser.parseLSquare() || parser.parseKeyword(&guardMsgName) ||
+      parser.parseRSquare()) {
+    return mlir::failure();
+  }
+
+  std::string guardName = guardMsgName.str();
+  result.addAttribute("guard", builder.getStringAttr(guardName));
+
+  // parse the signature
+
+  OpAsmParser::OperandType argument;
+  Type argumentType;
+
+  if (parser.parseLParen() || parser.parseRegionArgument(argument) ||
+      parser.parseColonType(argumentType) || parser.parseRParen())
     return failure();
 
-  if(body->empty())
-    return parser.emitError(loc);
+  result.addAttribute("msgType", TypeAttr::get(argumentType));
+
+  // parse the body
+  auto *body = result.addRegion();
+  ParseResult parseResult = parser.parseRegion(*body, argument, argumentType,
+                                               /*enableNameShadowing*/ false);
+
+  if (failed(parseResult))
+    return failure();
 
   return success();
 }
