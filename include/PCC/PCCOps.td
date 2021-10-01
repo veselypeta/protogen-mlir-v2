@@ -41,7 +41,7 @@ def StructAccessOp : PCC_Op<"struct_access"> {
     }];
 }
 
-def ConstantOp : PCC_Op<"constant"> {
+def ConstantOp : PCC_Op<"constant", [ConstantLike]> {
     let summary = "define a global integer constant at the root module level";
     let description = [{
         Only to be used at the root level of a module. This operation will be used to represent
@@ -206,14 +206,23 @@ def BreakOp : PCC_Op<"break", [Terminator]>{
 }
 
 
-def TransactionOp : PCC_Op<"await", []>{
+def TransactionOp : PCC_Op<"await", [NoTerminator, NoRegionArguments, SingleBlock]>{
     let summary = "";
     let description = "";
     let regions = (region SizedRegion<1>:$body);
 
+    let extraClassDeclaration = [{
 
-    let parser = [{ return ::parseTransactionOp(parser, result); }];
-    let printer = [{ return ::print(*this, p); }];
+Block *addEntryBlock(){
+  Block *block = new Block();
+  this->body().push_back(block);
+  return block;
+}
+    }];
+
+    let assemblyFormat = [{
+       attr-dict $body
+    }];
 }
 
 

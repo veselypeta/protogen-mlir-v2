@@ -721,8 +721,13 @@ private:
     mlir::Location transLoc = loc(*ctx->AWAIT());
     mlir::pcc::TransactionOp transOp =
         builder.create<mlir::pcc::TransactionOp>(transLoc);
+    mlir::Block *entry = transOp.addEntryBlock();
+    builder.setInsertionPointToStart(entry);
 
-    // TODO - add entry block
+    // TODO - generate sub ops here
+
+    builder.setInsertionPointAfter(transOp);
+
     return mlir::success();
   }
 };

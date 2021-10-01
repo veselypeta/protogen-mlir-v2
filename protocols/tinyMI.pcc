@@ -31,5 +31,9 @@ Architecture cache {
 
     Process(I, store, State){
         msg = Request(GetM, ID, directory.ID);
+
+        await {
+
+        }
     }
 }
