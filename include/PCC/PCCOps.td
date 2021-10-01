@@ -206,4 +206,15 @@ def BreakOp : PCC_Op<"break", [Terminator]>{
 }
 
 
+def TransactionOp : PCC_Op<"await", []>{
+    let summary = "";
+    let description = "";
+    let regions = (region SizedRegion<1>:$body);
+
+
+    let parser = [{ return ::parseTransactionOp(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+}
+
+
 #endif // PCC_OPS

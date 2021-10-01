@@ -99,16 +99,17 @@ private:
 
   std::map<std::string, std::string> msgNameToMsgTypeMap;
 
-  void preprocessMsgNames(ProtoCCParser::DocumentContext *ctx){
+  void preprocessMsgNames(ProtoCCParser::DocumentContext *ctx) {
     class MsgConstructorVisitor : public ProtoCCBaseVisitor {
     public:
-      antlrcpp::Any visitMessage_constr(ProtoCCParser::Message_constrContext *ctx) override {
+      antlrcpp::Any
+      visitMessage_constr(ProtoCCParser::Message_constrContext *ctx) override {
         std::string msgName = ctx->message_expr().at(0)->toString();
         std::string msgType = ctx->ID()->getText();
         msgNameMap.insert({msgName, msgType});
         return visitChildren(ctx);
       }
-    std::map<std::string, std::string> msgNameMap;
+      std::map<std::string, std::string> msgNameMap;
     };
 
     MsgConstructorVisitor msgVisitor;
@@ -116,9 +117,10 @@ private:
     msgNameToMsgTypeMap = msgVisitor.msgNameMap;
   }
 
-  std::string resolveMsgId(const std::string &id){
+  std::string resolveMsgId(const std::string &id) {
     auto find = msgNameToMsgTypeMap.find(id);
-    assert(find != msgNameToMsgTypeMap.end() && "could not a mapping for message name to a specific type");
+    assert(find != msgNameToMsgTypeMap.end() &&
+           "could not a mapping for message name to a specific type");
     return find->second;
   }
 
@@ -491,7 +493,6 @@ private:
       stableStates.push_back(stableState->getText());
     }
 
-
     for (auto procBlockCtx : ctx->arch_body()->process_block()) {
       if (!mlir::succeeded(mlirGen(procBlockCtx, archSSA)))
         return mlir::failure();
@@ -586,6 +587,10 @@ private:
     if (ctx->expressions())
       return mlirGen(ctx->expressions());
 
+    if (ctx->transaction()) {
+      return mlirGen(ctx->transaction());
+    }
+
     assert(0 && "Trying to parse expression types that are not supported");
   }
 
@@ -634,8 +639,8 @@ private:
         mlir::pcc::MsgIdType::get(builder.getContext(), msg_id_node->getText());
 
     mlir::TypeAttr msgTypeAttr = mlir::TypeAttr::get(msgType);
-    return builder.create<mlir::pcc::MsgConstrOp>(
-        msgLoc, msgDeclOp.getType(), srcVal, dstVal, msgTypeAttr);
+    return builder.create<mlir::pcc::MsgConstrOp>(msgLoc, msgDeclOp.getType(),
+                                                  srcVal, dstVal, msgTypeAttr);
   }
 
   mlir::Value mlirGen(ProtoCCParser::Message_exprContext *ctx) {
@@ -709,6 +714,18 @@ private:
         paramLoc, mlir::pcc::IDType::get(builder.getContext()),
         builder.getBlock()->getArgument(0),
         builder.getStringAttr(nid.getText()));
+  }
+
+  /// MLIR GEN FOR TRANSACTIONS ///
+  mlir::LogicalResult mlirGen(ProtoCCParser::TransactionContext *ctx) {
+    mlir::Location transLoc = loc(*ctx->AWAIT());
+    mlir::pcc::TransactionOp transOp =
+        builder.create<mlir::pcc::TransactionOp>(transLoc);
+
+
+
+    // TODO - add entry block
+    return mlir::success();
   }
 };
 } // namespace mlirGenImpl
