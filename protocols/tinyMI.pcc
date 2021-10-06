@@ -39,12 +39,12 @@ Architecture cache {
     // I ////////////////////////////////////////////////////////
     Process(I, load, State){
         msg = Request(GetS, ID, directory.ID);
-        // req.send(msg);
+        req.send(msg);
 
         await{
             when GetS:
                 //cl=GetS.cl;
-                //State = S;
+                State = S;
                 break;
         }
     }

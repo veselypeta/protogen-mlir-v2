@@ -247,5 +247,31 @@ def TransitionOp: PCC_Op<"when", [SingleBlockImplicitTerminator<"BreakOp">]>{
     }];
 }
 
+def MsgSendOp: PCC_Op<"send">{
+    let summary = "Sends a Msg on a network";
+    let description = [{}];
+
+    let arguments = (ins NetworkType:$network, StructType:$message);
+    let assemblyFormat = [{
+       attr-dict `:` $network`:`type($network) $message`:`type($message)
+    }];
+
+    let extraClassDeclaration = [{}];
+
+}
+
+
+def StateUpdateOp: PCC_Op<"update">{
+    let summary = "Update a state variable of the FMS i.e. cache or directory";
+    let description = [{
+        pcc.update [ cl ] %cache %value
+    }];
+
+    let arguments = (ins StructType:$mach, AnyType:$value, StrAttr:$field);
+
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+
+}
 
 #endif // PCC_OPS

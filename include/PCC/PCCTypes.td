@@ -13,7 +13,7 @@ def StateType : DialectType<PCC_Dialect, CPred<"$_self.isa<StateType>()">,
 
 
 def NetworkType : DialectType<PCC_Dialect, CPred<"$_self.isa<NetworkType>()">,
-    "network", "::mlir::pcc::NetworkType">, BuildableType<"NetworkType::get($_builder.getContext())">;
+    "network", "::mlir::pcc::NetworkType">, BuildableType<"NetworkType::get($_builder.getContext(), NetworkType::Ordering::ORDERED)">;
 
 
 def SetType : DialectType<PCC_Dialect, CPred<"$_self.isa<SetType>()">,

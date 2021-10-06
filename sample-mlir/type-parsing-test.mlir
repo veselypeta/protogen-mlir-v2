@@ -13,8 +13,11 @@ module  {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.int_range<0, 3>, !pcc.int_range<0, 3>> -> !pcc.id
     %11 = pcc.struct_access %5["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.set<!pcc.id, 3>, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<GetS>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
+    pcc.send : %3 : !pcc.network<unordered> %12 : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
     pcc.await :  {
       pcc.when [ GetS ] (%arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) {
+        %13 = pcc.foo : !pcc.state<S>
+        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data, !pcc.int_range<0, 3>, !pcc.int_range<0, 3>> %13:!pcc.state<S>
         pcc.break
       }
     }

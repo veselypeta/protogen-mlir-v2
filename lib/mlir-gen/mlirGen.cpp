@@ -67,6 +67,7 @@ private:
   std::string filename;
 
   std::string curMach; // tells us which machine we are currently parsing for
+  std::vector<std::string> stable_states;
 
   /*
    * Message Inheritance
@@ -484,7 +485,6 @@ private:
     mlir::Value archSSA = lookup(archId);
     curMach = archId;
 
-    // TODO - do something with the stable state declarations
     // Stable State Definitions ie. {M, S, I};
     std::vector<std::string> stableStates;
     ProtoCCParser::Stable_defContext *stableCtx =
@@ -492,6 +492,7 @@ private:
     for (auto stableState : stableCtx->ID()) {
       stableStates.push_back(stableState->getText());
     }
+    stable_states = stableStates;
 
     for (auto procBlockCtx : ctx->arch_body()->process_block()) {
       if (!mlir::succeeded(mlirGen(procBlockCtx, archSSA)))
@@ -526,6 +527,10 @@ private:
     return {start_state, action, action_kind, end_state};
   }
 
+  std::string getMachArg() const {
+    return "arg" + curMach;
+  }
+
   mlir::LogicalResult mlirGen(ProtoCCParser::Process_blockContext *ctx,
                               mlir::Value archSSA) {
     auto transContext = ctx->process_trans();
@@ -533,13 +538,8 @@ private:
 
     mlir::Location processOpLoc = loc(*transContext->ID());
 
-    auto archId = archSSA.getDefiningOp()
-                      ->getAttr("id")
-                      .cast<mlir::StringAttr>()
-                      .getValue()
-                      .str();
-
     // Setup the parameter types
+    llvm::SmallVector<std::string, 2> argNames;
     llvm::SmallVector<mlir::Type, 2> inputTypes;
     if (mlir::pcc::SetType setType =
             archSSA.getType().cast<mlir::pcc::SetType>()) {
@@ -551,15 +551,31 @@ private:
              "directory must be struct");
       inputTypes.push_back(archSSA.getType());
     }
+    argNames.push_back(getMachArg());
+
+
+    // if msg type - then process has additional parameter the msg
+    if (transResp.action_kind == ProcessTransResponse::ActionKind::ID){
+      std::string msgTypeIdent = resolveMsgName(transResp.action);
+      mlir::Type actualType = lookup(msgTypeIdent).getType();
+      inputTypes.push_back(actualType);
+      argNames.push_back(transResp.action);
+    }
 
     auto procType = builder.getFunctionType(inputTypes, llvm::None);
 
     std::string procIdent =
-        archId + "_" + transResp.start_state + "_" + transResp.action;
+        curMach + "_" + transResp.start_state + "_" + transResp.action;
     auto procOp =
         builder.create<mlir::pcc::ProcessOp>(processOpLoc, procIdent, procType);
     // TODO - come back to implementing parameters for the function op
     auto entryBlock = procOp.addEntryBlock();
+
+    // declare the parameters of the function body:
+    for(const auto nameValue : llvm::zip(argNames, entryBlock->getArguments())){
+      if(mlir::failed(declare(std::get<0>(nameValue), std::get<1>(nameValue))))
+        return mlir::failure();
+    }
     builder.setInsertionPointToStart(entryBlock);
 
     if (mlir::failed(mlirGen(ctx->process_expr())))
@@ -591,6 +607,10 @@ private:
       return mlirGen(ctx->transaction());
     }
 
+    if (ctx->network_send()) {
+      return mlirGen(ctx->network_send());
+    }
+
     assert(0 && "Trying to parse expression types that are not supported");
   }
 
@@ -606,18 +626,32 @@ private:
 
   mlir::LogicalResult mlirGen(ProtoCCParser::AssignmentContext *ctx) {
     std::string assignmentId = ctx->process_finalident()->getText();
-    auto isState = ctx->process_finalident()->STATE() != nullptr;
-    if (!isState) {
-      mlir::Value val = mlirGen(ctx->assign_types());
+    mlir::Location location = loc(*ctx->assign_types()->getStart());
+    // i.e. State=S or cl=GetM.cl etc.
+    auto check_if_ass_refs_mac_state = [&](llvm::StringRef ass_id) {
+      // is State (keyword)
+      return ctx->process_finalident()->STATE() ||
+             // is part of the machine
+             lookup(curMach).getDefiningOp()->hasAttr(ass_id);
+    };
+    if (check_if_ass_refs_mac_state(assignmentId)) {
+      mlir::Value rv = mlirGen(ctx->assign_types(), true);
+      // get the machine reference
+      mlir::Value machParm = lookup(getMachArg());
+      builder.create<mlir::pcc::StateUpdateOp>(location, machParm, rv, builder.getStringAttr(assignmentId));
+      return mlir::success();
     } else {
-      // TODO - add an operation that sets the state
+      return declare(assignmentId, mlirGen(ctx->assign_types()));
     }
-    return mlir::success();
   }
 
-  mlir::Value mlirGen(ProtoCCParser::Assign_typesContext *ctx) {
+  mlir::Value mlirGen(ProtoCCParser::Assign_typesContext *ctx,
+                      bool stateUpdate = false) {
     if (ctx->message_constr())
       return mlirGen(ctx->message_constr());
+    if (ctx->object_expr() && stateUpdate) {
+      return mlirGen(ctx->object_expr());
+    }
     assert(0 && "currently unimplemented assignment types");
   }
 
@@ -654,45 +688,84 @@ private:
       return buildSelfIdReference(*ctx->NID());
     }
     if (ctx->object_expr()) {
-      // currently, only support simple expressions
-
-      // this refers to references to directory or message
-      if (ctx->object_expr()->object_func()) {
-        auto fncCtx = ctx->object_expr()->object_func();
-        auto location = loc(*fncCtx->ID());
-        // HERE - we only allow reference to single object, and attribute
-        // i.e. directory.id or GetM.src
-
-        std::string rootObject = fncCtx->ID()->getText();
-        std::string index = fncCtx->object_idres()->getText();
-
-        // if the value can be looked up
-        if (symbolTable.count(rootObject)) {
-          auto typeMap = machStructMap.at(rootObject);
-          auto resultType = fncCtx->object_idres()->NID()
-                                ? mlir::pcc::IDType::get(builder.getContext())
-                                : typeMap.at(index);
-          return builder.create<mlir::pcc::StructAccessOp>(
-              location, resultType, lookup(rootObject),
-              builder.getStringAttr(index));
-        } else {
-          assert(0 && "Is msg type and not yet considered");
-        }
-      }
-
-      // this refers to a local struct access
-      if (ctx->object_expr()->object_id()) {
-        std::string index = ctx->object_expr()->object_id()->getText();
-        auto location = loc(*ctx->object_expr()->object_id()->ID());
-        // FIXME - I don't like the use of mach access here
-        auto mapEntry = machStructMap.at(curMach);
-        mlir::Type resultType = mapEntry.at(index);
-
-        return builder.create<mlir::pcc::StructAccessOp>(
-            location, resultType, builder.getBlock()->getArgument(0));
-      }
+      return mlirGen(ctx->object_expr());
     }
     assert(0 && "fell of the end of message expression");
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Object_exprContext *ctx) {
+    if (ctx->object_func())
+      return mlirGen(ctx->object_func());
+
+    if (ctx->object_id())
+      return mlirGen(ctx->object_id());
+
+    assert(0 && "ran off the end of expressions context");
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Object_funcContext *ctx) {
+    auto location = loc(*ctx->ID());
+    // HERE - we only allow reference to single object, and attribute
+    // i.e. directory.id or GetM.src
+
+    std::string rootObject = ctx->ID()->getText();
+    std::string index = ctx->object_idres()->getText();
+
+    auto is_obj_mach = [&](llvm::StringRef ident) {
+      return symbolTable.count(rootObject) > 0;
+    };
+
+    // if the value can be looked up
+    if (is_obj_mach(rootObject)) {
+      auto typeMap = machStructMap.at(rootObject);
+      auto resultType = ctx->object_idres()->NID()
+                            ? mlir::pcc::IDType::get(builder.getContext())
+                            : typeMap.at(index);
+      return builder.create<mlir::pcc::StructAccessOp>(
+          location, resultType, lookup(rootObject),
+          builder.getStringAttr(index));
+    } else {
+
+//      std::string msgIdent = ctx->object_idres()->getText();
+//
+//      return builder.create<mlir::pcc::StructAccessOp>(location, );
+
+    }
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Object_idContext *ctx) {
+    std::string reference = ctx->getText();
+    mlir::Location location = loc(*ctx->ID());
+    auto is_in_mach_map = [&](llvm::StringRef ref) {
+      auto mapEntry = machStructMap.at(curMach);
+      return mapEntry.find(ref.str()) != mapEntry.end();
+    };
+    auto is_local_variable = [&](llvm::StringRef ref) {
+      return symbolTable.count(ref);
+    };
+    auto is_stable_state = [&](llvm::StringRef ref) {
+      return std::find(stable_states.begin(), stable_states.end(), ref) !=
+             stable_states.end();
+    };
+
+    // it is either a local variable
+    if (is_local_variable(reference))
+      return lookup(reference);
+    // or the ident can be referencing a value in the machines state i.e. cl or
+    // acksExpected etc.
+    else if (is_in_mach_map(reference)) {
+      auto mapEntry = machStructMap.at(curMach);
+      mlir::Type resultType = mapEntry.at(reference);
+      return builder.create<mlir::pcc::StructAccessOp>(
+          location, resultType, builder.getBlock()->getArgument(0));
+    }
+    // referring to a stable state
+    else if (is_stable_state(reference)) {
+      // TODO - don't use foo op here
+      return builder.create<mlir::pcc::FooOp>(
+          location, mlir::pcc::StateType::get(builder.getContext(), reference));
+    }
+    assert(0 && "Invalid reference");
   }
 
   mlir::Value buildIntConstant(antlr4::tree::TerminalNode &intTok) {
@@ -717,6 +790,16 @@ private:
         builder.getStringAttr(nid.getText()));
   }
 
+  mlir::LogicalResult mlirGen(ProtoCCParser::Network_sendContext *ctx) {
+    std::string netId = ctx->ID().at(0)->getText();
+    std::string msgIdent = ctx->ID().at(1)->getText();
+    mlir::Location sendLoc = loc(*ctx->send_function()->getStart());
+    mlir::Value netSSA = lookup(netId);
+    mlir::Value msgSSA = lookup(msgIdent);
+    builder.create<mlir::pcc::MsgSendOp>(sendLoc, netSSA, msgSSA);
+    return mlir::success();
+  }
+
   /// MLIR GEN FOR TRANSACTIONS ///
   mlir::LogicalResult mlirGen(ProtoCCParser::TransactionContext *ctx) {
     mlir::Location transLoc = loc(*ctx->AWAIT());
@@ -725,8 +808,8 @@ private:
     mlir::Block *entry = transOp.addEntryBlock();
     builder.setInsertionPointToStart(entry);
 
-    if(mlir::failed(mlirGen(ctx->trans())))
-        return mlir::failure();
+    if (mlir::failed(mlirGen(ctx->trans())))
+      return mlir::failure();
 
     builder.setInsertionPointAfter(transOp);
 
@@ -749,13 +832,13 @@ private:
     mlir::pcc::PCCType msgType =
         lookup(msgTypeName).getType().cast<mlir::pcc::StructType>();
 
-    mlir::pcc::TransitionOp transOp =  builder.create<mlir::pcc::TransitionOp>(
+    mlir::pcc::TransitionOp transOp = builder.create<mlir::pcc::TransitionOp>(
         transLoc, builder.getStringAttr(msgName), mlir::TypeAttr::get(msgType));
 
     mlir::Block *entry = transOp.addEntryBlock();
     builder.setInsertionPointToStart(entry);
 
-    if(mlir::failed(mlirGen(ctx->trans_body())))
+    if (mlir::failed(mlirGen(ctx->trans_body())))
       return mlir::failure();
 
     builder.setInsertionPointAfter(transOp);
@@ -763,25 +846,30 @@ private:
     return mlir::success();
   }
 
-  mlir::LogicalResult mlirGen(const std::vector<ProtoCCParser::Trans_bodyContext *> &ctx){
-    for(auto *transBodyCtx : ctx){
-      if(mlir::failed(mlirGen(transBodyCtx)))
+  mlir::LogicalResult
+  mlirGen(const std::vector<ProtoCCParser::Trans_bodyContext *> &ctx) {
+    for (auto *transBodyCtx : ctx) {
+      if (mlir::failed(mlirGen(transBodyCtx)))
         return mlir::failure();
     }
     return mlir::success();
   }
 
-
-  mlir::LogicalResult mlirGen(ProtoCCParser::Trans_bodyContext *ctx){
-    if(ctx->next_break()){
+  mlir::LogicalResult mlirGen(ProtoCCParser::Trans_bodyContext *ctx) {
+    if (ctx->next_break()) {
       mlir::Location breakLoc = loc(*ctx->next_break()->BREAK());
       builder.create<mlir::pcc::BreakOp>(breakLoc);
       return mlir::success();
     }
-    if(ctx->transaction()){
+    if (ctx->transaction())
       return mlirGen(ctx->transaction());
-    }
-    mlirGen(ctx->expressions());
+
+    if (ctx->network_send())
+      return mlirGen(ctx->network_send());
+
+    if (ctx->expressions())
+      return mlirGen(ctx->expressions());
+
     return mlir::success();
   }
 };

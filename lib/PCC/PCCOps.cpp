@@ -136,5 +136,60 @@ static ParseResult parseTransitionOp(OpAsmParser &parser,
   return success();
 }
 
+//===----------------------------------------------------------------------===//
+// StateUpdateOp
+//===----------------------------------------------------------------------===//
+
+// State Update Op looks something like
+/*
+ * pcc.update [ cl ] %cache %value
+ */
+
+static void print(StateUpdateOp updateOp, OpAsmPrinter &p) {
+  p << updateOp->getName() << ' ';
+  p << '[' << updateOp.field() << ']' << ' ';
+  p.printOperand(updateOp.mach());
+  p << ':';
+  p.printType(updateOp.mach().getType());
+  p << ' ';
+  p.printOperand(updateOp.value());
+  p << ':';
+  p.printType(updateOp.value().getType());
+}
+
+static ParseResult parseStateUpdateOp(OpAsmParser &parser,
+                                      OperationState &result) {
+  auto &builder = parser.getBuilder();
+  llvm::StringRef fieldRef;
+  if (parser.parseLSquare() || parser.parseKeyword(&fieldRef) ||
+      parser.parseRSquare())
+    return failure();
+
+  result.addAttribute("field", builder.getStringAttr(fieldRef));
+  OpAsmParser::OperandType mach;
+  StructType macType;
+  if (parser.parseOperand(mach) || parser.parseColonType(macType))
+    return failure();
+  if(parser.resolveOperand(mach, macType, result.operands))
+    return mlir::failure();
+
+
+  OpAsmParser::OperandType value;
+  Type valueType;
+  if(parser.parseOperand(value) || parser.parseColonType(valueType))
+    return failure();
+  if (parser.resolveOperand(value, valueType, result.operands))
+    return failure();
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// MsgSendOp
+//===----------------------------------------------------------------------===//
+
+
+
+
 #define GET_OP_CLASSES
 #include "PCC/PCC.cpp.inc"
