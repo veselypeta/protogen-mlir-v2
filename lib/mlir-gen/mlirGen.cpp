@@ -769,7 +769,8 @@ private:
       auto mapEntry = machStructMap.at(curMach);
       mlir::Type resultType = mapEntry.at(reference);
       return builder.create<mlir::pcc::StructAccessOp>(
-          location, resultType, builder.getBlock()->getArgument(0));
+          location, resultType, lookup(getArgIdent(curMach)),
+          builder.getStringAttr(reference));
     }
     // referring to a stable state
     else if (is_stable_state(reference)) {

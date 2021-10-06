@@ -35,12 +35,12 @@ Architecture cache {
     // I ////////////////////////////////////////////////////////
     Process(I, store, State){
         msg = Request(GetM, ID, directory.ID);
-        //req.send(msg);
+        req.send(msg);
 
         await{
             when GetM_Ack_D:
-                //cl=GetM_Ack_D.cl;
-                //State = M;
+                cl=GetM_Ack_D.cl;
+                State = M;
                 break;
 
         }
@@ -49,12 +49,12 @@ Architecture cache {
 
     Process(I, load, State){
         msg = Request(GetM, ID, directory.ID);
-        //req.send(msg);
+        req.send(msg);
 
         await{
             when GetM_Ack_D:
-                //cl=GetM_Ack_D.cl;
-                //State = M;
+                cl=GetM_Ack_D.cl;
+                State = M;
                 break;
         }
     }
@@ -68,16 +68,16 @@ Architecture cache {
 
     Process(M, Fwd_GetM, I){
         msg = Resp(GetM_Ack_D, ID, Fwd_GetM.src, cl);
-        //resp.send(msg);
+        resp.send(msg);
     }
 
     Process(M, evict, State){
         msg = Resp(PutM, ID, directory.ID, cl);
-        //req.send(msg);
+        req.send(msg);
 
         await{
             when Put_Ack:
-                //State = I;
+                State = I;
                 break;
         }
     }
@@ -90,20 +90,20 @@ Architecture directory {
     // I ////////////////////////////////////////////////////////
     Process(I, GetM, M){
         msg = Resp(GetM_Ack_D, ID, GetM.src, cl);
-        //resp.send(msg);
-        //owner = GetM.src;
+        resp.send(msg);
+        owner = GetM.src;
     }
 
     // M ////////////////////////////////////////////////////////
     Process(M, GetM, M){
        msg = Request(Fwd_GetM, GetM.src, owner);
-       //fwd.send(msg);
-       //owner = GetM.src;
+       fwd.send(msg);
+       owner = GetM.src;
     }
 
     Process(M, PutM, State){
        msg = Ack(Put_Ack, ID, PutM.src);
-       //fwd.send(msg);
+       fwd.send(msg);
 
        //if owner == PutM.src{
        //     cl = PutM.cl;
