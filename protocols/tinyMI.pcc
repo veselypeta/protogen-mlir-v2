@@ -43,7 +43,7 @@ Architecture cache {
 
         await{
             when GetS:
-                //cl=GetS.cl;
+                cl=GetS.src;
                 State = S;
                 break;
         }
