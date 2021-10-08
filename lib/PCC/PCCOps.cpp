@@ -190,6 +190,40 @@ static ParseResult parseStateUpdateOp(OpAsmParser &parser,
 
 
 
+//===----------------------------------------------------------------------===//
+// IfOp
+//===----------------------------------------------------------------------===//
 
+/*
+ * pcc.if %cond {
+ *    ... then operations ...
+ * } else {
+ *    ... else operations ...
+ * }
+ */
+
+static void print(IfOp op, OpAsmPrinter &p){
+  p << mlir::pcc::IfOp::getOperationName() << ' ';
+  p.printOperand(op.condition());
+  p.printRegion(op.thenRegion());
+  if()
+
+}
+
+static ParseResult parseIfOp(OpAsmParser &parser, OperationState &result){
+  return success();
+}
+
+void IfOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, Value cond, bool withElseRegion) {
+
+  odsState.addOperands(cond);
+  odsState.addRegion();
+
+  if(withElseRegion){
+    odsState.addRegion();
+  }
+
+
+}
 #define GET_OP_CLASSES
 #include "PCC/PCC.cpp.inc"
