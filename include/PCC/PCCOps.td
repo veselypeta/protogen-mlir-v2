@@ -275,17 +275,22 @@ def StateUpdateOp: PCC_Op<"update">{
 }
 
 
-def IfOp: PCC_Op<"if">{
+def IfOp: PCC_Op<"if", [NoTerminator]>{
     let summary = "An op that represents a If then else control flow";
     let description = [{}];
 
-    let arguments = (ins AnyType:$condition);
+    let arguments = (ins I1:$condition);
     let regions = (region SizedRegion<1>:$thenRegion, AnyRegion:$elseRegion);
 
     let skipDefaultBuilders = 1;
     let builders = [
         OpBuilder<(ins "Value":$cond, CArg<"bool", "false">:$withElseRegion)>
     ];
+
+    let extraClassDeclaration = [{
+        Block *thenBlock();
+        Block *elseBlock();
+    }];
 
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];

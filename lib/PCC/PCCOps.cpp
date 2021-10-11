@@ -170,13 +170,12 @@ static ParseResult parseStateUpdateOp(OpAsmParser &parser,
   StructType macType;
   if (parser.parseOperand(mach) || parser.parseColonType(macType))
     return failure();
-  if(parser.resolveOperand(mach, macType, result.operands))
+  if (parser.resolveOperand(mach, macType, result.operands))
     return mlir::failure();
-
 
   OpAsmParser::OperandType value;
   Type valueType;
-  if(parser.parseOperand(value) || parser.parseColonType(valueType))
+  if (parser.parseOperand(value) || parser.parseColonType(valueType))
     return failure();
   if (parser.resolveOperand(value, valueType, result.operands))
     return failure();
@@ -187,8 +186,6 @@ static ParseResult parseStateUpdateOp(OpAsmParser &parser,
 //===----------------------------------------------------------------------===//
 // MsgSendOp
 //===----------------------------------------------------------------------===//
-
-
 
 //===----------------------------------------------------------------------===//
 // IfOp
@@ -202,28 +199,68 @@ static ParseResult parseStateUpdateOp(OpAsmParser &parser,
  * }
  */
 
-static void print(IfOp op, OpAsmPrinter &p){
+static void print(IfOp op, OpAsmPrinter &p) {
+  bool printBlockTerminators = false;
+  bool printEntryBlockArgs = false;
   p << mlir::pcc::IfOp::getOperationName() << ' ';
   p.printOperand(op.condition());
-  p.printRegion(op.thenRegion());
-  if()
+  p.printRegion(op.thenRegion(), printEntryBlockArgs, printBlockTerminators);
 
+  auto &elseRegion = op.elseRegion();
+  if (!elseRegion.empty()) {
+    p << " else";
+    p.printRegion(op.elseRegion(), printEntryBlockArgs, printBlockTerminators);
+  }
+  p.printOptionalAttrDict(op->getAttrs());
 }
 
-static ParseResult parseIfOp(OpAsmParser &parser, OperationState &result){
+static ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
+  // create the regions for 'then'
+  result.regions.reserve(2);
+  Region *thenRegion = result.addRegion();
+  Region *elseRegion = result.addRegion();
+
+  auto &builder = parser.getBuilder();
+
+  OpAsmParser::OperandType cond;
+  Type i1Type = builder.getIntegerType(1);
+  if (parser.parseOperand(cond) ||
+      parser.resolveOperand(cond, i1Type, result.operands))
+    return failure();
+  if (parser.parseRegion(*thenRegion,/*arguments=*/{}, /*argTypes*/{}))
+    return failure();
+
+  if(!parser.parseOptionalKeyword("else")){
+    if(parser.parseRegion(*elseRegion, {}, {}))
+      return failure();
+  }
+  if(parser.parseOptionalAttrDict(result.attributes))
+    return failure();
   return success();
 }
 
-void IfOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, Value cond, bool withElseRegion) {
+void IfOp::build(::mlir::OpBuilder &odsBuilder,
+                 ::mlir::OperationState &odsState, Value cond,
+                 bool withElseRegion) {
 
   odsState.addOperands(cond);
-  odsState.addRegion();
+  Region *thenRegion = odsState.addRegion();
+  odsBuilder.createBlock(thenRegion);
 
-  if(withElseRegion){
-    odsState.addRegion();
+  Region *elseRegion = odsState.addRegion();
+  if (withElseRegion) {
+    odsBuilder.createBlock(elseRegion);
   }
-
-
 }
+
+Block *IfOp::elseBlock() {
+  Region &r = elseRegion();
+  if (r.empty())
+    return nullptr;
+  return &r.back();
+}
+
+Block *IfOp::thenBlock() { return &thenRegion().back(); }
+
 #define GET_OP_CLASSES
 #include "PCC/PCC.cpp.inc"
