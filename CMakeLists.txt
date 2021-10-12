@@ -46,6 +46,7 @@ add_definitions(${LLVM_DEFINITIONS})
 
 set(LLVM_LIT_ARGS "-sv" CACHE STRING "lit default options")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+include(AddPROTOGEN)
 include(sanitizers)
 
 # ANTLR4 Stuff ----- 
@@ -86,6 +87,10 @@ include_directories(third-party/valijson/include)
 
 # --- include 3rd party code
 include_directories(third-party)
+
+# code is dependant on tablegen'd targets
+add_custom_target(protogen-headers)
+set_target_properties(protogen-headers PROPERTIES FOLDER "Misc")
 
 
 add_subdirectory(include)

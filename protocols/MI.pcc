@@ -105,10 +105,10 @@ Architecture directory {
        msg = Ack(Put_Ack, ID, PutM.src);
        fwd.send(msg);
 
-       //if owner == PutM.src{
-       //     cl = PutM.cl;
-       //     State=I;
-       //}
+       if owner == PutM.src{
+            cl = PutM.cl;
+            State=I;
+       }
     }
 
 }

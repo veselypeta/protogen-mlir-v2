@@ -13,7 +13,7 @@ add_mlir_dialect_library(
         ${PROJECT_SOURCE_DIR}/include/PCC
 
         DEPENDS
-        MLIRPCCIncGen
+        protogen-headers
         protocc-antlr4
 
         LINK_LIBS PRIVATE

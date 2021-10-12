@@ -212,12 +212,12 @@ assignment : process_finalident EQUALSIGN assign_types SEMICOLON;
 conditional: if_stmt | ifnot_stmt;
     if_stmt 
     : IF cond_comb OCBRACE if_expression CCBRACE
-    (ELSE OCBRACE else_expression CCBRACE)*
+    (ELSE OCBRACE else_expression CCBRACE)?
     ;
 
     ifnot_stmt 
     : IF NEG cond_comb OCBRACE if_expression CCBRACE
-    (ELSE  OCBRACE else_expression CCBRACE)*
+    (ELSE  OCBRACE else_expression CCBRACE)?
     ;
 
         if_expression: exprwbreak*;

@@ -199,10 +199,11 @@ static ParseResult parseStateUpdateOp(OpAsmParser &parser,
  * }
  */
 
-static void print(IfOp op, OpAsmPrinter &p) {
+static void print(mlir::pcc::IfOp op, OpAsmPrinter &p) {
   bool printBlockTerminators = false;
   bool printEntryBlockArgs = false;
   p << mlir::pcc::IfOp::getOperationName() << ' ';
+
   p.printOperand(op.condition());
   p.printRegion(op.thenRegion(), printEntryBlockArgs, printBlockTerminators);
 
@@ -227,31 +228,32 @@ static ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
   if (parser.parseOperand(cond) ||
       parser.resolveOperand(cond, i1Type, result.operands))
     return failure();
-  if (parser.parseRegion(*thenRegion,/*arguments=*/{}, /*argTypes*/{}))
+  if (parser.parseRegion(*thenRegion, /*arguments=*/{}, /*argTypes*/ {}))
     return failure();
 
-  if(!parser.parseOptionalKeyword("else")){
-    if(parser.parseRegion(*elseRegion, {}, {}))
+  if (!parser.parseOptionalKeyword("else")) {
+    if (parser.parseRegion(*elseRegion, {}, {}))
       return failure();
   }
-  if(parser.parseOptionalAttrDict(result.attributes))
+  if (parser.parseOptionalAttrDict(result.attributes))
     return failure();
   return success();
 }
 
-void IfOp::build(::mlir::OpBuilder &odsBuilder,
-                 ::mlir::OperationState &odsState, Value cond,
-                 bool withElseRegion) {
+void IfOp::build(::mlir::OpBuilder &builder, ::mlir::OperationState &result,
+                 Value cond, bool withElseRegion) {
+  result.addOperands(cond);
 
-  odsState.addOperands(cond);
-  Region *thenRegion = odsState.addRegion();
-  odsBuilder.createBlock(thenRegion);
+  OpBuilder::InsertionGuard guard(builder);
+  Region *thenRegion = result.addRegion();
+  Region *elseRegion = result.addRegion();
 
-  Region *elseRegion = odsState.addRegion();
-  if (withElseRegion) {
-    odsBuilder.createBlock(elseRegion);
-  }
+  builder.createBlock(thenRegion);
+  if (withElseRegion)
+    builder.createBlock(elseRegion);
 }
+
+Block *IfOp::thenBlock() { return &thenRegion().back(); }
 
 Block *IfOp::elseBlock() {
   Region &r = elseRegion();
@@ -260,7 +262,39 @@ Block *IfOp::elseBlock() {
   return &r.back();
 }
 
-Block *IfOp::thenBlock() { return &thenRegion().back(); }
+//===----------------------------------------------------------------------===//
+// InlineConstOp
+//===----------------------------------------------------------------------===//
 
+static void print(OpAsmPrinter &p, InlineConstOp &op) {
+  p << mlir::pcc::InlineConstOp::getOperationName() << ' ';
+  p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs*/ {"value"});
+  if (op->getAttrs().size() > 1)
+    p << ' ';
+  p << op.value();
+}
+
+static ParseResult parseInlineConstOp(OpAsmParser &parser,
+                                      OperationState &result) {
+  auto &builder = parser.getBuilder();
+  Attribute valueAttr;
+  if (parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseAttribute(valueAttr, "value", result.attributes))
+    return failure();
+
+  return parser.addTypeToList(valueAttr.getType(), result.types);
+}
+
+void InlineConstOp::build(::mlir::OpBuilder &odsBuilder,
+                          ::mlir::OperationState &odsState, Attribute value) {
+  odsState.addAttribute("value", value);
+  odsState.addTypes(value.getType());
+}
+
+void InlineConstOp::build(::mlir::OpBuilder &odsBuilder,
+                          ::mlir::OperationState &odsState, StateType value) {
+  auto attr = StateAttr::get(value);
+  build(odsBuilder, odsState, attr);
+}
 #define GET_OP_CLASSES
 #include "PCC/PCC.cpp.inc"

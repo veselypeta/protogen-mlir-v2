@@ -13,12 +13,15 @@ def PCC_Dialect : Dialect {
       let extraClassDeclaration = [{
         /// Register all PCC Types
         void registerTypes();
+        /// Register all PCC Attributes
+        void registerAttributes();
     }];
 }
 
 class PCC_Op<string mnemonic, list<OpTrait> traits = []> : Op<PCC_Dialect, mnemonic, traits>;
 
 include "PCCTypes.td"
+include "PCCAttributes.td"
 include "PCCOps.td"
 
 #endif // PCC_DIALECT

@@ -627,6 +627,9 @@ private:
     if (ctx->assignment())
       return mlirGen(ctx->assignment());
 
+    if (ctx->conditional())
+      return mlirGen(ctx->conditional());
+
     return mlir::success();
   }
 
@@ -774,9 +777,9 @@ private:
     }
     // referring to a stable state
     else if (is_stable_state(reference)) {
-      // TODO - don't use foo op here
-      return builder.create<mlir::pcc::FooOp>(
-          location, mlir::pcc::StateType::get(builder.getContext(), reference));
+      mlir::pcc::StateAttr sa = mlir::pcc::StateAttr::get(builder.getContext(), reference);
+      return builder.create<mlir::pcc::InlineConstOp>(
+          location, sa);
     }
     assert(0 && "Invalid reference");
   }
@@ -887,6 +890,45 @@ private:
       return mlirGen(ctx->expressions());
 
     return mlir::success();
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::ConditionalContext *ctx) {
+    if (ctx->if_stmt())
+      return mlirGen(ctx->if_stmt());
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::If_stmtContext *ctx) {
+    mlir::Location location = loc(*ctx->getStart());
+    mlir::Value cond = mlirGen(ctx->cond_comb());
+    bool hasElse = ctx->ELSE() != nullptr;
+    auto ifOp = builder.create<mlir::pcc::IfOp>(location, cond, hasElse);
+
+    builder.setInsertionPointToStart(ifOp.thenBlock());
+    for (auto expr : ctx->if_expression()->exprwbreak()) {
+      if (mlir::failed(mlirGen(expr)))
+        return mlir::failure();
+    }
+
+    if (!ifOp.elseRegion().empty()) {
+      builder.setInsertionPointToStart(ifOp.elseBlock());
+    }
+
+    builder.setInsertionPointAfter(ifOp);
+
+    return mlir::success();
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Cond_combContext *ctx) {
+    mlir::Location location = loc(*ctx->getStart());
+    return builder.create<mlir::ConstantOp>(location,
+                                            builder.getBoolAttr(true));
+  }
+
+  mlir::LogicalResult mlirGen(ProtoCCParser::ExprwbreakContext *ctx) {
+    if (ctx->expressions())
+      return mlirGen(ctx->expressions());
+    if (ctx->network_send())
+      return mlirGen(ctx->network_send());
   }
 };
 } // namespace mlirGenImpl

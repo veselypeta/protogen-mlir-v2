@@ -2,6 +2,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "PCC/PCCDialect.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 namespace mlir
 {
@@ -9,6 +10,7 @@ namespace mlir
     inline void registerAllDialects(mlir::DialectRegistry &registry)
     {
         registry.insert<
+            mlir::StandardOpsDialect,
             mlir::pcc::PCCDialect>();
     }
 

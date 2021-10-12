@@ -3,6 +3,7 @@ add_mlir_dialect_library(
         PCCDialect.cpp
         PCCOps.cpp
         PCCTypes.cpp
+        PCCAttributes.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${PROJECT_SOURCE_DIR}/include/PCC

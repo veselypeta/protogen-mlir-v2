@@ -64,6 +64,22 @@ def ConstantOp : PCC_Op<"constant", [ConstantLike]> {
             ];
 }
 
+def InlineConstOp: PCC_Op<"inl_const", [ConstantLike]>{
+    let summary = "define an line constant";
+    let description = [{}];
+
+    let arguments = (ins AnyAttr:$value);
+    let results = (outs AnyType:$result);
+
+    let skipDefaultBuilders = 1;
+    let builders = [
+        OpBuilder<(ins "Attribute":$value)>,
+        OpBuilder<(ins "StateType":$value)>
+    ];
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(p, *this); }];
+}
+
 // PCC Op to declare a interconnect network (either ordered or unordered)
 def NetDeclOp : PCC_Op<"net_decl">{
     let summary = "Declare global network";
@@ -284,12 +300,12 @@ def IfOp: PCC_Op<"if", [NoTerminator]>{
 
     let skipDefaultBuilders = 1;
     let builders = [
-        OpBuilder<(ins "Value":$cond, CArg<"bool", "false">:$withElseRegion)>
+        OpBuilder<(ins "Value":$cond, "bool":$withElseRegion)>
     ];
 
     let extraClassDeclaration = [{
-        Block *thenBlock();
-        Block *elseBlock();
+    Block *thenBlock();
+    Block *elseBlock();
     }];
 
     let parser = [{ return ::parse$cppClass(parser, result); }];
