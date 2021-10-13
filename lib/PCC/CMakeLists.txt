@@ -17,3 +17,4 @@ add_mlir_dialect_library(
         PRIVATE antlr4_static
         protocc-antlr4
 )
+add_subdirectory(Passes)

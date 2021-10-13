@@ -6,3 +6,5 @@ mlir_tablegen(PCCAttributes.h.inc -gen-attrdef-decls)
 mlir_tablegen(PCCAttributes.cpp.inc -gen-attrdef-defs)
 add_public_tablegen_target(MLIRPCCAttrIncGen)
 add_dependencies(mlir-headers MLIRPCCAttrIncGen)
+
+add_subdirectory(Passes)
