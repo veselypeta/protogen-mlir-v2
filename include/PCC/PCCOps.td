@@ -1,16 +1,6 @@
 #ifndef PCC_OPS
 #define PCC_OPS
 
-// TODO - remove
-def FooOp : PCC_Op<"foo"> {
-    let summary = "foo op";
-    let description = [{}];
-    let results = (outs PCCType:$results);
-    let assemblyFormat = [{
-        attr-dict `:` type($results)
-    }];
-}
-
 def MsgConstrOp : PCC_Op<"msg_constr"> {
     let summary = "message constructor operation";
     let description = [{}];
@@ -18,7 +8,7 @@ def MsgConstrOp : PCC_Op<"msg_constr"> {
     let arguments = (ins
             IDType:$src,
             IDType:$dst,
-            TypeAttr:$mtype // TODO -- make mtype a specific attribute type or constraint
+            TypeAttr:$mtype
             );
     let results = (outs PCCType:$results);
     let assemblyFormat = [{
@@ -92,8 +82,6 @@ def NetDeclOp : PCC_Op<"net_decl">{
     let assemblyFormat = [{
         attr-dict `:` type($result)
     }];
-
-    // TODO -- add builder to allow for easy Op construction
 }
 
 def CacheDeclOp : PCC_Op<"cache_decl">{
