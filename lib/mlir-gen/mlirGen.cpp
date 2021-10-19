@@ -777,9 +777,8 @@ private:
     }
     // referring to a stable state
     else if (is_stable_state(reference)) {
-      mlir::pcc::StateAttr sa = mlir::pcc::StateAttr::get(builder.getContext(), reference);
       return builder.create<mlir::pcc::InlineConstOp>(
-          location, sa);
+          location, mlir::pcc::StateAttr::get(builder.getContext(), reference));
     }
     assert(0 && "Invalid reference");
   }

@@ -281,8 +281,8 @@ static ParseResult parseInlineConstOp(OpAsmParser &parser,
   if (parser.parseOptionalAttrDict(result.attributes) ||
       parser.parseAttribute(valueAttr, "value", result.attributes))
     return failure();
-
-  return parser.addTypeToList(valueAttr.getType(), result.types);
+  result.addTypes(valueAttr.getType());
+  return success();
 }
 
 void InlineConstOp::build(::mlir::OpBuilder &odsBuilder,

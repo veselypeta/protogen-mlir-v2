@@ -19,7 +19,7 @@ module  {
         %13 = pcc.struct_access %arg1["cl"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data> -> !pcc.data
         pcc.update [cl] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %13:!pcc.data
         %14 = pcc.inl_const #pcc.state_attr<M>
-        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %14:none
+        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %14:!pcc.state<M>
         pcc.break
       }
     }
@@ -34,7 +34,7 @@ module  {
         %13 = pcc.struct_access %arg1["cl"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data> -> !pcc.data
         pcc.update [cl] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %13:!pcc.data
         %14 = pcc.inl_const #pcc.state_attr<M>
-        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %14:none
+        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %14:!pcc.state<M>
         pcc.break
       }
     }
@@ -57,7 +57,7 @@ module  {
     pcc.await :  {
       pcc.when [ Put_Ack ] (%arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) {
         %13 = pcc.inl_const #pcc.state_attr<I>
-        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %13:none
+        pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data> %13:!pcc.state<I>
         pcc.break
       }
     }
@@ -88,7 +88,7 @@ module  {
       %13 = pcc.struct_access %arg1["cl"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data> -> !pcc.data
       pcc.update [cl] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> %13:!pcc.data
       %14 = pcc.inl_const #pcc.state_attr<I>
-      pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> %14:none
+      pcc.update [State] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> %14:!pcc.state<I>
     }
   }
 }

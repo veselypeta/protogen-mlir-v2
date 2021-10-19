@@ -55,5 +55,5 @@ Attribute StateAttr::parse(::mlir::MLIRContext *context,
 }
 
 void StateAttr::print(::mlir::DialectAsmPrinter &printer) const {
-  printer << StateAttr::getMnemonic() << "<" << getValue() << ">";
+  printer << StateAttr::getMnemonic() << "<" << getAttrData() << ">";
 }
