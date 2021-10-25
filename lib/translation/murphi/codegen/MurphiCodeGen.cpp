@@ -16,14 +16,14 @@ void to_json(json &j, const ConstDecl &c) {
  * Enum to_json helper method
  */
 void to_json(json &j, const Enum &c) {
-  j = {{"id", c.id}, {"typeId", "enum"}, {"type", {{"decls", c.elems}}}};
+  j = {{"typeId", "enum"}, {"type", {{"decls", c.elems}}}};
 }
 
 /*
  * Union to_json helper method
  */
 void to_json(json &j, const Union &u) {
-  j = {{"id", u.id}, {"typeId", "union"}, {"type", {{"listElems", u.elems}}}};
+  j = {{"typeId", "union"}, {"type", {{"listElems", u.elems}}}};
 }
 
 /*
@@ -35,19 +35,22 @@ void to_json(json &j, const Record &r) {
     decls.push_back(
         {{"id", elem.first}, {"typeId", "ID"}, {"type", elem.second}});
   });
-  j = {{"id", r.id}, {"typeId", "record"}, {"type", {{"decls", decls}}}};
+  j = {{"typeId", "record"}, {"type", {{"decls", decls}}}};
 }
 
 /*
  * ScalarSet to_json helper functions
  */
 void to_json(json &j, const ScalarSet<std::string> &ss) {
-  j = {{"id", ss.id}, {"typeId", "scalarset"}, {"type", {{"type", ss.value}}}};
+  j = {{"typeId", "scalarset"}, {"type", {{"type", ss.value}}}};
 }
 void to_json(json &j, const ScalarSet<size_t> &ss) {
   size_t val = ss.value;
-  j = {{"id", ss.id}, {"typeId", "scalarset"}, {"type", {{"type", val}}}};
+  j = {{"typeId", "scalarset"}, {"type", {{"type", val}}}};
 }
+
+void to_json(json &j, const ID &id) { j = {{"typeId", "ID"}, {"type", id.id}}; }
+
 
 /*
  * Network Decl helper
@@ -56,39 +59,25 @@ json emitNetworkDefinitionJson() {
   auto ord_type_name = std::string(ObjKey) + ordered;
   auto ord_type_count_name = std::string(ObjKey) + ordered_cnt;
   auto un_ord_type_name = std::string(ObjKey) + unordered;
-  json j = {
-      {{"id", ord_type_name},
-       {"typeId", "array"},
-       {"type",
-        {{"index", {{"typeId", "ID"}, {"type", e_machines_t}}},
-         {"type",
-          {{"typeId", "array"},
-           {"type",
-            {{"index",
-              {{"typeId", "sub_range"},
-               {"type",
-                {{"start", 0}, {"stop", std::string(c_ordered_t) + "-1"}}}}},
-             {"type", {{"typeId", "ID"}, {"type", r_message_t}}}}}
-
-          }}}}},
-      {{"id", ord_type_count_name},
-       {"typeId", "array"},
-       {"type",
-        {{"index", {{"typeId", "ID"}, {"type", e_machines_t}}},
-         {"type",
-          {{"typeId", "sub_range"},
-           {"type", {{"start", 0}, {"stop", c_unordered_t}}}
-
-          }}}}},
-      {{"id", un_ord_type_name},
-       {"typeId", "array"},
-       {"type",
-        {{"index", {{"typeId", "ID"}, {"type", e_machines_t}}},
-         {"type",
-          {{"typeId", "multiset"},
-           {"type",
-            {{"index", {{"typeId", "ID"}, {"type", c_ordered_t}}},
-             {"type", {{"typeId", "ID"}, {"type", r_message_t}}}}}}}}}}};
+  detail::TypeDecl<detail::Array<
+      detail::ID,
+      detail::Array<detail::SubRange<size_t, std::string>, detail::ID>>>
+      ordered_network_type{
+          ord_type_name,
+          {{e_machines_t},
+           {{0, std::string(c_ordered_t) + "-1"}, {r_message_t}}}};
+  detail::TypeDecl<
+      detail::Array<detail::ID, detail::SubRange<size_t, std::string>>>
+      ordered_network_count{ord_type_name,
+                            {{e_machines_t}, {0, c_ordered_t}}};
+  detail::TypeDecl<detail::Array<detail::ID, detail::Multiset<detail::ID, detail::ID>>> unordered_network_t{
+      un_ord_type_name,
+      {{e_machines_t},{{c_unordered_t}, {r_message_t}}}
+  };
+  json j = {ordered_network_type,
+            ordered_network_count,
+            unordered_network_t
+            };
   return j;
 }
 
@@ -142,8 +131,8 @@ void MurphiCodeGen::generateTypes() {
   _typeEnums();
   _typeStatics();
   _typeMachineSets();
-  _typeMachineEntry();
   _typeMessage();
+  _typeMachineEntry();
   _typeNetworkObjects();
 }
 
@@ -160,24 +149,27 @@ mlir::LogicalResult MurphiCodeGen::render() {
 
 void MurphiCodeGen::_typeEnums() {
   // access enum
-  data["decls"]["type_decls"].push_back(
-      detail::Enum{detail::e_access_t, {"none", "load", "store"}});
+  data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
+      detail::e_access_t, detail::Enum{{"none", "load", "store"}}});
   // messages enum
-  data["decls"]["type_decls"].push_back(detail::Enum{
-      detail::e_message_type_t, moduleInterpreter.getEnumMessageTypes()});
+  data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
+      detail::e_message_type_t, {moduleInterpreter.getEnumMessageTypes()}});
   // cache state
-  data["decls"]["type_decls"].push_back(detail::Enum{
+  data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
       detail::e_cache_state_t(),
-      moduleInterpreter.getEnumMachineStates(detail::machines.cache.str())});
-  data["decls"]["type_decls"].push_back(detail::Enum{
-      detail::e_directory_state_t(), moduleInterpreter.getEnumMachineStates(
-                                         detail::machines.directory.str())});
+      {moduleInterpreter.getEnumMachineStates(detail::machines.cache.str())}});
+  data["decls"]["type_decls"].push_back(
+      detail::TypeDecl<detail::Enum>{detail::e_directory_state_t(),
+                                     {moduleInterpreter.getEnumMachineStates(
+                                         detail::machines.directory.str())}});
 }
 
 void MurphiCodeGen::_typeStatics() {
   // Address type
-  data["decls"]["type_decls"].push_back(detail::ScalarSet<std::string>{
-      detail::ss_address_t, detail::c_val_cnt_t});
+  data["decls"]["type_decls"].push_back(
+      detail::TypeDecl<detail::ScalarSet<std::string>>{
+          detail::ss_address_t,
+          detail::ScalarSet<std::string>{detail::c_val_cnt_t}});
   // ClValue type
   // TODO - maybe create a sub-range struct
   data["decls"]["type_decls"].push_back(
@@ -195,12 +187,14 @@ void MurphiCodeGen::_typeMachineSets() {
     if (type.isa<mlir::pcc::SetType>()) {
       auto setSize = type.cast<mlir::pcc::SetType>().getNumElements();
       data["decls"]["type_decls"].push_back(
-          detail::ScalarSet<size_t>(detail::cache_set_t(), setSize));
+          detail::TypeDecl<detail::ScalarSet<size_t>>{
+              detail::cache_set_t(), detail::ScalarSet<size_t>{setSize}});
     } else {
       // must be a struct type
       assert(type.isa<mlir::pcc::StructType>() &&
              "machine was not of set/struct type!");
-      data["decls"]["type_decls"].push_back(detail::Enum{typeIdent, {machine}});
+      data["decls"]["type_decls"].push_back(
+          detail::TypeDecl<detail::Enum>{typeIdent, {{machine}}});
     }
   };
 
@@ -211,9 +205,9 @@ void MurphiCodeGen::_typeMachineSets() {
                      moduleInterpreter.getDirectory().getType());
 
   // push a union of these for the Machines type
-  data["decls"]["type_decls"].push_back(
-      detail::Union{detail::e_machines_t,
-                    {detail::cache_set_t(), detail::directory_set_t()}});
+  data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Union>{
+      detail::e_machines_t,
+      {{detail::cache_set_t(), detail::directory_set_t()}}});
 }
 
 void MurphiCodeGen::_typeNetworkObjects() {
@@ -230,6 +224,9 @@ void MurphiCodeGen::_typeMachineEntry() {
   // *** directory *** //
   mlir::pcc::DirectoryDeclOp directoryOp = moduleInterpreter.getDirectory();
   _getMachineEntry(directoryOp.getOperation());
+
+  _getMachine(detail::machines.cache.str());
+  _getMachine(detail::machines.directory.str());
 }
 
 void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
@@ -272,42 +269,56 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
                                  : detail::r_directory_entry_t();
   // generate the correct murphi declaration
   data["decls"]["type_decls"].push_back(
-      detail::Record{machine_id_t, record_elems});
+      detail::TypeDecl<detail::Record>{machine_id_t, {record_elems}});
+}
+
+void MurphiCodeGen::_getMachine(const std::string &mach) {
+  std::string machine_id_t = std::string(detail::MachKey) + mach;
+  std::string array_t = std::string(detail::EntryKey) + mach;
+  data["decls"]["type_decls"].push_back(
+      detail::TypeDecl<detail::Array<detail::ID, detail::ID>>{
+          machine_id_t,
+          {detail::ID{detail::ss_address_t}, detail::ID{array_t}}});
 }
 
 void MurphiCodeGen::_typeMessage() {
-
   auto msg_decl_type = get_glob_msg_type();
 
   // generate the glob msg
-  detail::Record glob_msg = detail::Record{detail::r_message_t, msg_decl_type};
-
-  data["decls"]["type_decls"].push_back(glob_msg);
+  data["decls"]["type_decls"].push_back(
+      detail::TypeDecl<detail::Record>{detail::r_message_t, {msg_decl_type}});
 }
 
-std::vector<std::pair<std::string, std::string>> MurphiCodeGen::get_glob_msg_type(){
+std::vector<std::pair<std::string, std::string>>
+MurphiCodeGen::get_glob_msg_type() {
   std::map<std::string, std::string> glob_msg_type;
   auto all_msg_types = moduleInterpreter.getMessages();
 
-
-  std::for_each(all_msg_types.begin(), all_msg_types.end(), [&](const mlir::pcc::MsgDeclOp &msgDeclOp){
-    std::for_each(msgDeclOp->getAttrs().begin(), msgDeclOp->getAttrs().end(), [&](const mlir::NamedAttribute &named_attr){
-      if(named_attr.first != "id"){ // skip the id field
-        mlir::TypeAttr typeAttr = named_attr.second.cast<mlir::TypeAttr>();
-        glob_msg_type.insert({named_attr.first.str(), MLIRTypeToMurphiTypeRef(typeAttr.getValue(), "")});
-      }
-    });
-  });
+  std::for_each(
+      all_msg_types.begin(), all_msg_types.end(),
+      [&](const mlir::pcc::MsgDeclOp &msgDeclOp) {
+        std::for_each(
+            msgDeclOp->getAttrs().begin(), msgDeclOp->getAttrs().end(),
+            [&](const mlir::NamedAttribute &named_attr) {
+              if (named_attr.first != "id") { // skip the id field
+                mlir::TypeAttr typeAttr =
+                    named_attr.second.cast<mlir::TypeAttr>();
+                glob_msg_type.insert(
+                    {named_attr.first.str(),
+                     MLIRTypeToMurphiTypeRef(typeAttr.getValue(), "")});
+              }
+            });
+      });
 
   // copy to vector
   std::vector<std::pair<std::string, std::string>> msg_decl_type;
   msg_decl_type.reserve(glob_msg_type.size() + 1);
-  for(auto &mv : glob_msg_type){
+  for (auto &mv : glob_msg_type) {
     msg_decl_type.emplace_back(mv);
   }
 
   // push back the address type also
-  msg_decl_type.emplace_back(detail::c_adr, detail::ss_address_t );
+  msg_decl_type.emplace_back(detail::c_adr, detail::ss_address_t);
 
   return msg_decl_type;
 }
@@ -331,16 +342,18 @@ std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
   // TODO - fix this implementation
   // we're better off if we declare a type for this first
   // and then referr to it.
-  if (t.isa<mlir::pcc::SetType>()){
+  if (t.isa<mlir::pcc::SetType>()) {
     // create a type that we can refer to. This may be more challenging now
     mlir::pcc::SetType st = t.cast<mlir::pcc::SetType>();
 
-    return "multiset [ " + std::to_string(st.getNumElements()) + " ] of " + MLIRTypeToMurphiTypeRef(st.getElementType(), "");
+    return "multiset [ " + std::to_string(st.getNumElements()) + " ] of " +
+           MLIRTypeToMurphiTypeRef(st.getElementType(), "");
   }
 
-  if (t.isa<mlir::pcc::IntRangeType>()){
+  if (t.isa<mlir::pcc::IntRangeType>()) {
     mlir::pcc::IntRangeType intRangeType = t.cast<mlir::pcc::IntRangeType>();
-    return std::to_string(intRangeType.getStartRange()) + ".." + std::to_string(intRangeType.getEndRange());
+    return std::to_string(intRangeType.getStartRange()) + ".." +
+           std::to_string(intRangeType.getEndRange());
   }
 
   // TODO - add support for more types

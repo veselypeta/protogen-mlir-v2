@@ -16,8 +16,8 @@ TEST(MurphiCodeGen, ConstDecl_to_json) {
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
-TEST(MurphiCodeGen, EnumDecl_to_json) {
-  detail::Enum testEnum{"test-enum", {"a", "b", "c"}};
+TEST(MurphiCodeGen, TypeDecl_Enum_to_json) {
+  detail::TypeDecl<detail::Enum> testEnum{"test-enum", {{"a", "b", "c"}}};
   json j = testEnum;
   ASSERT_STREQ(std::string(j["id"]).c_str(), "test-enum");
   ASSERT_STREQ(std::string(j["typeId"]).c_str(), "enum");
@@ -33,8 +33,9 @@ TEST(MurphiCodeGen, EnumDecl_to_json) {
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
-TEST(MurphiCodeGen, Union_to_json) {
-  detail::Union testUnion{"my_union", {"aaa", "bbb", "ccc"}};
+TEST(MurphiCodeGen, TypeDecl_Union_to_json) {
+  detail::TypeDecl<detail::Union> testUnion{"my_union",
+                                            {{"aaa", "bbb", "ccc"}}};
   json j = testUnion;
 
   ASSERT_STREQ(std::string(j["id"]).c_str(), "my_union");
@@ -52,8 +53,8 @@ TEST(MurphiCodeGen, Union_to_json) {
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
-TEST(MurphiCodeGen, Union_to_json_too_short) {
-  detail::Union testUnion{"my_union", {"aaa"}};
+TEST(MurphiCodeGen, TypeDecl_Union_to_json_too_short) {
+  detail::TypeDecl<detail::Union> testUnion{"my_union", {{"aaa"}}};
   json j = testUnion;
   // json validation
   std::string schema_path =
@@ -73,35 +74,77 @@ TEST(MurphiCodeGen, MurphiType_schema_validation) {
 }
 
 TEST(MurphiCodeGen, MurphiRecordType_to_json) {
-  detail::Record record = {
-      "my_record", {{"id", "ID"}, {"hello", "world"}, {"field", "type"}}};
+  detail::TypeDecl<detail::Record> record{
+      "my_record", {{{"id", "ID"}, {"hello", "world"}, {"field", "type"}}}};
   json j = record;
   std::string schema_path =
       std::string(schema_base_directory) + "gen_TypeDecl.json";
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
-TEST(MurphiCodeGen, MurphiScalarSetType_to_json_string){
-  detail::ScalarSet<std::string> string_ss = {"ss_string", "ss_value"};
+TEST(MurphiCodeGen, TypeDecl_MurphiScalarSetType_to_json_string) {
+  detail::TypeDecl<detail::ScalarSet<std::string>> string_ss{
+      "ss_string", detail::ScalarSet<std::string>{"ss_value"}};
   json j = string_ss;
-  ASSERT_STREQ(std::string(j["id"]).c_str(), "ss_string" );
-  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "scalarset" );
-  ASSERT_STREQ(std::string(j["type"]["type"]).c_str(), "ss_value" );
+  ASSERT_STREQ(std::string(j["id"]).c_str(), "ss_string");
+  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "scalarset");
+  ASSERT_STREQ(std::string(j["type"]["type"]).c_str(), "ss_value");
 
   std::string schema_path =
       std::string(schema_base_directory) + "gen_TypeDecl.json";
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 
-TEST(MurphiCodeGen, MurphiScalarSetType_to_json_integer){
-  detail::ScalarSet<size_t> integer_ss = {"ss_integer", 4};
+TEST(MurphiCodeGen, MurphiScalarSetType_to_json_integer) {
+  detail::TypeDecl<detail::ScalarSet<size_t>> integer_ss{
+      "ss_integer", detail::ScalarSet<size_t>{4}};
   json j = integer_ss;
-  ASSERT_STREQ(std::string(j["id"]).c_str(), "ss_integer" );
-  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "scalarset" );
-  ASSERT_EQ(j["type"]["type"], 4 );
+  ASSERT_STREQ(std::string(j["id"]).c_str(), "ss_integer");
+  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "scalarset");
+  ASSERT_EQ(j["type"]["type"], 4);
 
   std::string schema_path =
       std::string(schema_base_directory) + "gen_TypeDecl.json";
+  ASSERT_TRUE(validate_json(schema_path, j));
+}
+
+TEST(MurphiCodeGen, TypeDecl_MurphiArrayType_to_json) {
+  detail::TypeDecl<detail::Array<detail::ID, detail::ID>> array_t{
+      "my_array", {{"index_t"}, {"value_t"}}};
+
+  json j = array_t;
+
+  ASSERT_STREQ(std::string(j["id"]).c_str(), "my_array");
+  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "array");
+
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_TypeDecl.json";
+  ASSERT_TRUE(validate_json(schema_path, j));
+}
+
+TEST(MurphiCodeGen, MurphiIDType_to_json) {
+  detail::ID id_t{"my_id"};
+
+  json j = id_t;
+
+  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "ID");
+  ASSERT_STREQ(std::string(j["type"]).c_str(), "my_id");
+
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_TypeDescription.json";
+  ASSERT_TRUE(validate_json(schema_path, j));
+}
+
+TEST(MurphiCodeGen, TypeDecl_Multiset) {
+  detail::TypeDecl<detail::Multiset<detail::ID, detail::ID>> ms{
+      "my_multiset", {{"my_index_t"}, {"my_type_t"}}};
+
+  json j = ms;
+  ASSERT_STREQ(std::string(j["typeId"]).c_str(), "multiset");
+  ASSERT_STREQ(std::string(j["id"]).c_str(), "my_multiset");
+
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_TypeDescription.json";
   ASSERT_TRUE(validate_json(schema_path, j));
 }
 

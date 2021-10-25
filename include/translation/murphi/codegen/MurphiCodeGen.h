@@ -127,9 +127,23 @@ struct ConstDecl {
 
 void to_json(json &j, const ConstDecl &c);
 
+// *** TypeDecl
+template <class TypeT>
+struct TypeDecl{
+  std::string id;
+  TypeT type;
+};
+
+template <class TypeT>
+void to_json(json &j, const TypeDecl<TypeT> &typeDecl) {
+  j = typeDecl.type;
+  j["id"] = typeDecl.id;
+}
+
+//// **** Type Expressions ////
+
 // *** Enum
 struct Enum {
-  std::string id;
   std::vector<std::string> elems;
 };
 
@@ -137,7 +151,6 @@ void to_json(json &j, const Enum &c);
 
 // *** Union
 struct Union {
-  std::string id;
   std::vector<std::string> elems;
 };
 
@@ -145,7 +158,6 @@ void to_json(json &j, const Union &c);
 
 // *** Record
 struct Record {
-  std::string id;
   std::vector<std::pair<std::string, std::string>> elems;
 };
 
@@ -159,20 +171,68 @@ struct is_string : public std::is_same<std::string, typename std::decay_t<T>> {
 template <class T> class ScalarSet {
 public:
   ScalarSet() = delete;
-  ScalarSet(const std::string &id, T value) {
+  explicit ScalarSet(T value) {
     static_assert(std::is_integral<T>() || is_string<T>::value,
                   "ScalarSet value must be integral or string");
 
-    this->id = id;
     this->value = value;
   }
-  std::string id;
   T value;
 };
 
 void to_json(json &j, const ScalarSet<std::string> &ss);
 void to_json(json &j, const ScalarSet<size_t> &ss);
 
+// *** ID
+struct ID {
+  std::string id;
+};
+void to_json(json &j, const ID &id);
+
+// *** Array
+template <class IndexT, class TypeT>
+struct Array {
+  IndexT index;
+  TypeT type;
+};
+
+template <class IndexT, class TypeT>
+void to_json(json &j, const Array<IndexT, TypeT> &arr) {
+  j = {{"typeId", "array"},
+       {"type", {{"index", arr.index}, {"type", arr.type}}}};
+}
+
+
+// *** SubRange
+template <class StartT, class StopT>
+struct SubRange {
+  StartT start;
+  StopT stop;
+};
+
+template <class StartT, class StopT>
+void to_json(json &j, const SubRange<StartT, StopT> &sub_range) {
+  j = {{"typeId", "sub_range"},
+       {"type", {{"start", sub_range.start}, {"stop", sub_range.stop}}}};
+}
+
+// *** Multiset
+template <class IndexT, class TypeT>
+struct Multiset {
+  IndexT index;
+  TypeT type;
+};
+
+template <class IndexT, class TypeT>
+void to_json(json &j, const Multiset<IndexT, TypeT> &m){
+  j = {
+      {"typeId", "multiset"},
+      {"type", {
+                   {"index", m.index},
+                   {"type", m.type}
+               }}
+  };
+}
 
 
 /*
@@ -208,6 +268,7 @@ public:
   void _typeMessage();
   void _typeNetworkObjects();
   void _getMachineEntry(mlir::Operation *machineOp);
+  void _getMachine(const std::string &mach);
 
   mlir::LogicalResult render();
 
