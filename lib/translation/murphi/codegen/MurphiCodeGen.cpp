@@ -51,7 +51,6 @@ void to_json(json &j, const ScalarSet<size_t> &ss) {
 
 void to_json(json &j, const ID &id) { j = {{"typeId", "ID"}, {"type", id.id}}; }
 
-
 /*
  * Network Decl helper
  */
@@ -68,16 +67,12 @@ json emitNetworkDefinitionJson() {
            {{0, std::string(c_ordered_t) + "-1"}, {r_message_t}}}};
   detail::TypeDecl<
       detail::Array<detail::ID, detail::SubRange<size_t, std::string>>>
-      ordered_network_count{ord_type_name,
-                            {{e_machines_t}, {0, c_ordered_t}}};
-  detail::TypeDecl<detail::Array<detail::ID, detail::Multiset<detail::ID, detail::ID>>> unordered_network_t{
-      un_ord_type_name,
-      {{e_machines_t},{{c_unordered_t}, {r_message_t}}}
-  };
-  json j = {ordered_network_type,
-            ordered_network_count,
-            unordered_network_t
-            };
+      ordered_network_count{ord_type_name, {{e_machines_t}, {0, c_ordered_t}}};
+  detail::TypeDecl<
+      detail::Array<detail::ID, detail::Multiset<detail::ID, detail::ID>>>
+      unordered_network_t{un_ord_type_name,
+                          {{e_machines_t}, {{c_unordered_t}, {r_message_t}}}};
+  json j = {ordered_network_type, ordered_network_count, unordered_network_t};
   return j;
 }
 
@@ -132,7 +127,7 @@ void MurphiCodeGen::generateTypes() {
   _typeStatics();
   _typeMachineSets();
   _typeMessage();
-  _typeMachineEntry();
+  _typeMachines();
   _typeNetworkObjects();
 }
 
@@ -173,9 +168,8 @@ void MurphiCodeGen::_typeStatics() {
   // ClValue type
   // TODO - maybe create a sub-range struct
   data["decls"]["type_decls"].push_back(
-      {{"id", detail::sr_cache_val_t},
-       {"typeId", "sub_range"},
-       {"type", {{"start", 0}, {"stop", detail::c_val_cnt_t}}}});
+      detail::TypeDecl<detail::SubRange<size_t, std::string>>{
+          detail::sr_cache_val_t, {0, detail::c_val_cnt_t}});
 }
 
 void MurphiCodeGen::_typeMachineSets() {
@@ -216,17 +210,17 @@ void MurphiCodeGen::_typeNetworkObjects() {
   }
 }
 
-void MurphiCodeGen::_typeMachineEntry() {
+void MurphiCodeGen::_typeMachines() {
   // *** cache *** //
   mlir::pcc::CacheDeclOp cacheOp = moduleInterpreter.getCache();
   _getMachineEntry(cacheOp.getOperation());
 
   // *** directory *** //
   mlir::pcc::DirectoryDeclOp directoryOp = moduleInterpreter.getDirectory();
-  _getMachineEntry(directoryOp.getOperation());
 
-  _getMachine(detail::machines.cache.str());
-  _getMachine(detail::machines.directory.str());
+  _getMachineEntry(directoryOp.getOperation());
+  _getMachineMach();
+  _getMachineObjs();
 }
 
 void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
@@ -272,15 +266,35 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
       detail::TypeDecl<detail::Record>{machine_id_t, {record_elems}});
 }
 
-void MurphiCodeGen::_getMachine(const std::string &mach) {
-  std::string machine_id_t = std::string(detail::MachKey) + mach;
-  std::string array_t = std::string(detail::EntryKey) + mach;
-  data["decls"]["type_decls"].push_back(
-      detail::TypeDecl<detail::Array<detail::ID, detail::ID>>{
-          machine_id_t,
-          {detail::ID{detail::ss_address_t}, detail::ID{array_t}}});
+void MurphiCodeGen::_getMachineMach() {
+
+  detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheMach{
+      detail::cache_mach_t(),
+      {{detail::ss_address_t}, {detail::cache_set_t()}}
+  };
+
+  detail::TypeDecl<detail::Array<detail::ID, detail::ID>> dirMach{
+      detail::directory_mach_t(),
+      {{detail::ss_address_t}, {detail::directory_set_t()}}
+  };
+
+  data["decls"]["type_decls"].push_back(cacheMach);
+  data["decls"]["type_decls"].push_back(dirMach);
 }
 
+void MurphiCodeGen::_getMachineObjs() {
+
+  detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheObj{
+      detail::cache_obj_t(),
+      {{detail::cache_set_t()}, {detail::cache_mach_t()}}};
+
+  detail::TypeDecl<detail::Array<detail::ID, detail::ID>> dirObj{
+      detail::directory_obj_t(),
+      {{detail::directory_set_t()}, {detail::directory_mach_t()}}};
+
+  data["decls"]["type_decls"].push_back(cacheObj);
+  data["decls"]["type_decls"].push_back(dirObj);
+}
 void MurphiCodeGen::_typeMessage() {
   auto msg_decl_type = get_glob_msg_type();
 
@@ -341,7 +355,7 @@ std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
   }
   // TODO - fix this implementation
   // we're better off if we declare a type for this first
-  // and then referr to it.
+  // and then refer to it.
   if (t.isa<mlir::pcc::SetType>()) {
     // create a type that we can refer to. This may be more challenging now
     mlir::pcc::SetType st = t.cast<mlir::pcc::SetType>();

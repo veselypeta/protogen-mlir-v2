@@ -70,6 +70,23 @@ static std::string cache_set_t() {
 static std::string directory_set_t() {
   return std::string(SetKey) + machines.directory.str();
 }
+
+static std::string cache_mach_t(){
+  return std::string(MachKey) + machines.cache.str();
+}
+
+static std::string directory_mach_t(){
+  return std::string(MachKey) + machines.directory.str();
+}
+
+static std::string cache_obj_t(){
+  return std::string(ObjKey) + machines.cache.str();
+}
+
+static std::string directory_obj_t(){
+  return std::string(ObjKey) + machines.directory.str();
+}
+
 constexpr char e_machines_t[] = "Machines";
 
 static std::string e_directory_state_t();
@@ -260,22 +277,25 @@ public:
   // validate json
   bool is_json_valid();
 
-  // Type functions
-  void _typeEnums();
-  void _typeStatics();
-  void _typeMachineSets();
-  void _typeMachineEntry();
-  void _typeMessage();
-  void _typeNetworkObjects();
-  void _getMachineEntry(mlir::Operation *machineOp);
-  void _getMachine(const std::string &mach);
-
   mlir::LogicalResult render();
 
   // helpers
-  std::vector<std::pair<std::string, std::string>> get_glob_msg_type();
 
 private:
+  // *** Type Generation functions *** /
+  void _typeEnums(); // generate access/msgtype/states enums
+  void _typeStatics(); // address space/ cl
+  void _typeMachineSets(); // set cache/directory
+  void _typeMessage(); // glob msg
+  void _typeMachines();
+  void _typeNetworkObjects();
+  // additional helpers
+  void _getMachineEntry(mlir::Operation *machineOp);
+  void _getMachineMach();
+  void _getMachineObjs();
+
+  std::vector<std::pair<std::string, std::string>> get_glob_msg_type();
+
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;
   json data;
