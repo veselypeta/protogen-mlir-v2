@@ -1,0 +1,6 @@
+{# used to render variable declarations in murphi #}
+var
+
+{% for decl in var_decl_tmpl_data %}
+    {{- decl.id -}} : {{ render_template("type_expr.tmpl", decl) }};
+{% endfor %}

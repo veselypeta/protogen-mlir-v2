@@ -12,4 +12,10 @@
     {%- set type_decl_tmpl_data=decls.type_decls %}
     {%- include "type_decl.tmpl" %}
 {% endif %}
+
+{% if exists("decls.var_decls")%}
+    {%- set var_decl_tmpl_data=decls.var_decls %}
+    {%- include "var_decl.tmpl" %}
+{% endif %}
+
 {% endif %}

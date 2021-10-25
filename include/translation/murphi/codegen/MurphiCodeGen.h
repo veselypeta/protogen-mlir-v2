@@ -49,6 +49,7 @@ constexpr char MachKey[] = "MACH_";
 constexpr char ObjKey[] = "OBJ_";
 constexpr char Initval[] = "INITVAL";
 constexpr char CLIdent_t[] = "CL";
+constexpr char CntKey[] = "cnt_";
 
 // Network Parameters
 constexpr char c_ordered_t[] = "O_NET_MAX";
@@ -109,6 +110,8 @@ constexpr char c_cle[] = "cle";
 constexpr char c_dle[] = "dle";
 constexpr char c_inmsg[] = "inmsg";
 
+constexpr char a_cl_mutex_t[] = "CL_MUTEX";
+
 const std::array<std::pair<std::string, std::string>, 4> BaseMsg{
     std::make_pair(c_adr, ss_address_t), // target address
     {c_mtype, e_message_type_t},         // message type
@@ -131,6 +134,22 @@ constexpr struct {
   const llvm::StringRef cache_decl = "pcc.cache_decl";
   const llvm::StringRef dir_decl = "pcc.directory_decl";
 } opStringMap;
+
+
+/*
+ * VAR_DECL constants
+ */
+
+
+static std::string cache_v(){
+  return "i_" + machines.cache.str();
+}
+
+static std::string directory_v(){
+  return "i_" + machines.directory.str();
+}
+
+constexpr char cl_mutex_v[] = "cl_mutex";
 
 /*
  * Helper Structs to generate JSON
@@ -156,6 +175,10 @@ void to_json(json &j, const TypeDecl<TypeT> &typeDecl) {
   j = typeDecl.type;
   j["id"] = typeDecl.id;
 }
+
+// var_decl uses the same underlying struct
+template< class TypeT>
+using VarDecl = TypeDecl<TypeT>;
 
 //// **** Type Expressions ////
 
@@ -272,17 +295,20 @@ public:
 
   mlir::LogicalResult translate();
 
-  void generateConstants();
-  void generateTypes();
   // validate json
   bool is_json_valid();
 
   mlir::LogicalResult render();
-
-  // helpers
-
+  // *** Block generation
+  void generateConstants();
+  void generateTypes();
+  void generateVars();
 private:
-  // *** Type Generation functions *** /
+
+
+  /*
+   * Type Declarations functions
+   */
   void _typeEnums(); // generate access/msgtype/states enums
   void _typeStatics(); // address space/ cl
   void _typeMachineSets(); // set cache/directory
@@ -293,8 +319,17 @@ private:
   void _getMachineEntry(mlir::Operation *machineOp);
   void _getMachineMach();
   void _getMachineObjs();
+  void _typeMutexes();
 
   std::vector<std::pair<std::string, std::string>> get_glob_msg_type();
+
+  /*
+   * Var Declaration functions
+   */
+  void _varMachines();
+  void _varNetworks();
+  void _varMutexes();
+
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

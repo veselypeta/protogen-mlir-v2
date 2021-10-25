@@ -99,6 +99,7 @@ bool validateMurphiJSON(const json &j) {
 mlir::LogicalResult MurphiCodeGen::translate() {
   generateConstants();
   generateTypes();
+  generateVars();
   return render();
 }
 
@@ -129,6 +130,7 @@ void MurphiCodeGen::generateTypes() {
   _typeMessage();
   _typeMachines();
   _typeNetworkObjects();
+  _typeMutexes();
 }
 
 mlir::LogicalResult MurphiCodeGen::render() {
@@ -270,13 +272,11 @@ void MurphiCodeGen::_getMachineMach() {
 
   detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheMach{
       detail::cache_mach_t(),
-      {{detail::ss_address_t}, {detail::cache_set_t()}}
-  };
+      {{detail::ss_address_t}, {detail::cache_set_t()}}};
 
   detail::TypeDecl<detail::Array<detail::ID, detail::ID>> dirMach{
       detail::directory_mach_t(),
-      {{detail::ss_address_t}, {detail::directory_set_t()}}
-  };
+      {{detail::ss_address_t}, {detail::directory_set_t()}}};
 
   data["decls"]["type_decls"].push_back(cacheMach);
   data["decls"]["type_decls"].push_back(dirMach);
@@ -295,12 +295,19 @@ void MurphiCodeGen::_getMachineObjs() {
   data["decls"]["type_decls"].push_back(cacheObj);
   data["decls"]["type_decls"].push_back(dirObj);
 }
+
 void MurphiCodeGen::_typeMessage() {
   auto msg_decl_type = get_glob_msg_type();
 
   // generate the glob msg
   data["decls"]["type_decls"].push_back(
       detail::TypeDecl<detail::Record>{detail::r_message_t, {msg_decl_type}});
+}
+
+void MurphiCodeGen::_typeMutexes() {
+  detail::TypeDecl<detail::Array<detail::ID, detail::ID>> mutex_t{
+      detail::a_cl_mutex_t, {{detail::ss_address_t}, {"boolean"}}};
+  data["decls"]["type_decls"].push_back(mutex_t);
 }
 
 std::vector<std::pair<std::string, std::string>>
@@ -373,4 +380,55 @@ std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
   // TODO - add support for more types
   assert(0 && "currently using an unsupported type!");
 }
+
+void MurphiCodeGen::generateVars() {
+  _varMachines();
+  _varNetworks();
+  _varMutexes();
+}
+
+void MurphiCodeGen::_varMachines() {
+
+  detail::VarDecl<detail::ID> var_cache{
+    detail::cache_v(),
+    {{detail::cache_obj_t()}}
+  };
+  detail::VarDecl<detail::ID> var_dir{
+      detail::directory_v(),
+      {{detail::directory_obj_t()}}
+  };
+  data["decls"]["var_decls"].push_back(var_cache);
+  data["decls"]["var_decls"].push_back(var_dir);
+
+}
+void MurphiCodeGen::_varNetworks() {
+  auto ops = moduleInterpreter.getOperations<mlir::pcc::NetDeclOp>();
+  std::for_each(ops.begin(), ops.end(), [&](mlir::pcc::NetDeclOp &netDeclOp){
+    if(netDeclOp.getType().getOrdering() == "ordered"){
+
+      detail::VarDecl<detail::ID> ord_net_v{
+          netDeclOp.netId().str(),
+          {{std::string(detail::ObjKey) + detail::ordered}}
+      };
+      detail::VarDecl<detail::ID> ord_net_cnt_v{
+          std::string(detail::CntKey) + netDeclOp.netId().str(),
+          {{std::string(detail::ObjKey) + detail::ordered_cnt}}
+      };
+      data["decls"]["var_decls"].push_back(ord_net_v);
+      data["decls"]["var_decls"].push_back(ord_net_cnt_v);
+
+    } else{
+      detail::VarDecl<detail::ID> unord_net_v{
+        netDeclOp.netId().str(),
+          {{std::string(detail::ObjKey) + detail::unordered}}
+      };
+      data["decls"]["var_decls"].push_back(unord_net_v);
+    }
+  });
+}
+void MurphiCodeGen::_varMutexes() {
+  detail::VarDecl<detail::ID> mutex_v{detail::cl_mutex_v, {{detail::a_cl_mutex_t}}};
+  data["decls"]["var_decls"].push_back(mutex_v);
+}
+
 } // namespace murphi
