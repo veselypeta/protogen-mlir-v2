@@ -76,11 +76,48 @@ interface IdAndType {
     typeId: MurphiTypeId;
     type: MurphiType;
 }
-//
-// interface CodeComment {
-//     text: string;
-// }
 
+interface ProcDecl{
+    procType: ProcType;
+    def: ProcDef;
+}
+
+type ProcType = "procedure" | "function";
+type ProcDef = MurphiFunction | MurphiProcedure;
+
+interface MurphiFunction{
+    id: ID;
+    params: Formal[];
+    returnType: TypeDescription;
+    forwardDecls?: FwdDecl[];
+    statements?: Statement[]
+}
+
+interface MurphiProcedure{}
+
+interface Formal{
+    id: ID;
+    type: TypeDescription;
+}
+
+interface FwdDecl {
+    typeId: "const" | "var" | "type";
+    decl: TypeDecl | VarDecl | ConstDecl;
+}
+
+type Statement = AssignmentStmt;
+
+interface AssignmentStmt{
+    lhs: Designator;
+    rhs: Expression;
+}
+
+interface Designator {
+    objectId: ID;
+    index: ID | Expression
+}
+
+type Expression = Designator;
 
 interface Murphi_json_schema {
     decls: {

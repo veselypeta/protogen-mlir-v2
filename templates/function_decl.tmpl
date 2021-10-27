@@ -1,0 +1,15 @@
+{# template to render a murphi function expects as input a MurphiFunction type-#}
+{%- set params=make_json("params", params) -%}
+function {{ id }} ( {{ render_template("formal_params.tmpl", params) }} ) : {{ render_template("type_expr.tmpl", returnType) }};
+{%- if exists("forwardDecls") -%}
+{% for decl in forwardDecls %}
+    {{ render_template("forward_decl.tmpl", decl) -}}
+{% endfor %}
+{%- endif -%}
+begin
+{%- if exists("statements") -%}
+    {%- for stmt in statements -%}
+    {{ render_template("statement",stmt) }}
+    {%- endfor -%}
+{%- endif -%}
+end;

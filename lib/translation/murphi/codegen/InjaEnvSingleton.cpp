@@ -37,6 +37,18 @@ void registerInjaCallbacks(Environment &env) {
     auto tmpl = env.parse_template(tmplName);
     return env.render(tmpl, data);
   });
+
+  /*
+   * -- make_json --
+   * (1) a string key for the new json object
+   * (2) a json object to nest within the new object
+   */
+
+  env.add_callback("make_json", 2, [](Arguments &args){
+    std::string key = args.at(0)->get<std::string>();
+    json data = args.at(1)->get<json>();
+    return json{{key, data}};
+  });
 }
 
 inja::Environment &InjaEnvSingleton::getInstance() {

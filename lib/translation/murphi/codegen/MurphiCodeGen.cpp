@@ -265,7 +265,7 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
                                  : detail::r_directory_entry_t();
   // generate the correct murphi declaration
   data["decls"]["type_decls"].push_back(
-      detail::TypeDecl<detail::Record>{machine_id_t, {record_elems}});
+      detail::TypeDecl<detail::Record>{std::move(machine_id_t), {std::move(record_elems)}});
 }
 
 void MurphiCodeGen::_getMachineMach() {
@@ -278,8 +278,8 @@ void MurphiCodeGen::_getMachineMach() {
       detail::directory_mach_t(),
       {{detail::ss_address_t}, {detail::directory_set_t()}}};
 
-  data["decls"]["type_decls"].push_back(cacheMach);
-  data["decls"]["type_decls"].push_back(dirMach);
+  data["decls"]["type_decls"].push_back(std::move(cacheMach));
+  data["decls"]["type_decls"].push_back(std::move(dirMach));
 }
 
 void MurphiCodeGen::_getMachineObjs() {
@@ -292,22 +292,20 @@ void MurphiCodeGen::_getMachineObjs() {
       detail::directory_obj_t(),
       {{detail::directory_set_t()}, {detail::directory_mach_t()}}};
 
-  data["decls"]["type_decls"].push_back(cacheObj);
-  data["decls"]["type_decls"].push_back(dirObj);
+  data["decls"]["type_decls"].push_back(std::move(cacheObj));
+  data["decls"]["type_decls"].push_back(std::move(dirObj));
 }
 
 void MurphiCodeGen::_typeMessage() {
-  auto msg_decl_type = get_glob_msg_type();
-
   // generate the glob msg
   data["decls"]["type_decls"].push_back(
-      detail::TypeDecl<detail::Record>{detail::r_message_t, {msg_decl_type}});
+      detail::TypeDecl<detail::Record>{detail::r_message_t, {get_glob_msg_type()}});
 }
 
 void MurphiCodeGen::_typeMutexes() {
   detail::TypeDecl<detail::Array<detail::ID, detail::ID>> mutex_t{
       detail::a_cl_mutex_t, {{detail::ss_address_t}, {"boolean"}}};
-  data["decls"]["type_decls"].push_back(mutex_t);
+  data["decls"]["type_decls"].push_back(std::move(mutex_t));
 }
 
 std::vector<std::pair<std::string, std::string>>
@@ -429,6 +427,16 @@ void MurphiCodeGen::_varNetworks() {
 void MurphiCodeGen::_varMutexes() {
   detail::VarDecl<detail::ID> mutex_v{detail::cl_mutex_v, {{detail::a_cl_mutex_t}}};
   data["decls"]["var_decls"].push_back(mutex_v);
+}
+
+
+
+/*
+ * MESSAGE FACTORIES
+ */
+
+void MurphiCodeGen::generateMsgFactories() {
+
 }
 
 } // namespace murphi

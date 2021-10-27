@@ -5,6 +5,13 @@
 #include "translation/utils/ModuleInterpreter.h"
 #include <type_traits>
 
+// Forward Declarations
+namespace murphi {
+namespace detail {
+struct ID;
+}
+} // namespace murphi
+
 // For a manual on the Murphi Programming Language :
 // https://www.cs.ubc.ca/~ajh/courses/cpsc513/assign-token/User.Manual
 namespace murphi {
@@ -27,6 +34,7 @@ namespace detail {
 // ss_  : refers to a ScalarSet
 // sr_  : refers to an integer SubRange
 // r_   : refers to a record
+// a_   : refers to an array
 
 // a map to each type of machine
 constexpr struct {
@@ -72,19 +80,19 @@ static std::string directory_set_t() {
   return std::string(SetKey) + machines.directory.str();
 }
 
-static std::string cache_mach_t(){
+static std::string cache_mach_t() {
   return std::string(MachKey) + machines.cache.str();
 }
 
-static std::string directory_mach_t(){
+static std::string directory_mach_t() {
   return std::string(MachKey) + machines.directory.str();
 }
 
-static std::string cache_obj_t(){
+static std::string cache_obj_t() {
   return std::string(ObjKey) + machines.cache.str();
 }
 
-static std::string directory_obj_t(){
+static std::string directory_obj_t() {
   return std::string(ObjKey) + machines.directory.str();
 }
 
@@ -135,19 +143,13 @@ constexpr struct {
   const llvm::StringRef dir_decl = "pcc.directory_decl";
 } opStringMap;
 
-
 /*
  * VAR_DECL constants
  */
 
+static std::string cache_v() { return "i_" + machines.cache.str(); }
 
-static std::string cache_v(){
-  return "i_" + machines.cache.str();
-}
-
-static std::string directory_v(){
-  return "i_" + machines.directory.str();
-}
+static std::string directory_v() { return "i_" + machines.directory.str(); }
 
 constexpr char cl_mutex_v[] = "cl_mutex";
 
@@ -164,21 +166,18 @@ struct ConstDecl {
 void to_json(json &j, const ConstDecl &c);
 
 // *** TypeDecl
-template <class TypeT>
-struct TypeDecl{
+template <class TypeT> struct TypeDecl {
   std::string id;
   TypeT type;
 };
 
-template <class TypeT>
-void to_json(json &j, const TypeDecl<TypeT> &typeDecl) {
+template <class TypeT> void to_json(json &j, const TypeDecl<TypeT> &typeDecl) {
   j = typeDecl.type;
   j["id"] = typeDecl.id;
 }
 
 // var_decl uses the same underlying struct
-template< class TypeT>
-using VarDecl = TypeDecl<TypeT>;
+template <class TypeT> using VarDecl = TypeDecl<TypeT>;
 
 //// **** Type Expressions ////
 
@@ -230,8 +229,7 @@ struct ID {
 void to_json(json &j, const ID &id);
 
 // *** Array
-template <class IndexT, class TypeT>
-struct Array {
+template <class IndexT, class TypeT> struct Array {
   IndexT index;
   TypeT type;
 };
@@ -242,10 +240,8 @@ void to_json(json &j, const Array<IndexT, TypeT> &arr) {
        {"type", {{"index", arr.index}, {"type", arr.type}}}};
 }
 
-
 // *** SubRange
-template <class StartT, class StopT>
-struct SubRange {
+template <class StartT, class StopT> struct SubRange {
   StartT start;
   StopT stop;
 };
@@ -257,23 +253,46 @@ void to_json(json &j, const SubRange<StartT, StopT> &sub_range) {
 }
 
 // *** Multiset
-template <class IndexT, class TypeT>
-struct Multiset {
+template <class IndexT, class TypeT> struct Multiset {
   IndexT index;
   TypeT type;
 };
 
 template <class IndexT, class TypeT>
-void to_json(json &j, const Multiset<IndexT, TypeT> &m){
+void to_json(json &j, const Multiset<IndexT, TypeT> &m) {
+  j = {{"typeId", "multiset"},
+       {"type", {{"index", m.index}, {"type", m.type}}}};
+}
+
+// *** Formal Parameter
+template <class TypeT>
+struct Formal{
+  std::string id;
+  TypeT type;
+};
+
+template <class TypeT>
+void to_json(json &j, const Formal<TypeT> &formal){
   j = {
-      {"typeId", "multiset"},
-      {"type", {
-                   {"index", m.index},
-                   {"type", m.type}
-               }}
+      {"id", formal.id},
+      {"type", formal.type}
   };
 }
 
+// *** Forward Decls
+template <class TypeT>
+struct ForwardDecl {
+  std::string typeId;
+  TypeT decl;
+};
+
+template <class TypeT>
+void to_json(json &j, const ForwardDecl<TypeT>&fd){
+  j = {
+    {"typeId", fd.typeId},
+    {"decl", fd.decl}
+  };
+}
 
 /*
  * Helper Generating Functions
@@ -303,16 +322,17 @@ public:
   void generateConstants();
   void generateTypes();
   void generateVars();
+
+  void generateMsgFactories();
+
 private:
-
-
   /*
    * Type Declarations functions
    */
-  void _typeEnums(); // generate access/msgtype/states enums
-  void _typeStatics(); // address space/ cl
+  void _typeEnums();       // generate access/msgtype/states enums
+  void _typeStatics();     // address space/ cl
   void _typeMachineSets(); // set cache/directory
-  void _typeMessage(); // glob msg
+  void _typeMessage();     // glob msg
   void _typeMachines();
   void _typeNetworkObjects();
   // additional helpers
@@ -329,7 +349,6 @@ private:
   void _varMachines();
   void _varNetworks();
   void _varMutexes();
-
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;
