@@ -228,6 +228,11 @@ struct ID {
 };
 void to_json(json &j, const ID &id);
 
+struct ExprID {
+  std::string id;
+};
+void to_json(json &j, const ExprID &id);
+
 // *** Array
 template <class IndexT, class TypeT> struct Array {
   IndexT index;
@@ -265,34 +270,70 @@ void to_json(json &j, const Multiset<IndexT, TypeT> &m) {
 }
 
 // *** Formal Parameter
-template <class TypeT>
-struct Formal{
+template <class TypeT> struct Formal {
   std::string id;
   TypeT type;
 };
 
-template <class TypeT>
-void to_json(json &j, const Formal<TypeT> &formal){
-  j = {
-      {"id", formal.id},
-      {"type", formal.type}
-  };
+template <class TypeT> void to_json(json &j, const Formal<TypeT> &formal) {
+  j = {{"id", formal.id}, {"type", formal.type}};
 }
 
 // *** Forward Decls
-template <class TypeT>
-struct ForwardDecl {
+template <class TypeT> struct ForwardDecl {
   std::string typeId;
   TypeT decl;
 };
 
-template <class TypeT>
-void to_json(json &j, const ForwardDecl<TypeT>&fd){
+template <class TypeT> void to_json(json &j, const ForwardDecl<TypeT> &fd) {
+  j = {{"typeId", fd.typeId}, {"decl", fd.decl}};
+}
+
+// *** Expression Types -> ExpressionDescription
+template <class T> struct Designator {
+  std::string objId;
+  std::string objType;
+  T index;
+};
+
+template <class T> void to_json(json &j, const Designator<T> &designator) {
+  j = {{"typeId", "designator"},
+       {"expression",
+        {{"objId", designator.objId},
+         {"objType", designator.objType},
+         {"index", designator.index}}}};
+}
+
+
+// *** Statement Types
+template <class T, class U>
+struct Assignment {
+  Designator<T> lhs;
+  U rhs;
+};
+
+template <class T, class U>
+void to_json(json &j, const Assignment<T, U> &a){
   j = {
-    {"typeId", fd.typeId},
-    {"decl", fd.decl}
+    {"typeId", "assignment"},
+    {"statement", {
+                      {"lhs", a.lhs},
+                      {"rhs", a.rhs}
+                  }}
   };
 }
+
+
+// *** specific cases
+
+struct MessageConstructor {
+  std::string msgId;
+  mlir::pcc::MsgDeclOp msgOp;
+};
+
+void to_json(json &j, const MessageConstructor &mc);
+
+
 
 /*
  * Helper Generating Functions

@@ -153,6 +153,10 @@ def MsgDeclOp : PCC_Op<"msg_decl">{
             assert(hasAttr && "The Message type does not contain the attribute!");
             return getOperation()->getAttr(name).dyn_cast<mlir::TypeAttr>();
         }
+
+        StringRef getMsgName(){
+
+        }
     }];
 }
 

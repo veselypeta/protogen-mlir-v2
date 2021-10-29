@@ -1,0 +1,7 @@
+{# renders any statement : accepts an ExpressionDescription object#}
+{% if typeId=="ID" %}
+{{ expression -}}
+{% endif %}
+{% if typeId=="designator" %}
+{{ expression.objId }}{% if expression.objType == "array" %}[{{ render_template("expression.tmpl", expression.index) }}]{% else %}.{{ render_template("expression.tmpl", expression.index) }}{% endif %}
+{% endif %}

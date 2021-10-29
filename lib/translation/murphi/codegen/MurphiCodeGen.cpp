@@ -51,6 +51,12 @@ void to_json(json &j, const ScalarSet<size_t> &ss) {
 
 void to_json(json &j, const ID &id) { j = {{"typeId", "ID"}, {"type", id.id}}; }
 
+void to_json(json &j, const ExprID &id) {
+  j = {{"typeId", "ID"}, {"expression", id.id}};
+}
+
+void to_json(json &j, const MessageConstructor &mc){}
+
 /*
  * Network Decl helper
  */
@@ -264,8 +270,8 @@ void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
                                  ? detail::r_cache_entry_t()
                                  : detail::r_directory_entry_t();
   // generate the correct murphi declaration
-  data["decls"]["type_decls"].push_back(
-      detail::TypeDecl<detail::Record>{std::move(machine_id_t), {std::move(record_elems)}});
+  data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Record>{
+      std::move(machine_id_t), {std::move(record_elems)}});
 }
 
 void MurphiCodeGen::_getMachineMach() {
@@ -298,8 +304,8 @@ void MurphiCodeGen::_getMachineObjs() {
 
 void MurphiCodeGen::_typeMessage() {
   // generate the glob msg
-  data["decls"]["type_decls"].push_back(
-      detail::TypeDecl<detail::Record>{detail::r_message_t, {get_glob_msg_type()}});
+  data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Record>{
+      detail::r_message_t, {get_glob_msg_type()}});
 }
 
 void MurphiCodeGen::_typeMutexes() {
@@ -387,56 +393,45 @@ void MurphiCodeGen::generateVars() {
 
 void MurphiCodeGen::_varMachines() {
 
-  detail::VarDecl<detail::ID> var_cache{
-    detail::cache_v(),
-    {{detail::cache_obj_t()}}
-  };
-  detail::VarDecl<detail::ID> var_dir{
-      detail::directory_v(),
-      {{detail::directory_obj_t()}}
-  };
+  detail::VarDecl<detail::ID> var_cache{detail::cache_v(),
+                                        {{detail::cache_obj_t()}}};
+  detail::VarDecl<detail::ID> var_dir{detail::directory_v(),
+                                      {{detail::directory_obj_t()}}};
   data["decls"]["var_decls"].push_back(var_cache);
   data["decls"]["var_decls"].push_back(var_dir);
-
 }
 void MurphiCodeGen::_varNetworks() {
   auto ops = moduleInterpreter.getOperations<mlir::pcc::NetDeclOp>();
-  std::for_each(ops.begin(), ops.end(), [&](mlir::pcc::NetDeclOp &netDeclOp){
-    if(netDeclOp.getType().getOrdering() == "ordered"){
+  std::for_each(ops.begin(), ops.end(), [&](mlir::pcc::NetDeclOp &netDeclOp) {
+    if (netDeclOp.getType().getOrdering() == "ordered") {
 
       detail::VarDecl<detail::ID> ord_net_v{
           netDeclOp.netId().str(),
-          {{std::string(detail::ObjKey) + detail::ordered}}
-      };
+          {{std::string(detail::ObjKey) + detail::ordered}}};
       detail::VarDecl<detail::ID> ord_net_cnt_v{
           std::string(detail::CntKey) + netDeclOp.netId().str(),
-          {{std::string(detail::ObjKey) + detail::ordered_cnt}}
-      };
+          {{std::string(detail::ObjKey) + detail::ordered_cnt}}};
       data["decls"]["var_decls"].push_back(ord_net_v);
       data["decls"]["var_decls"].push_back(ord_net_cnt_v);
 
-    } else{
+    } else {
       detail::VarDecl<detail::ID> unord_net_v{
-        netDeclOp.netId().str(),
-          {{std::string(detail::ObjKey) + detail::unordered}}
-      };
+          netDeclOp.netId().str(),
+          {{std::string(detail::ObjKey) + detail::unordered}}};
       data["decls"]["var_decls"].push_back(unord_net_v);
     }
   });
 }
 void MurphiCodeGen::_varMutexes() {
-  detail::VarDecl<detail::ID> mutex_v{detail::cl_mutex_v, {{detail::a_cl_mutex_t}}};
+  detail::VarDecl<detail::ID> mutex_v{detail::cl_mutex_v,
+                                      {{detail::a_cl_mutex_t}}};
   data["decls"]["var_decls"].push_back(mutex_v);
 }
-
-
 
 /*
  * MESSAGE FACTORIES
  */
 
-void MurphiCodeGen::generateMsgFactories() {
-
-}
+void MurphiCodeGen::generateMsgFactories() {}
 
 } // namespace murphi

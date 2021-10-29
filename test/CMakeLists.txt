@@ -15,7 +15,7 @@ add_executable(protogen-mlir-test
         murphi-translate/ModuleInterpreterTests.cpp
         murphi-translate/MurphiCodeGenTests.cpp
         codegen/FunctionDeclTests.cpp
-        codegen/FormalParamsTests.cpp)
+        codegen/FormalParamsTests.cpp codegen/ExpressionTests.cpp codegen/StatementTests.cpp)
 
 target_link_libraries(protogen-mlir-test gtest_main MLIRIR antlr4_static mlir-gen trans-murphi)
 

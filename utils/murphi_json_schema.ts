@@ -90,7 +90,7 @@ interface MurphiFunction{
     params: Formal[];
     returnType: TypeDescription;
     forwardDecls?: FwdDecl[];
-    statements?: Statement[]
+    statements?: StatementDescription[]
 }
 
 interface MurphiProcedure{}
@@ -106,18 +106,32 @@ interface FwdDecl {
 }
 
 type Statement = AssignmentStmt;
+type StatementType = 'assignment';
 
 interface AssignmentStmt{
     lhs: Designator;
-    rhs: Expression;
+    rhs: ExpressionDescription;
 }
 
 interface Designator {
     objectId: ID;
-    index: ID | Expression
+    objType: "array" | "object";
+    index: ExpressionDescription
 }
 
-type Expression = Designator;
+type Expression = Designator | ID ;
+type ExpressionType = "designator" | "ID";
+interface ExpressionDescription{
+    typeId: ExpressionType;
+    expression: Expression;
+}
+
+
+interface StatementDescription{
+    typeId: StatementType;
+    statement: Statement;
+}
+
 
 interface Murphi_json_schema {
     decls: {
