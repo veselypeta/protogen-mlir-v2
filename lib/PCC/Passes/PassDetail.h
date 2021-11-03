@@ -7,6 +7,7 @@ namespace mlir {
 namespace pcc {
 
 void registerStableCompilation();
+void registerStallingCompilation();
 
 #define GEN_PASS_CLASSES
 #include "PCC/Passes/Passes.h.inc"

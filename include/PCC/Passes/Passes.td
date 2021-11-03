@@ -36,5 +36,12 @@ def MutexOpsPass : Pass<"mutex-pass", "ModuleOp"> {
     let constructor = "mlir::pcc::createMutexOpsPass()";
 }
 
+def StallingProtogenOptimizationPass : Pass<"protogen-stall", "ModuleOp"> {
+    let summary = "Implement that basic protogen optimizations for stalling protocols (identical to protogen-mlir v1)";
+    let description = [{ TODO }];
+    let constructor = "mlir::pcc::createStallingProtogenOptimizationPass()";
+    let dependentDialects = ["mlir::pcc::PCCDialect"];
+}
+
 
 #endif // PCC_DIALECT_PASSES

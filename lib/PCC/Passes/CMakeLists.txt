@@ -4,6 +4,8 @@ add_mlir_dialect_library(PCCPasses
         EndStatesPass.cpp
         StableCompilationPipeline.cpp
         MutexOpsPass.cpp
+        StallingProtogenPass.cpp
+        StallingCompilationPipeline.cpp
 
         DEPENDS
         mlir-headers

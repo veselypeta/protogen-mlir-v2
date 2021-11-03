@@ -14,5 +14,6 @@ void mlir::pcc::initAllPCCPasses(){
 
 void mlir::pcc::initAllPipelines(){
   mlir::pcc::registerStableCompilation();
+  mlir::pcc::registerStallingCompilation();
 }
 

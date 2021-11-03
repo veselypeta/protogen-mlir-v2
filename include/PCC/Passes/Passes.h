@@ -10,6 +10,7 @@ namespace pcc {
 std::unique_ptr<OperationPass<ModuleOp>> createTransientStatesPass();
 std::unique_ptr<OperationPass<ModuleOp>> createEndStatesPass();
 std::unique_ptr<OperationPass<ModuleOp>> createMutexOpsPass();
+std::unique_ptr<OperationPass<ModuleOp>> createStallingProtogenOptimizationPass();
 
 void initAllPCCPasses();
 void initAllPipelines();
