@@ -12,6 +12,7 @@ int main(int argc, char **argv)
     mlir::registerAllDialects(registry);
 
     mlir::pcc::initAllPCCPasses();
+    mlir::pcc::initAllPipelines();
 
     return mlir::failed(
         mlir::MlirOptMain(argc, argv, "PCC modular optimizer driver", registry,

@@ -9,13 +9,7 @@ using namespace mlir;
 using namespace llvm;
 using namespace mlir::pcc;
 
-class ProcessOpPattern : public OpRewritePattern<ProcessOp> {
-public:
-  ProcessOpPattern(MLIRContext *ctx, PatternBenefit benefit)
-      : OpRewritePattern<ProcessOp>(ctx, benefit) {}
-
-  void initialize() {}
-};
+namespace {
 
 class TransientStatesRewriter : public PatternRewriter {
 public:
@@ -23,7 +17,6 @@ public:
   // TODO - override any necessary methods here
 };
 
-namespace {
 
 struct TransientStatesPass
     : public pcc::TransientStatesBase<TransientStatesPass> {
@@ -58,6 +51,8 @@ void TransientStatesPass::runOnOperation() {
         [](TransactionOp &op, PatternRewriter &rewriter) -> LogicalResult {
       ProcessOp parentProcess = op->getParentOfType<ProcessOp>();
       // insert a new set state operation before
+      // the new state will be {old_state}_{action} i.e. cache_I_load
+//      auto action = parentProcess->getAttr("action").cast<StringAttr>().getValue();
       rewriter.setInsertionPointAfter(parentProcess);
       // TODO - figure out the action
 

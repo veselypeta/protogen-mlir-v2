@@ -31,7 +31,7 @@ def StructAccessOp : PCC_Op<"struct_access"> {
     }];
 }
 
-def ConstantOp : PCC_Op<"constant", [ConstantLike]> {
+def ConstantOp : PCC_Op<"constant", []> {
     let summary = "define a global integer constant at the root module level";
     let description = [{
         Only to be used at the root level of a module. This operation will be used to represent
@@ -54,7 +54,7 @@ def ConstantOp : PCC_Op<"constant", [ConstantLike]> {
             ];
 }
 
-def InlineConstOp: PCC_Op<"inl_const", [ConstantLike]>{
+def InlineConstOp: PCC_Op<"inl_const", []>{
     let summary = "define an line constant";
     let description = [{}];
 
@@ -154,8 +154,8 @@ def MsgDeclOp : PCC_Op<"msg_decl">{
             return getOperation()->getAttr(name).dyn_cast<mlir::TypeAttr>();
         }
 
-        StringRef getMsgName(){
-
+        StringRef getMsgName() {
+             return getOperation()->getAttr("id").cast<StringAttr>().getValue();
         }
     }];
 }
@@ -302,6 +302,20 @@ def IfOp: PCC_Op<"if", [NoTerminator]>{
 
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
+}
+
+
+// MUTEX OPS
+def AcquireOp: PCC_Op<"acquire">{
+    let summary = "acquire a global mutex for all messages";
+    let description = [{}];
+    let assemblyFormat = [{attr-dict}];
+}
+
+def ReleaseOp: PCC_Op<"release">{
+    let summary = "release the mutex lock acquired before";
+    let description = [{}];
+    let assemblyFormat = [{attr-dict}];
 }
 
 #endif // PCC_OPS

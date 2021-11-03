@@ -33,3 +33,11 @@ TEST(FunctionTest, RenderTemplate) {
 
   ASSERT_FALSE(result.empty());
 }
+
+TEST(FunctionTest, MessageConstructor){
+  // TODO fix this test - we need to create real MsgDeclOperations
+  json data = detail::MessageConstructor{};
+
+  ASSERT_STREQ(to_string(data).c_str(), "");
+
+}

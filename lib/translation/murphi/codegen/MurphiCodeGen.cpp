@@ -55,7 +55,13 @@ void to_json(json &j, const ExprID &id) {
   j = {{"typeId", "ID"}, {"expression", id.id}};
 }
 
-void to_json(json &j, const MessageConstructor &mc){}
+void to_json(json &j, const MessageConstructor &m){
+  auto &msgConstr = const_cast<MessageConstructor&>(m);
+  j = {
+    {"id", msgConstr.msgOp.getMsgName().str()}
+  };
+
+}
 
 /*
  * Network Decl helper

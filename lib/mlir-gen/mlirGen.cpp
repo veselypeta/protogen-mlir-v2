@@ -569,10 +569,26 @@ private:
 
     auto procType = builder.getFunctionType(inputTypes, llvm::None);
 
+    // Which attributes might be useful for performing optimizations ??
+    // {action} store the name of the action taking place i.e. load/GetM
+    mlir::Attribute actionAttr = builder.getStringAttr(transResp.action);
+    // {start_state} have a reference to the start state i.e. cache_I/directory_M
+    mlir::Attribute startStateAttr = builder.getStringAttr(curMach + "_" + transResp.start_state);
+
+    std::vector<mlir::NamedAttribute> procAttrs{
+        {mlir::Identifier::get("action", builder.getContext()), actionAttr},
+        {mlir::Identifier::get("start_state", builder.getContext()), startStateAttr}
+    };
+
+    // {end_state} optional
+    if(transResp.end_state.hasValue() && transResp.end_state.getValue() != "State"){
+      mlir::Attribute endStateAttr = builder.getStringAttr(transResp.end_state.getValue());
+      procAttrs.emplace_back(std::make_pair(mlir::Identifier::get("end_state", builder.getContext()), endStateAttr));
+    }
     std::string procIdent =
         curMach + "_" + transResp.start_state + "_" + transResp.action;
     auto procOp =
-        builder.create<mlir::pcc::ProcessOp>(processOpLoc, procIdent, procType);
+        builder.create<mlir::pcc::ProcessOp>(processOpLoc, procIdent, procType, procAttrs);
     // TODO - come back to implementing parameters for the function op
     auto entryBlock = procOp.addEntryBlock();
 

@@ -9,7 +9,7 @@ module  {
   %7 = pcc.msg_decl {dst = !pcc.id, id = "Ack", mtype = !pcc.mtype<none>, src = !pcc.id} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
   %8 = pcc.msg_decl {cl = !pcc.data, dst = !pcc.id, id = "Resp", mtype = !pcc.mtype<none>, src = !pcc.id} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>
   %9 = pcc.msg_decl {cl = !pcc.data, dst = !pcc.id, id = "RespAck", mtype = !pcc.mtype<none>, src = !pcc.id} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>
-  pcc.process @cache_I_store(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) {
+  pcc.process @cache_I_store(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) attributes {action = "store", start_state = "cache_I"} {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data> -> !pcc.id
     %11 = pcc.struct_access %5["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<GetM>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
@@ -24,7 +24,7 @@ module  {
       }
     }
   }
-  pcc.process @cache_I_load(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) {
+  pcc.process @cache_I_load(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) attributes {action = "load", start_state = "cache_I"} {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data> -> !pcc.id
     %11 = pcc.struct_access %5["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<GetM>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
@@ -39,17 +39,17 @@ module  {
       }
     }
   }
-  pcc.process @cache_M_load(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) {
+  pcc.process @cache_M_load(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) attributes {action = "load", end_state = "M", start_state = "cache_M"} {
   }
-  pcc.process @cache_M_store(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) {
+  pcc.process @cache_M_store(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) attributes {action = "store", end_state = "M", start_state = "cache_M"} {
   }
-  pcc.process @cache_M_Fwd_GetM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) {
+  pcc.process @cache_M_Fwd_GetM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) attributes {action = "Fwd_GetM", end_state = "I", start_state = "cache_M"} {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data> -> !pcc.id
     %11 = pcc.struct_access %arg1["src"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<GetM_Ack_D>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>
     pcc.send : %2 : !pcc.network<unordered> %12 : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>
   }
-  pcc.process @cache_M_evict(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) {
+  pcc.process @cache_M_evict(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data>) attributes {action = "evict", start_state = "cache_M"} {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data> -> !pcc.id
     %11 = pcc.struct_access %5["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<PutM>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>
@@ -62,7 +62,7 @@ module  {
       }
     }
   }
-  pcc.process @directory_I_GetM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) {
+  pcc.process @directory_I_GetM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) attributes {action = "GetM", end_state = "M", start_state = "directory_I"} {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> -> !pcc.id
     %11 = pcc.struct_access %arg1["src"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<GetM_Ack_D>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>
@@ -70,7 +70,7 @@ module  {
     %13 = pcc.struct_access %arg1["src"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id> -> !pcc.id
     pcc.update [owner] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> %13:!pcc.id
   }
-  pcc.process @directory_M_GetM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) {
+  pcc.process @directory_M_GetM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>) attributes {action = "GetM", end_state = "M", start_state = "directory_M"} {
     %10 = pcc.struct_access %arg1["src"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id> -> !pcc.id
     %11 = pcc.struct_access %arg0["owner"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<Fwd_GetM>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
@@ -78,7 +78,7 @@ module  {
     %13 = pcc.struct_access %arg1["src"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id> -> !pcc.id
     pcc.update [owner] %arg0:!pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> %13:!pcc.id
   }
-  pcc.process @directory_M_PutM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>) {
+  pcc.process @directory_M_PutM(%arg0: !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id>, %arg1: !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data>) attributes {action = "PutM", start_state = "directory_M"} {
     %10 = pcc.struct_access %arg0["ID"] : !pcc.struct<!pcc.state<I>, !pcc.data, !pcc.id> -> !pcc.id
     %11 = pcc.struct_access %arg1["src"] : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id, !pcc.data> -> !pcc.id
     %12 = pcc.msg_constr %10 %11 {mtype = !pcc.mtype<Put_Ack>} : !pcc.struct<!pcc.id, !pcc.mtype<none>, !pcc.id>
