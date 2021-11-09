@@ -575,9 +575,14 @@ private:
     // {start_state} have a reference to the start state i.e. cache_I/directory_M
     mlir::Attribute startStateAttr = builder.getStringAttr(curMach + "_" + transResp.start_state);
 
+    // {state_type} will be either 'stable' or 'transient'
+    // initially all are stable by definition of SSP
+    mlir::Attribute stateTypeAttr = builder.getStringAttr("stable");
+
     std::vector<mlir::NamedAttribute> procAttrs{
         {mlir::Identifier::get("action", builder.getContext()), actionAttr},
-        {mlir::Identifier::get("start_state", builder.getContext()), startStateAttr}
+        {mlir::Identifier::get("start_state", builder.getContext()), startStateAttr},
+        {mlir::Identifier::get("state_type", builder.getContext()),stateTypeAttr}
     };
 
     // {end_state} optional

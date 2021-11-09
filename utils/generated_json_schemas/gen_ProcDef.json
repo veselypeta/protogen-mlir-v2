@@ -1,0 +1,485 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "anyOf": [
+        {
+            "$ref": "#/definitions/MurphiFunction"
+        },
+        {
+            "$ref": "#/definitions/MurphiProcedure"
+        }
+    ],
+    "definitions": {
+        "AssignmentStmt": {
+            "properties": {
+                "lhs": {
+                    "$ref": "#/definitions/Designator",
+                    "title": "lhs"
+                },
+                "rhs": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "rhs"
+                }
+            },
+            "required": [
+                "lhs",
+                "rhs"
+            ],
+            "title": "AssignmentStmt",
+            "type": "object"
+        },
+        "ConstDecl": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "value": {
+                    "title": "value",
+                    "type": "number"
+                }
+            },
+            "required": [
+                "id",
+                "value"
+            ],
+            "title": "ConstDecl",
+            "type": "object"
+        },
+        "Designator": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "objType": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "objType",
+                    "type": "string"
+                },
+                "objectId": {
+                    "title": "objectId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "index",
+                "objType",
+                "objectId"
+            ],
+            "title": "Designator",
+            "type": "object"
+        },
+        "Enum": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls"
+            ],
+            "title": "Enum",
+            "type": "object"
+        },
+        "ExpressionDescription": {
+            "properties": {
+                "expression": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "expression"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/ExpressionType",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "expression",
+                "typeId"
+            ],
+            "title": "ExpressionDescription",
+            "type": "object"
+        },
+        "ExpressionType": {
+            "enum": [
+                "ID",
+                "designator"
+            ],
+            "title": "ExpressionType",
+            "type": "string"
+        },
+        "Formal": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "id",
+                "type"
+            ],
+            "title": "Formal",
+            "type": "object"
+        },
+        "FwdDecl": {
+            "properties": {
+                "decl": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ConstDecl"
+                        },
+                        {
+                            "$ref": "#/definitions/TypeDecl"
+                        },
+                        {
+                            "$ref": "#/definitions/VarDecl"
+                        }
+                    ],
+                    "title": "decl"
+                },
+                "typeId": {
+                    "enum": [
+                        "const",
+                        "type",
+                        "var"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "decl",
+                "typeId"
+            ],
+            "title": "FwdDecl",
+            "type": "object"
+        },
+        "IntegerSubRange": {
+            "properties": {
+                "start": {
+                    "title": "start",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                },
+                "stop": {
+                    "title": "stop",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                }
+            },
+            "required": [
+                "start",
+                "stop"
+            ],
+            "title": "IntegerSubRange",
+            "type": "object"
+        },
+        "MultisetType": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "index"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "index",
+                "type"
+            ],
+            "title": "MultisetType",
+            "type": "object"
+        },
+        "MurphiArray": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "index"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "index",
+                "type"
+            ],
+            "title": "MurphiArray",
+            "type": "object"
+        },
+        "MurphiFunction": {
+            "properties": {
+                "forwardDecls": {
+                    "items": {
+                        "$ref": "#/definitions/FwdDecl"
+                    },
+                    "title": "forwardDecls",
+                    "type": "array"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "params": {
+                    "items": {
+                        "$ref": "#/definitions/Formal"
+                    },
+                    "title": "params",
+                    "type": "array"
+                },
+                "returnType": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "returnType"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "params",
+                "returnType"
+            ],
+            "title": "MurphiFunction",
+            "type": "object"
+        },
+        "MurphiProcedure": {
+            "title": "MurphiProcedure",
+            "type": "object"
+        },
+        "MurphiRecord": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "properties": {
+                            "id": {
+                                "title": "id",
+                                "type": "string"
+                            },
+                            "type": {
+                                "$ref": "#/definitions/MurphiType",
+                                "title": "type"
+                            },
+                            "typeId": {
+                                "$ref": "#/definitions/MurphiTypeId",
+                                "title": "typeId"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "type",
+                            "typeId"
+                        ],
+                        "type": "object"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls"
+            ],
+            "title": "MurphiRecord",
+            "type": "object"
+        },
+        "MurphiType": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/MurphiRecord"
+                },
+                {
+                    "$ref": "#/definitions/Enum"
+                },
+                {
+                    "$ref": "#/definitions/IntegerSubRange"
+                },
+                {
+                    "$ref": "#/definitions/MurphiArray"
+                },
+                {
+                    "$ref": "#/definitions/MultisetType"
+                },
+                {
+                    "$ref": "#/definitions/ScalarsetType"
+                },
+                {
+                    "$ref": "#/definitions/UnionType"
+                },
+                {
+                    "type": "string"
+                }
+            ],
+            "title": "MurphiType"
+        },
+        "MurphiTypeId": {
+            "enum": [
+                "ID",
+                "array",
+                "enum",
+                "multiset",
+                "record",
+                "scalarset",
+                "sub_range",
+                "union"
+            ],
+            "title": "MurphiTypeId",
+            "type": "string"
+        },
+        "ScalarsetType": {
+            "properties": {
+                "type": {
+                    "title": "type",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "title": "ScalarsetType",
+            "type": "object"
+        },
+        "StatementDescription": {
+            "properties": {
+                "statement": {
+                    "$ref": "#/definitions/AssignmentStmt",
+                    "title": "statement"
+                },
+                "typeId": {
+                    "enum": [
+                        "assignment"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "statement",
+                "typeId"
+            ],
+            "title": "StatementDescription",
+            "type": "object"
+        },
+        "TypeDecl": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "id",
+                "type",
+                "typeId"
+            ],
+            "title": "TypeDecl",
+            "type": "object"
+        },
+        "TypeDescription": {
+            "properties": {
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "type",
+                "typeId"
+            ],
+            "title": "TypeDescription",
+            "type": "object"
+        },
+        "UnionType": {
+            "properties": {
+                "listElems": {
+                    "additionalItems": {
+                        "type": "string"
+                    },
+                    "items": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "minItems": 2,
+                    "title": "listElems",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "listElems"
+            ],
+            "title": "UnionType",
+            "type": "object"
+        },
+        "VarDecl": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "id",
+                "type",
+                "typeId"
+            ],
+            "title": "VarDecl",
+            "type": "object"
+        }
+    }
+}
+

@@ -55,12 +55,52 @@ void to_json(json &j, const ExprID &id) {
   j = {{"typeId", "ID"}, {"expression", id.id}};
 }
 
-void to_json(json &j, const MessageConstructor &m){
-  auto &msgConstr = const_cast<MessageConstructor&>(m);
-  j = {
-    {"id", msgConstr.msgOp.getMsgName().str()}
-  };
+void to_json(json &j, const MessageConstructor &m) {
+  // bit of a hack here to remove the const from the parameter
+  // it's a requirement of inja to have the parameter be const
+  auto &msgConstr = const_cast<MessageConstructor &>(m);
+  // default params will be
+  // adr
+  Formal<ID> adr{detail::c_adr, {detail::ss_address_t}};
+  // msgType
+  Formal<ID> msgType{detail::c_mtype, {detail::e_message_type_t}};
+  // src
+  Formal<ID> src{detail::c_src, {detail::e_machines_t}};
+  // dst
+  Formal<ID> dst{detail::c_dst, {detail::e_machines_t}};
 
+  std::vector<Formal<ID>> params = {std::move(adr), std::move(msgType),
+                                    std::move(src), std::move(dst)};
+  // add the default parameter assignments
+  std::vector<Assignment<ExprID, ExprID>> paramAssignments{
+      {{c_msg, "object", {c_adr}}, {c_adr}},
+      {{c_msg, "object", {c_mtype}}, {c_mtype}},
+      {{c_msg, "object", {c_src}}, {c_src}},
+      {{c_msg, "object", {c_dst}}, {c_dst}},
+
+  };
+  // additional params
+  auto attrs = msgConstr.msgOp->getAttrs();
+  std::for_each(
+      std::begin(attrs), std::end(attrs), [&](mlir::NamedAttribute attr) {
+        if (attr.first != c_adr && attr.first != c_mtype &&
+            attr.first != c_src && attr.first != c_dst && attr.first != "id") {
+          std::string paramName = attr.first.str();
+          std::string paramType = MLIRTypeToMurphiTypeRef(attr.second.cast<mlir::TypeAttr>().getValue(), "");
+          params.push_back({paramName, {paramType}});
+          // TODO - possibly this could lead to incosistencies since we don't
+          // un-define for the global msg type
+          paramAssignments.push_back(
+              {{c_msg, "object", {paramName}}, {paramName}});
+        }
+      });
+
+  j = {{"id", msgConstr.msgOp.getMsgName().str()},
+       {"params", params},
+       {"forwardDecls",
+        json::array({ForwardDecl<VarDecl<ID>>{"var", {c_msg, {r_message_t}}}})},
+       {"returnType", detail::ID{detail::r_message_t}},
+       {"statements", paramAssignments}};
 }
 
 /*

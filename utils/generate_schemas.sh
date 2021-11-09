@@ -12,7 +12,7 @@ then
   echo "-- generating json schema files"
 
   ts_file="murphi_json_schema.ts"
-  types=("TypeDecl" "ConstDecl" "MurphiType" "Murphi_json_schema" "TypeDescription") # add types to be generated here
+  types=("TypeDecl" "ConstDecl" "MurphiType" "Murphi_json_schema" "TypeDescription" "ProcDef") # add types to be generated here
 
   for t in "${types[@]}"; do
     $package $ts_file "$t" --required --titles > "generated_json_schemas/gen_${t}.json"

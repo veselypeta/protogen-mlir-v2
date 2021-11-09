@@ -17,7 +17,6 @@ public:
   // TODO - override any necessary methods here
 };
 
-
 struct TransientStatesPass
     : public pcc::TransientStatesBase<TransientStatesPass> {
   void runOnOperation() override;
@@ -52,7 +51,8 @@ void TransientStatesPass::runOnOperation() {
       ProcessOp parentProcess = op->getParentOfType<ProcessOp>();
       // insert a new set state operation before
       // the new state will be {old_state}_{action} i.e. cache_I_load
-//      auto action = parentProcess->getAttr("action").cast<StringAttr>().getValue();
+      //      auto action =
+      //      parentProcess->getAttr("action").cast<StringAttr>().getValue();
       rewriter.setInsertionPointAfter(parentProcess);
       // TODO - figure out the action
 
@@ -69,8 +69,33 @@ void TransientStatesPass::runOnOperation() {
             Type msgType = transitionOp.msgType();
             FunctionType newFuncType =
                 rewriter.getFunctionType({machType, msgType}, llvm::None);
+
+            // fill in the proc attributes {action, start_state, state_type}
+            std::vector<NamedAttribute> newProcAttrs{
+                {Identifier::get("action", rewriter.getContext()),
+                 rewriter.getStringAttr(transitionOp.guard())},
+                {Identifier::get("start_state", rewriter.getContext()),
+                 rewriter.getStringAttr(procName)},
+                {Identifier::get("state_type", rewriter.getContext()),
+                 rewriter.getStringAttr("transient")},
+            };
+
+            // if optimizing an existing transient states, then copy the logical start state
+            if (parentProcess->getAttr("state_type")
+                    .cast<StringAttr>()
+                    .getValue() == "transient") {
+              newProcAttrs.emplace_back(
+                  Identifier::get("logical_start_state", rewriter.getContext()),
+                  parentProcess->getAttr("logical_start_state"));
+            } else {
+              // the logical start state will be the parent process stable state
+              Attribute logicalStartState = parentProcess->getAttr("start_state");
+              newProcAttrs.emplace_back(std::make_pair(Identifier::get("logical_start_state", rewriter.getContext()), logicalStartState));
+            }
+
             ProcessOp newProc = rewriter.create<ProcessOp>(
-                transitionOp.getLoc(), newProcName, newFuncType);
+                transitionOp.getLoc(), newProcName, newFuncType,
+                std::move(newProcAttrs));
             // create a constant op to facilitate the inlining
             Block *entry = newProc.addEntryBlock();
             rewriter.setInsertionPointToStart(entry);
@@ -99,11 +124,10 @@ void TransientStatesPass::runOnOperation() {
 
             // remove the unnecessary inline const op
             rewriter.eraseOp(inlineOp);
-
           });
 
       // TODO - Insert a set-state operation
-      //StringRef nextState = parentProcess.sym_name();
+      // StringRef nextState = parentProcess.sym_name();
 
       rewriter.eraseOp(op);
       return success();
