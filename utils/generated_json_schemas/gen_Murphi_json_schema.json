@@ -1,6 +1,24 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
+        "AssignmentStmt": {
+            "properties": {
+                "lhs": {
+                    "$ref": "#/definitions/Designator",
+                    "title": "lhs"
+                },
+                "rhs": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "rhs"
+                }
+            },
+            "required": [
+                "lhs",
+                "rhs"
+            ],
+            "title": "AssignmentStmt",
+            "type": "object"
+        },
         "ConstDecl": {
             "properties": {
                 "id": {
@@ -19,6 +37,33 @@
             "title": "ConstDecl",
             "type": "object"
         },
+        "Designator": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "objType": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "objType",
+                    "type": "string"
+                },
+                "objectId": {
+                    "title": "objectId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "index",
+                "objType",
+                "objectId"
+            ],
+            "title": "Designator",
+            "type": "object"
+        },
         "Enum": {
             "properties": {
                 "decls": {
@@ -33,6 +78,90 @@
                 "decls"
             ],
             "title": "Enum",
+            "type": "object"
+        },
+        "ExpressionDescription": {
+            "properties": {
+                "expression": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "expression"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/ExpressionType",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "expression",
+                "typeId"
+            ],
+            "title": "ExpressionDescription",
+            "type": "object"
+        },
+        "ExpressionType": {
+            "enum": [
+                "ID",
+                "designator"
+            ],
+            "title": "ExpressionType",
+            "type": "string"
+        },
+        "Formal": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "id",
+                "type"
+            ],
+            "title": "Formal",
+            "type": "object"
+        },
+        "FwdDecl": {
+            "properties": {
+                "decl": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ConstDecl"
+                        },
+                        {
+                            "$ref": "#/definitions/TypeDecl"
+                        },
+                        {
+                            "$ref": "#/definitions/VarDecl"
+                        }
+                    ],
+                    "title": "decl"
+                },
+                "typeId": {
+                    "enum": [
+                        "const",
+                        "type",
+                        "var"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "decl",
+                "typeId"
+            ],
+            "title": "FwdDecl",
             "type": "object"
         },
         "IntegerSubRange": {
@@ -93,6 +222,50 @@
                 "type"
             ],
             "title": "MurphiArray",
+            "type": "object"
+        },
+        "MurphiFunction": {
+            "properties": {
+                "forwardDecls": {
+                    "items": {
+                        "$ref": "#/definitions/FwdDecl"
+                    },
+                    "title": "forwardDecls",
+                    "type": "array"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "params": {
+                    "items": {
+                        "$ref": "#/definitions/Formal"
+                    },
+                    "title": "params",
+                    "type": "array"
+                },
+                "returnType": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "returnType"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "params",
+                "returnType"
+            ],
+            "title": "MurphiFunction",
+            "type": "object"
+        },
+        "MurphiProcedure": {
+            "title": "MurphiProcedure",
             "type": "object"
         },
         "MurphiRecord": {
@@ -173,6 +346,39 @@
             "title": "MurphiTypeId",
             "type": "string"
         },
+        "ProcDecl": {
+            "properties": {
+                "def": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/MurphiFunction"
+                        },
+                        {
+                            "$ref": "#/definitions/MurphiProcedure"
+                        }
+                    ],
+                    "title": "def"
+                },
+                "procType": {
+                    "$ref": "#/definitions/ProcType",
+                    "title": "procType"
+                }
+            },
+            "required": [
+                "def",
+                "procType"
+            ],
+            "title": "ProcDecl",
+            "type": "object"
+        },
+        "ProcType": {
+            "enum": [
+                "function",
+                "procedure"
+            ],
+            "title": "ProcType",
+            "type": "string"
+        },
         "ScalarsetType": {
             "properties": {
                 "type": {
@@ -187,6 +393,27 @@
                 "type"
             ],
             "title": "ScalarsetType",
+            "type": "object"
+        },
+        "StatementDescription": {
+            "properties": {
+                "statement": {
+                    "$ref": "#/definitions/AssignmentStmt",
+                    "title": "statement"
+                },
+                "typeId": {
+                    "enum": [
+                        "assignment"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "statement",
+                "typeId"
+            ],
+            "title": "StatementDescription",
             "type": "object"
         },
         "TypeDecl": {
@@ -306,10 +533,18 @@
             },
             "title": "decls",
             "type": "object"
+        },
+        "proc_decls": {
+            "items": {
+                "$ref": "#/definitions/ProcDecl"
+            },
+            "title": "proc_decls",
+            "type": "array"
         }
     },
     "required": [
-        "decls"
+        "decls",
+        "proc_decls"
     ],
     "type": "object"
 }

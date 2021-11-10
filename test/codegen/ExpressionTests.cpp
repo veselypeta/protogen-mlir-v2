@@ -27,3 +27,18 @@ TEST(ExpressionTests, DesignatorArrayType) {
 
   ASSERT_STREQ(result.c_str(), "newObj[arr_index]");
 }
+
+TEST(ExpressionTests, BinaryExpressionStrRef){
+
+  json data = detail::BinaryExpr<detail::ExprID, detail::ExprID>{
+      {"my_lhs_value"},
+      {"my_rhs_value"},
+      detail::BinaryOps.n_eq
+  };
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "my_lhs_value != my_rhs_value");
+
+}

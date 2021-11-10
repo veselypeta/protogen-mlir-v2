@@ -27,6 +27,7 @@ namespace detail {
 
 // Suffixes
 // _t : refers to a type
+// _f : refers to a function name
 
 // Prefixes
 // c_   : refers to a constant
@@ -153,6 +154,17 @@ static std::string cache_v() { return "i_" + machines.cache.str(); }
 static std::string directory_v() { return "i_" + machines.directory.str(); }
 
 constexpr char cl_mutex_v[] = "cl_mutex";
+
+/*
+ * Helper functions names
+ */
+constexpr char aq_mut_f[] = "Acquire_Mutex";
+constexpr char rel_mut_f[] = "Release_Mutex";
+constexpr char send_pref_f[] = "Send_";
+
+/*
+ * Murphi Functions
+ */
 
 /*
  * Helper Structs to generate JSON
@@ -291,7 +303,7 @@ template <class TypeT> void to_json(json &j, const ForwardDecl<TypeT> &fd) {
 }
 
 // *** Expression Types -> ExpressionDescription
-template <class T> struct Designator {
+template <class T, class ... Next> struct Designator {
   std::string objId;
   std::string objType;
   T index;
@@ -305,8 +317,45 @@ template <class T> void to_json(json &j, const Designator<T> &designator) {
          {"index", designator.index}}}};
 }
 
+constexpr struct{
+  const llvm::StringRef plus = "+";
+  const llvm::StringRef minus = "-";
+  const llvm::StringRef mult = "*";
+  const llvm::StringRef div = "/";
+  const llvm::StringRef logic_and = "&";
+  const llvm::StringRef logic_or = "|";
+  const llvm::StringRef logic_impl = "->";
+  const llvm::StringRef less_than = "<";
+  const llvm::StringRef less_than_eq = "<=";
+  const llvm::StringRef grtr_than = ">";
+  const llvm::StringRef grtr_than_eq = ">=";
+  const llvm::StringRef eq = "=";
+  const llvm::StringRef n_eq = "!=";
+} BinaryOps;
+
+template <class LHS, class RHS>
+struct BinaryExpr{
+  LHS lhs;
+  RHS rhs;
+  llvm::StringRef op; // MUST BE ONE OF: +, -, *, /, &, |, &, ->, <, <=, >, >=, =, !=
+};
+
+template <class LHS, class RHS>
+void to_json(json &j, const BinaryExpr<LHS, RHS> &binaryExpr){
+  j = {
+    {"typeId", "binary"},
+      {"expression", {
+                         {"lhs", binaryExpr.lhs},
+                         {"rhs", binaryExpr.rhs},
+                         {"op", binaryExpr.op}
+                     }}
+  };
+}
+
 
 // *** Statement Types
+
+// TODO - designator is allowed to have 0 or more {rhs}
 template <class T, class U>
 struct Assignment {
   Designator<T> lhs;
@@ -324,17 +373,37 @@ void to_json(json &j, const Assignment<T, U> &a){
   };
 }
 
+template <class T>
+struct Assert {
+  T expr;
+  std::string msg;
+};
+
+template <class T>
+void to_json(json &j, const Assert<T> &a){
+  j = {
+    {"typeId", "assert"},
+    {"statement", {
+                      {"expr", a.expr},
+                      {"msg", a.msg}
+                  }}
+  };
+}
+
 
 // *** specific cases
 
-struct MessageConstructor {
-  std::string msgId;
+struct MessageFactory {
   mlir::pcc::MsgDeclOp msgOp;
 };
 
-void to_json(json &j, const MessageConstructor &mc);
+void to_json(json &j, const MessageFactory &mc);
 
 
+struct UnorderedSendFunction {
+  std::string netId;
+};
+void to_json(json &j, const UnorderedSendFunction &sf);
 
 /*
  * Helper Generating Functions
@@ -352,6 +421,7 @@ public:
       : moduleInterpreter{ModuleInterpreter{op}}, output{output} {
     // initialize decls
     data["decls"] = json::object();
+    data["proc_decls"] = json::array();
   }
 
   mlir::LogicalResult translate();
@@ -365,7 +435,12 @@ public:
   void generateTypes();
   void generateVars();
 
-  void generateMsgFactories();
+  // ** methods
+  void generateMethods();
+
+  // ** Rules
+  void generateRules();
+
 
 private:
   /*
@@ -391,6 +466,14 @@ private:
   void _varMachines();
   void _varNetworks();
   void _varMutexes();
+
+  /*
+   * Methods
+   */
+  void _generateMsgFactories();
+  void _generateHelperFunctions();
+  void _generateMutexHelpers();
+
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

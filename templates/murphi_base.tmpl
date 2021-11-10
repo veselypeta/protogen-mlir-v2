@@ -19,3 +19,10 @@
 {% endif %}
 
 {% endif %}
+
+{# Render all the murphi methods #}
+{% if exists("proc_decls") %}
+    {%- for procDecl in proc_decls %}
+        {{- render_template("proc_decl.tmpl", procDecl) }}
+    {%- endfor %}
+{% endif %}

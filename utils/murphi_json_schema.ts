@@ -93,7 +93,12 @@ interface MurphiFunction{
     statements?: StatementDescription[]
 }
 
-interface MurphiProcedure{}
+interface MurphiProcedure{
+    id: ID;
+    params: Formal[];
+    forwardDecls?: FwdDecl[];
+    statements?: StatementDescription[];
+}
 
 interface Formal{
     id: ID;
@@ -105,12 +110,17 @@ interface FwdDecl {
     decl: TypeDecl | VarDecl | ConstDecl;
 }
 
-type Statement = AssignmentStmt;
-type StatementType = 'assignment';
+type Statement = AssignmentStmt | AssertStmt;
+type StatementType = 'assignment' | 'assert';
 
 interface AssignmentStmt{
     lhs: Designator;
     rhs: ExpressionDescription;
+}
+
+interface AssertStmt{
+    expr: ExpressionDescription;
+    msg: string;
 }
 
 interface Designator {
@@ -119,8 +129,16 @@ interface Designator {
     index: ExpressionDescription
 }
 
+interface BinaryExpr{
+    lhs: ExpressionDescription;
+    rhs: ExpressionDescription;
+    op: BinaryOp;
+}
+
+type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
+
 type Expression = Designator | ID ;
-type ExpressionType = "designator" | "ID";
+type ExpressionType = "designator" | "ID" | "binary";
 interface ExpressionDescription{
     typeId: ExpressionType;
     expression: Expression;
@@ -139,4 +157,6 @@ interface Murphi_json_schema {
         type_decls?: TypeDecl[];
         var_decls?: VarDecl[];
     };
+    proc_decls : ProcDecl[];
+
 }

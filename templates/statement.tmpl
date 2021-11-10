@@ -2,3 +2,6 @@
 {% if typeId == "assignment" %}
 {{ render_template("expression.tmpl", statement.lhs) }} := {{ render_template("expression.tmpl", statement.rhs) -}};{# -#}
 {% endif %}
+{% if typeId == "assert" %}
+assert( {{ render_template("expression.tmpl", statement.expr) }} ) "{{ statement.msg }}";{# -#}
+{% endif %}

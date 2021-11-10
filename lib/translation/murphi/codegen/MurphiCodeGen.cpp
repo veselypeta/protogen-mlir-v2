@@ -1,5 +1,6 @@
 #include "translation/murphi/codegen/MurphiCodeGen.h"
 #include "translation/utils/JSONValidation.h"
+#include <iostream>
 
 namespace murphi {
 /*
@@ -55,10 +56,10 @@ void to_json(json &j, const ExprID &id) {
   j = {{"typeId", "ID"}, {"expression", id.id}};
 }
 
-void to_json(json &j, const MessageConstructor &m) {
+void to_json(json &j, const MessageFactory &m) {
   // bit of a hack here to remove the const from the parameter
   // it's a requirement of inja to have the parameter be const
-  auto &msgConstr = const_cast<MessageConstructor &>(m);
+  auto &messageFactory = const_cast<MessageFactory &>(m);
   // default params will be
   // adr
   Formal<ID> adr{detail::c_adr, {detail::ss_address_t}};
@@ -80,13 +81,14 @@ void to_json(json &j, const MessageConstructor &m) {
 
   };
   // additional params
-  auto attrs = msgConstr.msgOp->getAttrs();
+  auto attrs = messageFactory.msgOp->getAttrs();
   std::for_each(
       std::begin(attrs), std::end(attrs), [&](mlir::NamedAttribute attr) {
         if (attr.first != c_adr && attr.first != c_mtype &&
             attr.first != c_src && attr.first != c_dst && attr.first != "id") {
           std::string paramName = attr.first.str();
-          std::string paramType = MLIRTypeToMurphiTypeRef(attr.second.cast<mlir::TypeAttr>().getValue(), "");
+          std::string paramType = MLIRTypeToMurphiTypeRef(
+              attr.second.cast<mlir::TypeAttr>().getValue(), "");
           params.push_back({paramName, {paramType}});
           // TODO - possibly this could lead to incosistencies since we don't
           // un-define for the global msg type
@@ -95,12 +97,26 @@ void to_json(json &j, const MessageConstructor &m) {
         }
       });
 
-  j = {{"id", msgConstr.msgOp.getMsgName().str()},
+  // TODO - make this return a ProcDecl instead of a ProcDef
+  j = {{"id", messageFactory.msgOp.getMsgName().str()},
        {"params", params},
        {"forwardDecls",
         json::array({ForwardDecl<VarDecl<ID>>{"var", {c_msg, {r_message_t}}}})},
        {"returnType", detail::ID{detail::r_message_t}},
        {"statements", paramAssignments}};
+}
+
+void to_json(json &j, const UnorderedSendFunction &usf){
+  constexpr char msg_p[] = "msg";
+
+  j = {
+    {"procType", "procedure"},
+    {"def", {
+                  {"id", detail::send_pref_f + usf.netId},
+                  {"params", {detail::Formal<detail::ID>{msg_p, {{detail::r_message_t}}}}},
+                  {"statements", json::array()}
+              }}
+  };
 }
 
 /*
@@ -152,6 +168,8 @@ mlir::LogicalResult MurphiCodeGen::translate() {
   generateConstants();
   generateTypes();
   generateVars();
+  generateMethods();
+  generateRules();
   return render();
 }
 
@@ -475,9 +493,73 @@ void MurphiCodeGen::_varMutexes() {
 }
 
 /*
+ * Murphi Methods
+ */
+
+void MurphiCodeGen::generateMethods() {
+  _generateMsgFactories();
+  _generateHelperFunctions();
+}
+
+/*
  * MESSAGE FACTORIES
  */
 
-void MurphiCodeGen::generateMsgFactories() {}
+void MurphiCodeGen::_generateMsgFactories() {
+  auto msgDecls = moduleInterpreter.getOperations<mlir::pcc::MsgDeclOp>();
+  std::for_each(std::begin(msgDecls), std::end(msgDecls),
+                [&](mlir::pcc::MsgDeclOp msgDeclOp) {
+                  data["proc_decls"].push_back(
+                      {{"procType", "function"},
+                       {"def", detail::MessageFactory{msgDeclOp}}});
+                });
+}
 
+/*
+ * Helper Functions
+ */
+
+void MurphiCodeGen::_generateHelperFunctions() {
+  _generateMutexHelpers();
+}
+
+void MurphiCodeGen::_generateMutexHelpers(){
+  constexpr char adr_param[] = "adr";
+
+  // ACQUIRE MUTEX
+  json acq_mut_proc = {
+      {"id", detail::aq_mut_f},
+      {"params", json::array({detail::Formal<detail::ID>{
+                     adr_param, {{detail::ss_address_t}}}})},
+      {"statements",
+       json::array({detail::Assignment<detail::ExprID, detail::ExprID>{
+               {detail::cl_mutex_v, "array", {adr_param}}, {"true"}}
+
+       })
+      }};
+  json acq_proc_decl = {{"procType", "procedure"}, {"def", std::move(acq_mut_proc)}};
+
+  // RELEASE MUTEX
+  json rel_mut_proc = {
+      {"id", detail::rel_mut_f},
+      {"params", json::array({detail::Formal<detail::ID>{
+                     adr_param, {{detail::ss_address_t}}}})},
+      {"statements",
+       json::array({detail::Assignment<detail::ExprID, detail::ExprID>{
+               {detail::cl_mutex_v, "array", {adr_param}}, {"false"}}
+
+       })
+      }};
+  json rel_proc_decl = {{"procType", "procedure"}, {"def", std::move(rel_mut_proc)}};
+
+  // Add them to the json structure
+  data["proc_decls"].push_back(std::move(acq_proc_decl));
+  data["proc_decls"].push_back(std::move(rel_proc_decl));
+}
+
+/*
+ * Rules
+ */
+
+void MurphiCodeGen::generateRules() {}
 } // namespace murphi

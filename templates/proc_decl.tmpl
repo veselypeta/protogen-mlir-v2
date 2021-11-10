@@ -1,0 +1,7 @@
+{# this template takes as input a ProcDecl object#}
+{% if procType == "function" %}
+    {{- render_template("function_decl.tmpl", def) -}}
+{% endif %}
+{% if procType == "procedure" %}
+    {{- render_template("procedure_decl.tmpl", def) -}}
+{% endif %}

@@ -5,3 +5,6 @@
 {% if typeId=="designator" %}
 {{ expression.objId }}{% if expression.objType == "array" %}[{{ render_template("expression.tmpl", expression.index) }}]{% else %}.{{ render_template("expression.tmpl", expression.index) }}{% endif %}
 {% endif %}
+{% if typeId=="binary" %}
+{{ render_template("expression.tmpl", expression.lhs) }} {{ expression.op }} {{ render_template("expression.tmpl", expression.rhs) -}}
+{% endif %}

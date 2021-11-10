@@ -72,7 +72,7 @@ TEST(FunctionTest, MessageConstructor) {
       builder.getUnknownLoc(), "Response", structType, fieldNames);
 
   // now we can finally attempt to render the function generation
-  murphi::detail::MessageConstructor msgConstrFun{"GetM_AckD", msgDeclOp};
+  murphi::detail::MessageFactory msgConstrFun{msgDeclOp};
 
   // convert it to json
   json j = msgConstrFun;
@@ -89,4 +89,16 @@ TEST(FunctionTest, MessageConstructor) {
   ASSERT_TRUE(is_valid);
 
   ASSERT_FALSE(result.empty());
+}
+
+TEST(FunctionTests, UnorderedSendFunction){
+
+  // TODO - rewrite to include the statments inside the function
+  json j = detail::UnorderedSendFunction{"fwd"};
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, j);
+
+  ASSERT_FALSE(result.empty());
+
 }

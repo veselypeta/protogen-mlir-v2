@@ -228,3 +228,11 @@ TEST_F(ModuleOpFixture, validate_add_types) {
   codeGen.generateTypes();
   ASSERT_TRUE(codeGen.is_json_valid());
 }
+
+TEST_F(ModuleOpFixture, validate_add_procs) {
+  // TODO -- generate some test data so that this test actually test something
+  MurphiCodeGen codeGen(theModule, llvm::outs());
+  ASSERT_TRUE(codeGen.is_json_valid());
+  codeGen.generateMethods();
+  ASSERT_TRUE(codeGen.is_json_valid());
+}
