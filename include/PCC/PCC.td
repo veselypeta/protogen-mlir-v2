@@ -20,8 +20,8 @@ def PCC_Dialect : Dialect {
 
 class PCC_Op<string mnemonic, list<OpTrait> traits = []> : Op<PCC_Dialect, mnemonic, traits>;
 
-include "PCCTypes.td"
-include "PCCAttributes.td"
-include "PCCOps.td"
+include "PCC/PCCTypes.td"
+include "PCC/PCCAttributes.td"
+include "PCC/PCCOps.td"
 
 #endif // PCC_DIALECT
