@@ -318,4 +318,50 @@ def ReleaseOp: PCC_Op<"release">{
     let assemblyFormat = [{attr-dict}];
 }
 
+
+// Logical Ops
+def LogicalAnd : PCC_Op<"and">{
+    let summary = "Performs logical and on the two input operands";
+    let description = [{}];
+
+    let arguments = (ins I1:$lhs, I1:$rhs);
+    let results = (outs I1:$result);
+
+    let assemblyFormat = [{attr-dict `:` $lhs $rhs `->` type($result)}];
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs), [{
+            build(
+                $_builder,
+                $_state,
+                $_builder.getI1Type(),
+                lhs,
+                rhs
+            );
+        }]>
+    ];
+}
+
+def LogicalOr : PCC_Op<"or">{
+    let summary = "Performs logical and on the two input operands";
+    let description = [{}];
+
+    let arguments = (ins I1:$lhs, I1:$rhs);
+    let results = (outs I1:$result);
+
+    let assemblyFormat = [{attr-dict `:` $lhs $rhs `->` type($result)}];
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs), [{
+            build(
+                $_builder,
+                $_state,
+                $_builder.getI1Type(),
+                lhs,
+                rhs
+            );
+        }]>
+    ];
+}
+
 #endif // PCC_OPS

@@ -572,8 +572,10 @@ private:
     // Which attributes might be useful for performing optimizations ??
     // {action} store the name of the action taking place i.e. load/GetM
     mlir::Attribute actionAttr = builder.getStringAttr(transResp.action);
-    // {start_state} have a reference to the start state i.e. cache_I/directory_M
-    mlir::Attribute startStateAttr = builder.getStringAttr(curMach + "_" + transResp.start_state);
+    // {start_state} have a reference to the start state i.e.
+    // cache_I/directory_M
+    mlir::Attribute startStateAttr =
+        builder.getStringAttr(curMach + "_" + transResp.start_state);
 
     // {state_type} will be either 'stable' or 'transient'
     // initially all are stable by definition of SSP
@@ -581,19 +583,24 @@ private:
 
     std::vector<mlir::NamedAttribute> procAttrs{
         {mlir::Identifier::get("action", builder.getContext()), actionAttr},
-        {mlir::Identifier::get("start_state", builder.getContext()), startStateAttr},
-        {mlir::Identifier::get("state_type", builder.getContext()),stateTypeAttr}
-    };
+        {mlir::Identifier::get("start_state", builder.getContext()),
+         startStateAttr},
+        {mlir::Identifier::get("state_type", builder.getContext()),
+         stateTypeAttr}};
 
     // {end_state} optional
-    if(transResp.end_state.hasValue() && transResp.end_state.getValue() != "State"){
-      mlir::Attribute endStateAttr = builder.getStringAttr(transResp.end_state.getValue());
-      procAttrs.emplace_back(std::make_pair(mlir::Identifier::get("end_state", builder.getContext()), endStateAttr));
+    if (transResp.end_state.hasValue() &&
+        transResp.end_state.getValue() != "State") {
+      mlir::Attribute endStateAttr =
+          builder.getStringAttr(transResp.end_state.getValue());
+      procAttrs.emplace_back(std::make_pair(
+          mlir::Identifier::get("end_state", builder.getContext()),
+          endStateAttr));
     }
     std::string procIdent =
         curMach + "_" + transResp.start_state + "_" + transResp.action;
-    auto procOp =
-        builder.create<mlir::pcc::ProcessOp>(processOpLoc, procIdent, procType, procAttrs);
+    auto procOp = builder.create<mlir::pcc::ProcessOp>(processOpLoc, procIdent,
+                                                       procType, procAttrs);
     // TODO - come back to implementing parameters for the function op
     auto entryBlock = procOp.addEntryBlock();
 
@@ -939,6 +946,38 @@ private:
   }
 
   mlir::Value mlirGen(ProtoCCParser::Cond_combContext *ctx) {
+    mlir::Location location = loc(*ctx->getStart());
+
+    auto conditions = ctx->cond_rel();
+    if (conditions.size() > 1) {
+      auto combinatorials = ctx->combinatorial_operator();
+      mlir::Value lhs_v = nullptr;
+      mlir::Value rhs_v = nullptr;
+      for (size_t i = 0; i < combinatorials.size(); i++) {
+        if (!lhs_v) {
+          auto lhs = conditions.at(i);
+          lhs_v = mlirGen(lhs);
+        }
+        auto rhs = conditions.at(i + i); // This will always be defined
+        rhs_v = mlirGen(rhs);
+
+        if (combinatorials.at(i)->getText() == "&") {
+          auto new_lhs =
+              builder.create<mlir::pcc::LogicalAnd>(location, lhs_v, rhs_v);
+          lhs_v = new_lhs; // move the lhs
+        } else {
+          auto new_lhs =
+              builder.create<mlir::pcc::LogicalOr>(location, lhs_v, rhs_v);
+          lhs_v = new_lhs; // move the lhs
+        }
+      }
+      return lhs_v;
+    } else {
+      return mlirGen(conditions[0]);
+    }
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Cond_relContext *ctx) {
     mlir::Location location = loc(*ctx->getStart());
     return builder.create<mlir::ConstantOp>(location,
                                             builder.getBoolAttr(true));
