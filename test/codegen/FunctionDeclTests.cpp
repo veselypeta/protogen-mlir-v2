@@ -100,3 +100,12 @@ TEST(FunctionTests, OrderedSendFunction){
 
   ASSERT_FALSE(result.empty());
 }
+
+TEST(FunctionTests, OrderedPopFunction){
+  json j = detail::OrderedPopFunction{"fwd"};
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, j);
+
+  ASSERT_FALSE(result.empty());
+}

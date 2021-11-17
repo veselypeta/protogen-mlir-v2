@@ -1,0 +1,7 @@
+{# this template takes a json object of type Quantifier #}
+{% if typeId == "for_each" %}
+{{ quantifier.id }} : {{ render_template("type_expr.tmpl", quantifier.type) -}}
+{% endif %}
+{% if typeId == "for_range" %}
+{{ quantifier.id }} := {{ render_template("expression.tmpl", quantifier.start) }} to {{ render_template("expression.tmpl", quantifier.end) -}}
+{% endif %}

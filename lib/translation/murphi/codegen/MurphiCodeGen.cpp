@@ -137,6 +137,29 @@ void to_json(json &j, const OrderedSendFunction &usf) {
          {"statements", {assert_stmt, push_stmt, inc_count_stmt}}}}};
 }
 
+
+void to_json(json &j, const OrderedPopFunction &opf){
+  constexpr char msg_p[] = "n";
+
+  Assert<BinaryExpr<Designator<ExprID>, ExprID>> line_1_assert{
+      {
+          {CntKey+opf.netId, "array", {msg_p}},
+          {{"0"}},
+          BinaryOps.grtr_than
+      },
+      ordered_pop_err
+  };
+  j = {
+    {"procType", "procedure"},
+    {"def",{
+
+              {"id", detail::pop_pref_f + opf.netId},
+              {"params",{detail::Formal<detail::ID>{msg_p, {{detail::e_machines_t}}}}},
+              {"statements", {line_1_assert}}
+            }}
+  };
+}
+
 /*
  * Network Decl helper
  */
@@ -256,7 +279,6 @@ void MurphiCodeGen::_typeStatics() {
           detail::ss_address_t,
           detail::ScalarSet<std::string>{detail::c_val_cnt_t}});
   // ClValue type
-  // TODO - maybe create a sub-range struct
   data["decls"]["type_decls"].push_back(
       detail::TypeDecl<detail::SubRange<size_t, std::string>>{
           detail::sr_cache_val_t, {0, detail::c_val_cnt_t}});

@@ -111,8 +111,8 @@ interface FwdDecl {
     decl: TypeDecl | VarDecl | ConstDecl;
 }
 
-type Statement = AssignmentStmt | AssertStmt;
-type StatementType = 'assignment' | 'assert';
+type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt;
+type StatementType = 'assignment' | 'assert' | "for" | "if";
 
 interface AssignmentStmt {
     lhs: Designator;
@@ -122,6 +122,33 @@ interface AssignmentStmt {
 interface AssertStmt {
     expr: ExpressionDescription;
     msg: string;
+}
+
+interface Quantifier{
+    typeId: "for_each" | "for_range";
+    quantifier: ForEachQuantifier
+}
+
+interface ForEachQuantifier{
+    id: ID;
+    type: TypeDescription;
+}
+
+interface ForRangeQuantifier{
+    id: ID;
+    start: ExpressionDescription;
+    end: ExpressionDescription;
+}
+
+interface ForStmt{
+    quantifier: Quantifier;
+    statements: StatementDescription[];
+}
+
+interface IfStmt{
+    expr: ExpressionDescription;
+    thenStatements: StatementDescription[];
+    elseStatements?: StatementDescription[];
 }
 
 interface Designator {

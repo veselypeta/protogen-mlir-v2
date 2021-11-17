@@ -27,3 +27,47 @@ TEST(StatementTests, AssertStmt) {
   ASSERT_STREQ(result.c_str(),
                "assert( value_to_be_tested ) \"assertion failed!\";");
 }
+
+TEST(StatementTests, ForStmt){
+  detail::ForStmt<detail::ForEachQuantifier<detail::ID>> forStmt{{"i", {"type"}}};
+  json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
+                                             "assertion failed!"};
+  forStmt.stmts.push_back(assert_stmt);
+  json data = forStmt;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+  ASSERT_FALSE(result.empty());
+}
+
+
+TEST(StatementTests, IfStmt){
+  detail::IfStmt<detail::ExprID> ifstmt{{"true"}};
+
+  json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
+                                                    "assertion failed!"};
+  ifstmt.thenStmts.emplace_back(assert_stmt);
+
+  json data = ifstmt;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+  ASSERT_FALSE(result.empty());
+}
+
+TEST(StatementTests, IfStmt_withelse){
+  detail::IfStmt<detail::ExprID> ifstmt{{"true"}};
+
+  json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
+                                                    "assertion failed!"};
+  ifstmt.thenStmts.emplace_back(assert_stmt);
+  ifstmt.elseStmts.emplace_back(assert_stmt);
+
+  json data = ifstmt;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+  ASSERT_FALSE(result.empty());
+}

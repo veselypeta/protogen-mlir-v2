@@ -5,3 +5,9 @@
 {% if typeId == "assert" %}
 assert( {{ render_template("expression.tmpl", statement.expr) }} ) "{{ statement.msg }}";{# -#}
 {% endif %}
+{% if typeId == "for" %}
+{{ render_template("for_stmt.tmpl", statement) }};{# -#}
+{% endif %}
+{% if typeId == "if" %}
+{{ render_template("if_stmt.tmpl", statement) }};{# -#}
+{% endif %}

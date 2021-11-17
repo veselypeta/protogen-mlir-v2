@@ -1,0 +1,12 @@
+{# this template accepts input of type  IfStmt #}
+if {{ render_template("expression.tmpl", expr) }} then
+{% for stmt in thenStatements %}
+    {{ render_template("statement.tmpl", stmt) }}
+{% endfor %}
+{% if exists("elseStatements") %}
+else
+{% for stmt in elseStatements %}
+    {{ render_template("statement.tmpl", stmt) }}
+{% endfor %}
+{% endif %}
+endif

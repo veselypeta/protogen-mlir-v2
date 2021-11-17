@@ -162,6 +162,8 @@ constexpr char aq_mut_f[] = "Acquire_Mutex";
 constexpr char rel_mut_f[] = "Release_Mutex";
 constexpr char send_pref_f[] = "Send_";
 constexpr char excess_messages_err[] = "Too many messages!";
+constexpr char pop_pref_f[] = "Pop_";
+constexpr char ordered_pop_err[] = "Trying to advance empty Q";
 
 /*
  * Murphi Functions
@@ -326,19 +328,15 @@ template <class Des, class Idx> struct DesignatorExpr {
 };
 
 template <class Des, class Idx>
-void to_json(json &j, const DesignatorExpr<Des, Idx> &designatorExpr){
-  j = {
-    {"typeId", "designator_expr"},
-    {"expression",
+void to_json(json &j, const DesignatorExpr<Des, Idx> &designatorExpr) {
+  j = {{"typeId", "designator_expr"},
+       {"expression",
         {{"des", designatorExpr.des},
-        {"objType", designatorExpr.objType},
-        {"index", designatorExpr.index}}
-    }
-  };
+         {"objType", designatorExpr.objType},
+         {"index", designatorExpr.index}}}};
 }
 
-
-constexpr struct{
+constexpr struct {
   const llvm::StringRef plus = "+";
   const llvm::StringRef minus = "-";
   const llvm::StringRef mult = "*";
@@ -354,63 +352,103 @@ constexpr struct{
   const llvm::StringRef n_eq = "!=";
 } BinaryOps;
 
-template <class LHS, class RHS>
-struct BinaryExpr{
+template <class LHS, class RHS> struct BinaryExpr {
   LHS lhs;
   RHS rhs;
-  llvm::StringRef op; // MUST BE ONE OF: +, -, *, /, &, |, &, ->, <, <=, >, >=, =, !=
+  llvm::StringRef
+      op; // MUST BE ONE OF: +, -, *, /, &, |, &, ->, <, <=, >, >=, =, !=
 };
 
 template <class LHS, class RHS>
-void to_json(json &j, const BinaryExpr<LHS, RHS> &binaryExpr){
-  j = {
-    {"typeId", "binary"},
-      {"expression", {
-                         {"lhs", binaryExpr.lhs},
-                         {"rhs", binaryExpr.rhs},
-                         {"op", binaryExpr.op}
-                     }}
-  };
+void to_json(json &j, const BinaryExpr<LHS, RHS> &binaryExpr) {
+  j = {{"typeId", "binary"},
+       {"expression",
+        {{"lhs", binaryExpr.lhs},
+         {"rhs", binaryExpr.rhs},
+         {"op", binaryExpr.op}}}};
 }
-
 
 // *** Statement Types
 
 // TODO - designator is allowed to have 0 or more {rhs}
-template <class T, class U>
-struct Assignment {
+template <class T, class U> struct Assignment {
   T lhs;
   U rhs;
 };
 
-template <class T, class U>
-void to_json(json &j, const Assignment<T, U> &a){
-  j = {
-    {"typeId", "assignment"},
-    {"statement", {
-                      {"lhs", a.lhs},
-                      {"rhs", a.rhs}
-                  }}
-  };
+template <class T, class U> void to_json(json &j, const Assignment<T, U> &a) {
+  j = {{"typeId", "assignment"},
+       {"statement", {{"lhs", a.lhs}, {"rhs", a.rhs}}}};
 }
 
-template <class T>
-struct Assert {
+template <class T> struct Assert {
   T expr;
   std::string msg;
 };
 
-template <class T>
-void to_json(json &j, const Assert<T> &a){
+template <class T> void to_json(json &j, const Assert<T> &a) {
+  j = {{"typeId", "assert"}, {"statement", {{"expr", a.expr}, {"msg", a.msg}}}};
+}
+
+template <class T> struct ForEachQuantifier {
+  std::string id;
+  T type;
+};
+
+template <class T> void to_json(json &j, const ForEachQuantifier<T> &fe) {
+  j = {{"typeId", "for_each"},
+       {"quantifier", {{"id", fe.id}, {"type", fe.type}}}};
+}
+
+template <class StartIdx, class EndIdx> struct ForRangeQuantifier {
+  std::string id;
+  StartIdx start;
+  EndIdx end;
+};
+
+template <class StartIdx, class EndIdx>
+void to_json(json &j, const ForRangeQuantifier<StartIdx, EndIdx> &frq) {
   j = {
-    {"typeId", "assert"},
-    {"statement", {
-                      {"expr", a.expr},
-                      {"msg", a.msg}
-                  }}
+      {"typeId", "for_range"},
+      {"quantifier", {{"id", frq.id}, {"start", frq.start}, {"end", frq.end}}}};
+}
+
+template <class T> struct ForStmt {
+  T quantifier;
+  std::vector<json> stmts;
+};
+
+template <class T>
+void to_json(json &j, const ForStmt<T> &forStmt){
+  j = {
+      {"typeId", "for"},
+      {"statement", {
+                        {"quantifier", forStmt.quantifier},
+                        {"statements", forStmt.stmts}
+                    }}
   };
 }
 
+template <class T>
+struct IfStmt{
+  T expr;
+  std::vector<json> thenStmts;
+  std::vector<json> elseStmts;
+};
+
+template <class T>
+void to_json(json &j, const IfStmt<T> &ifStmt){
+  j = {
+    {"typeId", "if"},
+      {"statement", {
+                        {"expr", ifStmt.expr},
+                        {"thenStatements", ifStmt.thenStmts}
+                    }}
+  };
+  if(!ifStmt.elseStmts.empty()){
+    j["statement"]["elseStatements"] = ifStmt.elseStmts;
+  }
+}
 
 // *** specific cases
 
@@ -420,12 +458,16 @@ struct MessageFactory {
 
 void to_json(json &j, const MessageFactory &mc);
 
-
 struct OrderedSendFunction {
   std::string netId;
 };
 void to_json(json &j, const OrderedSendFunction &sf);
 
+struct OrderedPopFunction {
+  std::string netId;
+};
+
+void to_json(json &j, const OrderedPopFunction &opf);
 /*
  * Helper Generating Functions
  */
@@ -462,7 +504,6 @@ public:
   // ** Rules
   void generateRules();
 
-
 private:
   /*
    * Type Declarations functions
@@ -495,7 +536,6 @@ private:
   void _generateHelperFunctions();
   void _generateMutexHelpers();
   void _generateSendPopFunctions();
-
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

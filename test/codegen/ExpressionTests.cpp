@@ -74,5 +74,4 @@ TEST(ExpressionTests, BinaryExpressionStrRef){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "my_lhs_value != my_rhs_value");
-
 }
