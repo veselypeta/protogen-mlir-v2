@@ -73,7 +73,7 @@ void to_json(json &j, const MessageFactory &m) {
   std::vector<Formal<ID>> params = {std::move(adr), std::move(msgType),
                                     std::move(src), std::move(dst)};
   // add the default parameter assignments
-  std::vector<Assignment<ExprID, ExprID>> paramAssignments{
+  std::vector<Assignment<Designator<ExprID>, ExprID>> paramAssignments{
       {{c_msg, "object", {c_adr}}, {c_adr}},
       {{c_msg, "object", {c_mtype}}, {c_mtype}},
       {{c_msg, "object", {c_src}}, {c_src}},
@@ -106,17 +106,35 @@ void to_json(json &j, const MessageFactory &m) {
        {"statements", paramAssignments}};
 }
 
-void to_json(json &j, const UnorderedSendFunction &usf){
+void to_json(json &j, const OrderedSendFunction &usf) {
   constexpr char msg_p[] = "msg";
+  // Line 1 -> Assert Statement (for too many messages in queue)
+  Designator<Designator<ExprID>> net_count{
+      CntKey + usf.netId, "array", {msg_p, "object", {c_dst}}};
+  BinaryExpr<decltype(net_count), ExprID> assert_val{
+      net_count, {c_ordered_t}, BinaryOps.less_than};
+  Assert<decltype(assert_val)> assert_stmt{assert_val, excess_messages_err};
 
-  j = {
-    {"procType", "procedure"},
-    {"def", {
-                  {"id", detail::send_pref_f + usf.netId},
-                  {"params", {detail::Formal<detail::ID>{msg_p, {{detail::r_message_t}}}}},
-                  {"statements", json::array()}
-              }}
-  };
+  // Line 2 -> push message onto queue
+  Designator<Designator<ExprID>> rhs_index{
+      CntKey + usf.netId, "array", {msg_p, "object", {c_dst}}};
+  Designator<Designator<ExprID>> lhs_des{
+      usf.netId, "array", {msg_p, "object", {c_dst}}};
+  Assignment<DesignatorExpr<decltype(lhs_des), decltype(rhs_index)>, ExprID>
+      push_stmt{{lhs_des, "array", rhs_index}, {msg_p}};
+
+  // Line 3 -> increment count
+  Designator<Designator<ExprID>> lhs_ass{CntKey+usf.netId, "array", {msg_p, "object", {c_dst}}};
+  BinaryExpr<decltype(lhs_ass), ExprID> rhs_ass{lhs_ass, {"1"}, BinaryOps.plus};
+  Assignment<decltype(lhs_ass), decltype(rhs_ass)> inc_count_stmt{lhs_ass, rhs_ass};
+
+
+  j = {{"procType", "procedure"},
+       {"def",
+        {{"id", detail::send_pref_f + usf.netId},
+         {"params",
+          {detail::Formal<detail::ID>{msg_p, {{detail::r_message_t}}}}},
+         {"statements", {assert_stmt, push_stmt, inc_count_stmt}}}}};
 }
 
 /*
@@ -524,7 +542,7 @@ void MurphiCodeGen::_generateHelperFunctions() {
   _generateSendPopFunctions();
 }
 
-void MurphiCodeGen::_generateMutexHelpers(){
+void MurphiCodeGen::_generateMutexHelpers() {
   constexpr char adr_param[] = "adr";
 
   // ACQUIRE MUTEX
@@ -533,12 +551,13 @@ void MurphiCodeGen::_generateMutexHelpers(){
       {"params", json::array({detail::Formal<detail::ID>{
                      adr_param, {{detail::ss_address_t}}}})},
       {"statements",
-       json::array({detail::Assignment<detail::ExprID, detail::ExprID>{
-               {detail::cl_mutex_v, "array", {adr_param}}, {"true"}}
+       json::array({detail::Assignment<detail::Designator<detail::ExprID>,
+                                       detail::ExprID>{
+           {detail::cl_mutex_v, "array", {adr_param}}, {"true"}}
 
-       })
-      }};
-  json acq_proc_decl = {{"procType", "procedure"}, {"def", std::move(acq_mut_proc)}};
+       })}};
+  json acq_proc_decl = {{"procType", "procedure"},
+                        {"def", std::move(acq_mut_proc)}};
 
   // RELEASE MUTEX
   json rel_mut_proc = {
@@ -546,21 +565,20 @@ void MurphiCodeGen::_generateMutexHelpers(){
       {"params", json::array({detail::Formal<detail::ID>{
                      adr_param, {{detail::ss_address_t}}}})},
       {"statements",
-       json::array({detail::Assignment<detail::ExprID, detail::ExprID>{
-               {detail::cl_mutex_v, "array", {adr_param}}, {"false"}}
+       json::array({detail::Assignment<detail::Designator<detail::ExprID>,
+                                       detail::ExprID>{
+           {detail::cl_mutex_v, "array", {adr_param}}, {"false"}}
 
-       })
-      }};
-  json rel_proc_decl = {{"procType", "procedure"}, {"def", std::move(rel_mut_proc)}};
+       })}};
+  json rel_proc_decl = {{"procType", "procedure"},
+                        {"def", std::move(rel_mut_proc)}};
 
   // Add them to the json structure
   data["proc_decls"].push_back(std::move(acq_proc_decl));
   data["proc_decls"].push_back(std::move(rel_proc_decl));
 }
 
-void MurphiCodeGen::_generateSendPopFunctions() {
-
-}
+void MurphiCodeGen::_generateSendPopFunctions() {}
 
 /*
  * Rules

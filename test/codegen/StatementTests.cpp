@@ -6,7 +6,7 @@
 using namespace inja;
 using namespace murphi;
 TEST(StatementTests, AssignmentStatement) {
-  json data = detail::Assignment<detail::ExprID, detail::ExprID>{
+  json data = detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
       {"msg", "object", {"address"}}, {"val"}};
 
   auto &env = InjaEnvSingleton::getInstance();

@@ -161,6 +161,7 @@ constexpr char cl_mutex_v[] = "cl_mutex";
 constexpr char aq_mut_f[] = "Acquire_Mutex";
 constexpr char rel_mut_f[] = "Release_Mutex";
 constexpr char send_pref_f[] = "Send_";
+constexpr char excess_messages_err[] = "Too many messages!";
 
 /*
  * Murphi Functions
@@ -378,7 +379,7 @@ void to_json(json &j, const BinaryExpr<LHS, RHS> &binaryExpr){
 // TODO - designator is allowed to have 0 or more {rhs}
 template <class T, class U>
 struct Assignment {
-  Designator<T> lhs;
+  T lhs;
   U rhs;
 };
 
@@ -420,10 +421,10 @@ struct MessageFactory {
 void to_json(json &j, const MessageFactory &mc);
 
 
-struct UnorderedSendFunction {
+struct OrderedSendFunction {
   std::string netId;
 };
-void to_json(json &j, const UnorderedSendFunction &sf);
+void to_json(json &j, const OrderedSendFunction &sf);
 
 /*
  * Helper Generating Functions

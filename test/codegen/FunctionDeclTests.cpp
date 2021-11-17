@@ -24,7 +24,7 @@ TEST(FunctionTest, RenderTemplate) {
       detail::ForwardDecl<detail::VarDecl<detail::ID>>{"var",
                                                        {"msg", {"Message"}}}};
 
-  data["statements"] = {detail::Assignment<detail::ExprID, detail::ExprID>{
+  data["statements"] = {detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
       {"msg", "object", {"adr"}}, {"adr"}}};
 
   auto &env = InjaEnvSingleton::getInstance();
@@ -91,14 +91,12 @@ TEST(FunctionTest, MessageConstructor) {
   ASSERT_FALSE(result.empty());
 }
 
-TEST(FunctionTests, UnorderedSendFunction){
+TEST(FunctionTests, OrderedSendFunction){
 
-  // TODO - rewrite to include the statments inside the function
-  json j = detail::UnorderedSendFunction{"fwd"};
+  json j = detail::OrderedSendFunction{"fwd"};
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("proc_decl.tmpl");
   auto result = env.render(tmpl, j);
 
   ASSERT_FALSE(result.empty());
-
 }
