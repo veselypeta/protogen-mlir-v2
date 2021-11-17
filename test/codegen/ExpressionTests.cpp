@@ -28,6 +28,40 @@ TEST(ExpressionTests, DesignatorArrayType) {
   ASSERT_STREQ(result.c_str(), "newObj[arr_index]");
 }
 
+TEST(ExpressionTests, DesignatorExprObjType){
+  detail::Designator<detail::ExprID> designatorIdx{
+      "newObj", "array", {"arr_index"}
+  };
+  detail::DesignatorExpr<decltype(designatorIdx), detail::ExprID> desExpr{
+      designatorIdx,
+      "object",
+      {"theIndex"}
+  };
+  json data = desExpr;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "newObj[arr_index].theIndex");
+}
+
+TEST(ExpressionTests, DesignatorExprArrType){
+  detail::Designator<detail::ExprID> designatorIdx{
+      "newObj", "array", {"arr_index"}
+  };
+  detail::DesignatorExpr<decltype(designatorIdx), detail::ExprID> desExpr{
+      designatorIdx,
+      "array",
+      {"next_idx"}
+  };
+  json data = desExpr;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "newObj[arr_index][next_idx]");
+}
+
 TEST(ExpressionTests, BinaryExpressionStrRef){
 
   json data = detail::BinaryExpr<detail::ExprID, detail::ExprID>{

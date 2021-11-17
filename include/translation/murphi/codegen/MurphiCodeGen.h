@@ -303,7 +303,7 @@ template <class TypeT> void to_json(json &j, const ForwardDecl<TypeT> &fd) {
 }
 
 // *** Expression Types -> ExpressionDescription
-template <class T, class ... Next> struct Designator {
+template <class T> struct Designator {
   std::string objId;
   std::string objType;
   T index;
@@ -316,6 +316,26 @@ template <class T> void to_json(json &j, const Designator<T> &designator) {
          {"objType", designator.objType},
          {"index", designator.index}}}};
 }
+
+// TODO - solidify this concept
+template <class Des, class Idx> struct DesignatorExpr {
+  Des des;
+  std::string objType;
+  Idx index;
+};
+
+template <class Des, class Idx>
+void to_json(json &j, const DesignatorExpr<Des, Idx> &designatorExpr){
+  j = {
+    {"typeId", "designator_expr"},
+    {"expression",
+        {{"des", designatorExpr.des},
+        {"objType", designatorExpr.objType},
+        {"index", designatorExpr.index}}
+    }
+  };
+}
+
 
 constexpr struct{
   const llvm::StringRef plus = "+";
@@ -473,6 +493,7 @@ private:
   void _generateMsgFactories();
   void _generateHelperFunctions();
   void _generateMutexHelpers();
+  void _generateSendPopFunctions();
 
 
   ModuleInterpreter moduleInterpreter;

@@ -521,6 +521,7 @@ void MurphiCodeGen::_generateMsgFactories() {
 
 void MurphiCodeGen::_generateHelperFunctions() {
   _generateMutexHelpers();
+  _generateSendPopFunctions();
 }
 
 void MurphiCodeGen::_generateMutexHelpers(){
@@ -555,6 +556,10 @@ void MurphiCodeGen::_generateMutexHelpers(){
   // Add them to the json structure
   data["proc_decls"].push_back(std::move(acq_proc_decl));
   data["proc_decls"].push_back(std::move(rel_proc_decl));
+}
+
+void MurphiCodeGen::_generateSendPopFunctions() {
+
 }
 
 /*

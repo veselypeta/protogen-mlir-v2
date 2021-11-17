@@ -13,11 +13,11 @@ interface ConstDecl {
     value: number;
 }
 
-interface TypeDecl extends TypeDescription{
+interface TypeDecl extends TypeDescription {
     id: string;
 }
 
-interface VarDecl extends TypeDescription{
+interface VarDecl extends TypeDescription {
     id: string;
 }
 
@@ -26,18 +26,18 @@ type Decl = ConstDecl | TypeDecl | VarDecl;
 // ***** TYPES ***** //
 
 type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset" | "scalarset" | "union";
+
 interface MurphiRecord {
     decls:
         {
             id: string;
             typeId: MurphiTypeId;
             type: MurphiType;
-        }[]
-    ;
+        }[];
 }
 
 interface Enum {
-    decls:ID[];
+    decls: ID[];
 }
 
 // TODO - subranges should support expr for start/stop
@@ -61,6 +61,7 @@ interface ScalarsetType {
 }
 
 type ArrayTwoOrMore<T> = [T, T, ...T[]];
+
 interface UnionType {
     listElems: ArrayTwoOrMore<ID>
 }
@@ -77,7 +78,7 @@ interface IdAndType {
     type: MurphiType;
 }
 
-interface ProcDecl{
+interface ProcDecl {
     procType: ProcType;
     def: ProcDef;
 }
@@ -85,7 +86,7 @@ interface ProcDecl{
 type ProcType = "procedure" | "function";
 type ProcDef = MurphiFunction | MurphiProcedure;
 
-interface MurphiFunction{
+interface MurphiFunction {
     id: ID;
     params: Formal[];
     returnType: TypeDescription;
@@ -93,14 +94,14 @@ interface MurphiFunction{
     statements?: StatementDescription[]
 }
 
-interface MurphiProcedure{
+interface MurphiProcedure {
     id: ID;
     params: Formal[];
     forwardDecls?: FwdDecl[];
     statements?: StatementDescription[];
 }
 
-interface Formal{
+interface Formal {
     id: ID;
     type: TypeDescription;
 }
@@ -113,12 +114,12 @@ interface FwdDecl {
 type Statement = AssignmentStmt | AssertStmt;
 type StatementType = 'assignment' | 'assert';
 
-interface AssignmentStmt{
+interface AssignmentStmt {
     lhs: Designator;
     rhs: ExpressionDescription;
 }
 
-interface AssertStmt{
+interface AssertStmt {
     expr: ExpressionDescription;
     msg: string;
 }
@@ -129,7 +130,14 @@ interface Designator {
     index: ExpressionDescription
 }
 
-interface BinaryExpr{
+// HACK - This is for the case when you want to chain a designator onto the result of a previous designator
+interface DesignatorExpr {
+    des: Designator;
+    objType: "array" | "object";
+    index: ExpressionDescription;
+}
+
+interface BinaryExpr {
     lhs: ExpressionDescription;
     rhs: ExpressionDescription;
     op: BinaryOp;
@@ -137,15 +145,16 @@ interface BinaryExpr{
 
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | ID ;
-type ExpressionType = "designator" | "ID" | "binary";
-interface ExpressionDescription{
+type Expression = Designator | DesignatorExpr | ID;
+type ExpressionType = "designator" | "designator_expr" | "ID" | "binary";
+
+interface ExpressionDescription {
     typeId: ExpressionType;
     expression: Expression;
 }
 
 
-interface StatementDescription{
+interface StatementDescription {
     typeId: StatementType;
     statement: Statement;
 }
@@ -157,6 +166,6 @@ interface Murphi_json_schema {
         type_decls?: TypeDecl[];
         var_decls?: VarDecl[];
     };
-    proc_decls : ProcDecl[];
+    proc_decls: ProcDecl[];
 
 }
