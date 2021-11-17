@@ -979,6 +979,64 @@ private:
 
   mlir::Value mlirGen(ProtoCCParser::Cond_relContext *ctx) {
     mlir::Location location = loc(*ctx->getStart());
+    ProtoCCParser::Cond_selContext *selCtx = ctx->cond_sel();
+
+    if (selCtx->cond_type_expr().size() == 1) {
+      return mlirGen(selCtx->cond_type_expr(0));
+    } else {
+      mlir::Value lhs_v;
+      mlir::Value rhs_v;
+      for (size_t i = 0; i < selCtx->relational_operator().size(); i++) {
+        if (!lhs_v) {
+          lhs_v = mlirGen(selCtx->cond_type_expr(i));
+        }
+        rhs_v = mlirGen(selCtx->cond_type_expr(i + 1));
+
+        std::string relOp = selCtx->relational_operator(i)->getText();
+        if (relOp == "==") {
+          auto rv = builder.create<mlir::pcc::EqualOp>(location, lhs_v, rhs_v);
+          lhs_v = rv;
+        }
+      }
+      return lhs_v;
+    }
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Cond_type_exprContext *ctx) {
+    mlir::Location location = loc(*ctx->getStart());
+    if (ctx->cond_types().size() == 1) {
+      return mlirGen(ctx->cond_types(0));
+    } else {
+
+      mlir::Value lhs_v;
+      mlir::Value rhs_v;
+      for (size_t i = 0; i < ctx->indv_math_op().size(); i++) {
+        auto lhs = ctx->cond_types(i);
+        auto rhs = ctx->cond_types(i + 1);
+        if (!lhs_v) {
+          lhs_v = mlirGen(lhs);
+        }
+        rhs_v = mlirGen(rhs);
+        if (ctx->indv_math_op(i)->PLUS()) {
+          mlir::Value rv = builder.create<mlir::pcc::AddOp>(
+              location, rhs_v.getType(), lhs_v, rhs_v);
+          lhs_v = rv;
+        } else if (ctx->indv_math_op(i)->MINUS()) {
+          mlir::Value rv = builder.create<mlir::pcc::SubOp>(
+              location, rhs_v.getType(), lhs_v, rhs_v);
+          lhs_v = rv;
+        } else {
+          mlir::Value rv = builder.create<mlir::pcc::MultOp>(
+              location, rhs_v.getType(), lhs_v, rhs_v);
+          lhs_v = rv;
+        }
+      }
+      return lhs_v;
+    }
+  }
+
+  mlir::Value mlirGen(ProtoCCParser::Cond_typesContext *ctx) {
+    mlir::Location location = loc(*ctx->getStart());
     return builder.create<mlir::ConstantOp>(location,
                                             builder.getBoolAttr(true));
   }

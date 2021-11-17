@@ -343,7 +343,7 @@ def LogicalAnd : PCC_Op<"and">{
 }
 
 def LogicalOr : PCC_Op<"or">{
-    let summary = "Performs logical and on the two input operands";
+    let summary = "Performs logical 'or' on the two input operands";
     let description = [{}];
 
     let arguments = (ins I1:$lhs, I1:$rhs);
@@ -363,5 +363,82 @@ def LogicalOr : PCC_Op<"or">{
         }]>
     ];
 }
+
+
+// Relational Operations
+def EqualOp : PCC_Op<"eq">{
+    let summary = "performs equality of the two operands";
+    let description = [{}];
+
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs I1:$result);
+
+    let assemblyFormat = [{ attr-dict `:` $lhs`:`type($lhs) $rhs`:`type($rhs) `->` type($result)}];
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs), [{
+            build(
+                $_builder,
+                $_state,
+                $_builder.getI1Type(),
+                lhs,
+                rhs
+            );
+        }]>
+    ];
+}
+
+def LessOrEqualOp : PCC_Op<"lt_eq">{
+    let summary = "performs less than or equal of the two operands";
+    let description = [{}];
+
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs I1:$result);
+
+    let assemblyFormat = [{ attr-dict `:` $lhs`:`type($lhs) $rhs`:`type($rhs) `->` type($result)}];
+
+    let builders = [
+        OpBuilder<(ins "Value":$lhs, "Value":$rhs), [{
+            build(
+                $_builder,
+                $_state,
+                $_builder.getI1Type(),
+                lhs,
+                rhs
+            );
+        }]>
+    ];
+}
+
+
+// Math ops
+
+def AddOp : PCC_Op<"add">{
+    let summary = "add two operands together";
+    let description = [{}];
+
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs AnyType:$result);
+    let assemblyFormat = [{ attr-dict `:` $lhs`:`type($lhs) $rhs`:`type($rhs) `->` type($result)}];
+}
+
+def MultOp : PCC_Op<"mult">{
+    let summary = "multiply two operands together";
+    let description = [{}];
+
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs AnyType:$result);
+    let assemblyFormat = [{ attr-dict `:` $lhs`:`type($lhs) $rhs`:`type($rhs) `->` type($result)}];
+}
+
+def SubOp : PCC_Op<"sub">{
+    let summary = "subtract two operands together";
+    let description = [{}];
+
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs AnyType:$result);
+    let assemblyFormat = [{ attr-dict `:` $lhs`:`type($lhs) $rhs`:`type($rhs) `->` type($result)}];
+}
+
 
 #endif // PCC_OPS
