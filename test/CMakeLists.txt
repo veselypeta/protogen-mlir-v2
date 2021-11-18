@@ -2,6 +2,7 @@ enable_testing()
 
 add_executable(protogen-mlir-test
         mlirGen/mlirGenTest.cpp
+        misc/NestedStructureTests.cpp
         MurphiTemplatesTest.cpp
         InjaTests.cpp
         ValiJSONTests.cpp

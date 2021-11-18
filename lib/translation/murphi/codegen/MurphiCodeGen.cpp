@@ -124,10 +124,11 @@ void to_json(json &j, const OrderedSendFunction &usf) {
       push_stmt{{lhs_des, "array", rhs_index}, {msg_p}};
 
   // Line 3 -> increment count
-  Designator<Designator<ExprID>> lhs_ass{CntKey+usf.netId, "array", {msg_p, "object", {c_dst}}};
+  Designator<Designator<ExprID>> lhs_ass{
+      CntKey + usf.netId, "array", {msg_p, "object", {c_dst}}};
   BinaryExpr<decltype(lhs_ass), ExprID> rhs_ass{lhs_ass, {"1"}, BinaryOps.plus};
-  Assignment<decltype(lhs_ass), decltype(rhs_ass)> inc_count_stmt{lhs_ass, rhs_ass};
-
+  Assignment<decltype(lhs_ass), decltype(rhs_ass)> inc_count_stmt{lhs_ass,
+                                                                  rhs_ass};
 
   j = {{"procType", "procedure"},
        {"def",
@@ -137,27 +138,29 @@ void to_json(json &j, const OrderedSendFunction &usf) {
          {"statements", {assert_stmt, push_stmt, inc_count_stmt}}}}};
 }
 
-
-void to_json(json &j, const OrderedPopFunction &opf){
+void to_json(json &j, const OrderedPopFunction &opf) {
   constexpr char msg_p[] = "n";
 
+  // Line 1 -> assert stmt
   Assert<BinaryExpr<Designator<ExprID>, ExprID>> line_1_assert{
-      {
-          {CntKey+opf.netId, "array", {msg_p}},
-          {{"0"}},
-          BinaryOps.grtr_than
-      },
-      ordered_pop_err
-  };
-  j = {
-    {"procType", "procedure"},
-    {"def",{
+      {{CntKey + opf.netId, "array", {msg_p}}, {{"0"}}, BinaryOps.grtr_than},
+      ordered_pop_err};
 
-              {"id", detail::pop_pref_f + opf.netId},
-              {"params",{detail::Formal<detail::ID>{msg_p, {{detail::e_machines_t}}}}},
-              {"statements", {line_1_assert}}
-            }}
-  };
+  // line 2 for statement
+  ForStmt<ForRangeQuantifier<ExprID, BinaryExpr<Designator<ExprID>, ExprID>>>
+      l2fstmt{
+          {"i",
+           {"0"},
+           {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus}}};
+
+  j = {{"procType", "procedure"},
+       {"def",
+        {
+
+            {"id", detail::pop_pref_f + opf.netId},
+            {"params",
+             {detail::Formal<detail::ID>{msg_p, {{detail::e_machines_t}}}}},
+            {"statements", {line_1_assert, l2fstmt}}}}};
 }
 
 /*
