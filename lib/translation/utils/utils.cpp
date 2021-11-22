@@ -22,13 +22,18 @@ std::vector<std::string> getLines(const std::string &str) {
   return splitString(str, '\n');
 }
 
-std::string indentAllLines(const std::string &str) {
+std::string indentAllLines(const std::string &str, size_t level) {
 
   std::vector<std::string> lines = getLines(str);
 
   std::string rv;
+  std::string indentation = std::string(level*4, ' ');
   for (const auto &line : lines) {
-    rv += "\t" + line + "\n";
+    if(&line == &lines.back()){
+      rv += indentation + line;
+    } else {
+      rv += indentation + line + "\n";
+    }
   }
   return rv;
 }

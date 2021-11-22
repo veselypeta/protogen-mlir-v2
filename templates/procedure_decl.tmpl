@@ -10,7 +10,7 @@ procedure {{ id }}({{ render_template("formal_params.tmpl", params) }});
 begin
 {%- if exists("statements") -%}
     {%- for stmt in statements %}
-    {{ render_template("statement.tmpl",stmt) }}
+{{ render_template("statement.tmpl",stmt, 1) }}
     {%- endfor -%}
 {%- endif -%}
 end;

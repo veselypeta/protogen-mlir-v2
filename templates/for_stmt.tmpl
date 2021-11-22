@@ -1,6 +1,6 @@
 {# this template expects a ForStmt type #}
 for {{ render_template("quantifier.tmpl", quantifier)}} do
 {% for stmt in statements %}
-    {{ render_template("statement.tmpl", stmt) }}
+{{ render_template("statement.tmpl", stmt, 1) }}
 {% endfor -%}
 endfor

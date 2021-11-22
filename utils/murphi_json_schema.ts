@@ -111,8 +111,8 @@ interface FwdDecl {
     decl: TypeDecl | VarDecl | ConstDecl;
 }
 
-type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt;
-type StatementType = 'assignment' | 'assert' | "for" | "if";
+type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt;
+type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine";
 
 interface AssignmentStmt {
     lhs: Designator;
@@ -149,6 +149,10 @@ interface IfStmt{
     expr: ExpressionDescription;
     thenStatements: StatementDescription[];
     elseStatements?: StatementDescription[];
+}
+
+interface UndefineStmt{
+    value: Designator | DesignatorExpr;
 }
 
 interface Designator {

@@ -450,6 +450,22 @@ void to_json(json &j, const IfStmt<T> &ifStmt){
   }
 }
 
+
+template <class T>
+struct UndefineStmt{
+  T value;
+};
+
+template <class T>
+void to_json(json &j, const UndefineStmt<T> &uds){
+  j = {
+    {"typeId", "undefine"},
+    {"statement", {
+                      {"value", uds.value}
+                  }},
+  };
+}
+
 // *** specific cases
 
 struct MessageFactory {

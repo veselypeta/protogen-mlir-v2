@@ -1,6 +1,7 @@
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include <inja/inja.hpp>
 #include <mutex>
+#include "translation/utils/utils.h"
 
 using namespace inja;
 
@@ -31,11 +32,16 @@ void registerInjaCallbacks(Environment &env) {
    * (1) a string name for the template held in the templates folder
    * (2) a json object which is passed to the template during rendering
    */
-  env.add_callback("render_template", 2, [&env](Arguments &args){
+  env.add_callback("render_template", [&env](Arguments &args){
     std::string tmplName = args.at(0)->get<std::string>();
     json data = args.at(1)->get<json>();
     auto tmpl = env.parse_template(tmplName);
-    return env.render(tmpl, data);
+    std::string result = env.render(tmpl, data);
+    if(args.size() > 2){
+      auto indentation_level = args.at(2)->get<size_t>();
+      return translation::utils::indentAllLines(result, indentation_level);
+    }
+    return result;
   });
 
   /*
@@ -65,4 +71,5 @@ inja::Environment &InjaEnvSingleton::getInstance() {
 InjaEnvSingleton::~InjaEnvSingleton() {
   delete env;
 }
+
 

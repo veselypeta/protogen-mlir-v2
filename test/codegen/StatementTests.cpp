@@ -71,3 +71,16 @@ TEST(StatementTests, IfStmt_withelse){
   auto result = env.render(tmpl, data);
   ASSERT_FALSE(result.empty());
 }
+
+
+TEST(StatementTest, UndefineStmt){
+  detail::Designator<detail::ExprID> des{"obj", "array", {"index"}};
+  detail::UndefineStmt<decltype(des)> undefineStmt{des};
+  json data = undefineStmt;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ("undefine obj[index];", result.c_str());
+}

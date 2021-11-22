@@ -147,11 +147,42 @@ void to_json(json &j, const OrderedPopFunction &opf) {
       ordered_pop_err};
 
   // line 2 for statement
+  constexpr char loopIV[] = "i";
   ForStmt<ForRangeQuantifier<ExprID, BinaryExpr<Designator<ExprID>, ExprID>>>
       l2fstmt{
-          {"i",
+          {loopIV,
            {"0"},
            {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus}}};
+
+  // ---- Line 3 if stmt
+  // expr = i < cnt_fwd[n]-1
+  BinaryExpr<ExprID, BinaryExpr<Designator<ExprID>, ExprID>> l3ifexpr = {
+      {loopIV},
+      {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus},
+      BinaryOps.less_than};
+
+  IfStmt<decltype(l3ifexpr)> l3ifstmt{l3ifexpr};
+
+  // l4 -> move each element in buffer
+  Designator<ExprID> desIdx{opf.netId, "array", {msg_p}};
+  DesignatorExpr<decltype(desIdx), ExprID> l4lhs{desIdx, "array", {loopIV}};
+  DesignatorExpr<decltype(desIdx), BinaryExpr<ExprID, ExprID>> l4rhs{
+      desIdx, "array", {{loopIV}, {"1"}, BinaryOps.plus}};
+  Assignment<decltype(l4lhs), decltype(l4rhs)> l4Ass{l4lhs, l4rhs};
+  l3ifstmt.thenStmts.emplace_back(l4Ass);
+
+  // l6 -> else un-define;
+  UndefineStmt<decltype(l4lhs)> l6undef{l4lhs};
+  l3ifstmt.elseStmts.emplace_back(l6undef);
+
+  // nest if stmt within for loop
+  l2fstmt.stmts.emplace_back(l3ifstmt);
+
+  // l9 --> decrement count
+  Assignment<Designator<ExprID>, BinaryExpr<Designator<ExprID>, ExprID>> l9dec{
+      {CntKey + opf.netId, "array", {msg_p}},
+      {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus}};
+
 
   j = {{"procType", "procedure"},
        {"def",
@@ -160,7 +191,7 @@ void to_json(json &j, const OrderedPopFunction &opf) {
             {"id", detail::pop_pref_f + opf.netId},
             {"params",
              {detail::Formal<detail::ID>{msg_p, {{detail::e_machines_t}}}}},
-            {"statements", {line_1_assert, l2fstmt}}}}};
+            {"statements", {line_1_assert, l2fstmt, l9dec}}}}};
 }
 
 /*

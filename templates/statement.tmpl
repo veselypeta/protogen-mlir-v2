@@ -11,3 +11,6 @@ assert( {{ render_template("expression.tmpl", statement.expr) }} ) "{{ statement
 {% if typeId == "if" %}
 {{ render_template("if_stmt.tmpl", statement) }};{# -#}
 {% endif %}
+{% if typeId == "undefine" %}
+undefine {{ render_template("expression.tmpl", statement.value) }};{# -#}
+{% endif %}

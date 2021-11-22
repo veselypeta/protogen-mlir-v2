@@ -5,22 +5,22 @@ using namespace translation;
 using namespace translation::utils;
 
 TEST(MurphiTemplateTests, IndentLines) {
-  std::string testString = "line one\nline two\nline three\n";
+  std::string testString = "line one\nline two\nline three";
 
   std::string indentedString = indentAllLines(testString);
 
-  std::string expstr = "\tline one\n\tline two\n\tline three\n";
+  std::string expstr = "    line one\n    line two\n    line three";
 
   ASSERT_STREQ(expstr.c_str(), indentedString.c_str());
 }
 
-TEST(MurphiTemplateTests, IndentLinesWithoutTrailingEndl) {
-  std::string testString = "line one \n line two \n line three";
+TEST(MurphiTemplateTests, IndentLinesWithTrailingEndl) {
+  std::string testString = "line one \n line two \n line three \n";
 
   std::string indentedString = indentAllLines(testString);
 
-  // If the line does not include a newline - a newline will be added
-  std::string expstr = "\tline one \n\t line two \n\t line three\n";
+  // additional \n is removed
+  std::string expstr = "    line one \n     line two \n     line three ";
 
   ASSERT_STREQ(expstr.c_str(), indentedString.c_str());
 }

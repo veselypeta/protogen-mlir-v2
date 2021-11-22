@@ -10,7 +10,7 @@ std::vector<std::string> splitString(const std::string &str, char delim);
 
 std::vector<std::string> getLines(const std::string &str);
 
-std::string indentAllLines(const std::string &str);
+std::string indentAllLines(const std::string &str, size_t level = 1);
 
 template<class T>
 T interleave(const std::vector<T> &elements,
