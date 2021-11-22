@@ -82,6 +82,7 @@ def NetDeclOp : PCC_Op<"net_decl">{
     let assemblyFormat = [{
         attr-dict `:` type($result)
     }];
+    // TODO - Add a method to get the type of network (ordered/unordered)
 }
 
 def CacheDeclOp : PCC_Op<"cache_decl">{

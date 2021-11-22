@@ -183,7 +183,6 @@ void to_json(json &j, const OrderedPopFunction &opf) {
       {CntKey + opf.netId, "array", {msg_p}},
       {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus}};
 
-
   j = {{"procType", "procedure"},
        {"def",
         {
@@ -634,7 +633,22 @@ void MurphiCodeGen::_generateMutexHelpers() {
   data["proc_decls"].push_back(std::move(rel_proc_decl));
 }
 
-void MurphiCodeGen::_generateSendPopFunctions() {}
+void MurphiCodeGen::_generateSendPopFunctions() {
+  auto networks = moduleInterpreter.getNetworks();
+  std::for_each(networks.begin(), networks.end(),
+                [&](mlir::pcc::NetDeclOp netDeclOp) {
+                  auto netID = netDeclOp.netId();
+                  auto order = netDeclOp.result()
+                                   .getType()
+                                   .cast<mlir::pcc::NetworkType>()
+                                   .getOrdering();
+                  if (order == "ordered") {
+                    // ordered networks
+                    data["proc_decls"].push_back(detail::OrderedSendFunction{netID.str()});
+                    data["proc_decls"].push_back(detail::OrderedPopFunction{netID.str()});
+                  }
+                });
+}
 
 /*
  * Rules
