@@ -1,50 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "anyOf": [
-        {
-            "$ref": "#/definitions/MurphiFunction"
-        },
-        {
-            "$ref": "#/definitions/MurphiProcedure"
-        }
-    ],
     "definitions": {
-        "AssertStmt": {
-            "properties": {
-                "expr": {
-                    "$ref": "#/definitions/ExpressionDescription",
-                    "title": "expr"
-                },
-                "msg": {
-                    "title": "msg",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "expr",
-                "msg"
-            ],
-            "title": "AssertStmt",
-            "type": "object"
-        },
-        "AssignmentStmt": {
-            "properties": {
-                "lhs": {
-                    "$ref": "#/definitions/DesignatorDescription",
-                    "title": "lhs"
-                },
-                "rhs": {
-                    "$ref": "#/definitions/ExpressionDescription",
-                    "title": "rhs"
-                }
-            },
-            "required": [
-                "lhs",
-                "rhs"
-            ],
-            "title": "AssignmentStmt",
-            "type": "object"
-        },
         "BinaryExpr": {
             "properties": {
                 "lhs": {
@@ -85,24 +41,6 @@
             ],
             "title": "BinaryOp",
             "type": "string"
-        },
-        "ConstDecl": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "value": {
-                    "title": "value",
-                    "type": "number"
-                }
-            },
-            "required": [
-                "id",
-                "value"
-            ],
-            "title": "ConstDecl",
-            "type": "object"
         },
         "Designator": {
             "properties": {
@@ -289,106 +227,6 @@
             "title": "ForRangeQuantifier",
             "type": "object"
         },
-        "ForStmt": {
-            "properties": {
-                "quantifier": {
-                    "$ref": "#/definitions/Quantifier",
-                    "title": "quantifier"
-                },
-                "statements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "statements",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "quantifier",
-                "statements"
-            ],
-            "title": "ForStmt",
-            "type": "object"
-        },
-        "Formal": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/TypeDescription",
-                    "title": "type"
-                }
-            },
-            "required": [
-                "id",
-                "type"
-            ],
-            "title": "Formal",
-            "type": "object"
-        },
-        "FwdDecl": {
-            "properties": {
-                "decl": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/ConstDecl"
-                        },
-                        {
-                            "$ref": "#/definitions/TypeDecl"
-                        },
-                        {
-                            "$ref": "#/definitions/VarDecl"
-                        }
-                    ],
-                    "title": "decl"
-                },
-                "typeId": {
-                    "enum": [
-                        "const",
-                        "type",
-                        "var"
-                    ],
-                    "title": "typeId",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "decl",
-                "typeId"
-            ],
-            "title": "FwdDecl",
-            "type": "object"
-        },
-        "IfStmt": {
-            "properties": {
-                "elseStatements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "elseStatements",
-                    "type": "array"
-                },
-                "expr": {
-                    "$ref": "#/definitions/ExpressionDescription",
-                    "title": "expr"
-                },
-                "thenStatements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "thenStatements",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "expr",
-                "thenStatements"
-            ],
-            "title": "IfStmt",
-            "type": "object"
-        },
         "IntegerSubRange": {
             "properties": {
                 "start": {
@@ -472,81 +310,6 @@
             "title": "MurphiArray",
             "type": "object"
         },
-        "MurphiFunction": {
-            "properties": {
-                "forwardDecls": {
-                    "items": {
-                        "$ref": "#/definitions/FwdDecl"
-                    },
-                    "title": "forwardDecls",
-                    "type": "array"
-                },
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "params": {
-                    "items": {
-                        "$ref": "#/definitions/Formal"
-                    },
-                    "title": "params",
-                    "type": "array"
-                },
-                "returnType": {
-                    "$ref": "#/definitions/TypeDescription",
-                    "title": "returnType"
-                },
-                "statements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "statements",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "id",
-                "params",
-                "returnType"
-            ],
-            "title": "MurphiFunction",
-            "type": "object"
-        },
-        "MurphiProcedure": {
-            "properties": {
-                "forwardDecls": {
-                    "items": {
-                        "$ref": "#/definitions/FwdDecl"
-                    },
-                    "title": "forwardDecls",
-                    "type": "array"
-                },
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "params": {
-                    "items": {
-                        "$ref": "#/definitions/Formal"
-                    },
-                    "title": "params",
-                    "type": "array"
-                },
-                "statements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "statements",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "id",
-                "params"
-            ],
-            "title": "MurphiProcedure",
-            "type": "object"
-        },
         "MurphiRecord": {
             "properties": {
                 "decls": {
@@ -625,56 +388,6 @@
             "title": "MurphiTypeId",
             "type": "string"
         },
-        "ProcCall": {
-            "properties": {
-                "actuals": {
-                    "items": {
-                        "$ref": "#/definitions/ExpressionDescription"
-                    },
-                    "title": "actuals",
-                    "type": "array"
-                },
-                "funId": {
-                    "title": "funId",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "actuals",
-                "funId"
-            ],
-            "title": "ProcCall",
-            "type": "object"
-        },
-        "Quantifier": {
-            "properties": {
-                "quantifier": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/ForEachQuantifier"
-                        },
-                        {
-                            "$ref": "#/definitions/ForRangeQuantifier"
-                        }
-                    ],
-                    "title": "quantifier"
-                },
-                "typeId": {
-                    "enum": [
-                        "for_each",
-                        "for_range"
-                    ],
-                    "title": "typeId",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "quantifier",
-                "typeId"
-            ],
-            "title": "Quantifier",
-            "type": "object"
-        },
         "ScalarsetType": {
             "properties": {
                 "type": {
@@ -689,78 +402,6 @@
                 "type"
             ],
             "title": "ScalarsetType",
-            "type": "object"
-        },
-        "StatementDescription": {
-            "properties": {
-                "statement": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/AssignmentStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/AssertStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/ForStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/IfStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/UndefineStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/ProcCall"
-                        }
-                    ],
-                    "title": "statement"
-                },
-                "typeId": {
-                    "$ref": "#/definitions/StatementType",
-                    "title": "typeId"
-                }
-            },
-            "required": [
-                "statement",
-                "typeId"
-            ],
-            "title": "StatementDescription",
-            "type": "object"
-        },
-        "StatementType": {
-            "enum": [
-                "assert",
-                "assignment",
-                "for",
-                "if",
-                "proc_call",
-                "undefine"
-            ],
-            "title": "StatementType",
-            "type": "string"
-        },
-        "TypeDecl": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/MurphiType",
-                    "title": "type"
-                },
-                "typeId": {
-                    "$ref": "#/definitions/MurphiTypeId",
-                    "title": "typeId"
-                }
-            },
-            "required": [
-                "id",
-                "type",
-                "typeId"
-            ],
-            "title": "TypeDecl",
             "type": "object"
         },
         "TypeDescription": {
@@ -779,19 +420,6 @@
                 "typeId"
             ],
             "title": "TypeDescription",
-            "type": "object"
-        },
-        "UndefineStmt": {
-            "properties": {
-                "value": {
-                    "$ref": "#/definitions/DesignatorDescription",
-                    "title": "value"
-                }
-            },
-            "required": [
-                "value"
-            ],
-            "title": "UndefineStmt",
             "type": "object"
         },
         "UnionType": {
@@ -818,30 +446,33 @@
             ],
             "title": "UnionType",
             "type": "object"
-        },
-        "VarDecl": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/MurphiType",
-                    "title": "type"
-                },
-                "typeId": {
-                    "$ref": "#/definitions/MurphiTypeId",
-                    "title": "typeId"
-                }
-            },
-            "required": [
-                "id",
-                "type",
-                "typeId"
-            ],
-            "title": "VarDecl",
-            "type": "object"
         }
-    }
+    },
+    "properties": {
+        "quantifier": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/ForEachQuantifier"
+                },
+                {
+                    "$ref": "#/definitions/ForRangeQuantifier"
+                }
+            ],
+            "title": "quantifier"
+        },
+        "typeId": {
+            "enum": [
+                "for_each",
+                "for_range"
+            ],
+            "title": "typeId",
+            "type": "string"
+        }
+    },
+    "required": [
+        "quantifier",
+        "typeId"
+    ],
+    "type": "object"
 }
 

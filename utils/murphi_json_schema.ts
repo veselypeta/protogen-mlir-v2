@@ -111,12 +111,17 @@ interface FwdDecl {
     decl: TypeDecl | VarDecl | ConstDecl;
 }
 
-type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt;
-type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine";
+type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt | ProcCall;
+type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine" | "proc_call";
 
 interface AssignmentStmt {
-    lhs: Designator;
+    lhs: DesignatorDescription;
     rhs: ExpressionDescription;
+}
+
+class DesignatorDescription implements ExpressionDescription {
+    typeId: "designator" | "designator_expr";
+    expression: Designator | DesignatorExpr;
 }
 
 interface AssertStmt {
@@ -126,7 +131,7 @@ interface AssertStmt {
 
 interface Quantifier{
     typeId: "for_each" | "for_range";
-    quantifier: ForEachQuantifier
+    quantifier: ForEachQuantifier | ForRangeQuantifier
 }
 
 interface ForEachQuantifier{
@@ -152,18 +157,18 @@ interface IfStmt{
 }
 
 interface UndefineStmt{
-    value: Designator | DesignatorExpr;
+    value: DesignatorDescription;
 }
 
 interface Designator {
-    objectId: ID;
+    objId: ID;
     objType: "array" | "object";
     index: ExpressionDescription
 }
 
 // HACK - This is for the case when you want to chain a designator onto the result of a previous designator
 interface DesignatorExpr {
-    des: Designator;
+    des: DesignatorDescription;
     objType: "array" | "object";
     index: ExpressionDescription;
 }
@@ -187,8 +192,8 @@ interface ProcCall{
 
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | DesignatorExpr | ID | MultisetCount | ProcCall;
-type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count" | "proc_call";
+type Expression = Designator | DesignatorExpr | ID | MultisetCount | BinaryExpr;
+type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count";
 
 interface ExpressionDescription {
     typeId: ExpressionType;

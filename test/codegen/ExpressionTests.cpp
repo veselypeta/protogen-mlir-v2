@@ -1,10 +1,28 @@
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include "translation/murphi/codegen/MurphiCodeGen.h"
+#include "translation/utils/JSONValidation.h"
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
 
 using namespace inja;
 using namespace murphi;
+
+TEST(ExpressionTests, ExprIdTest){
+
+  json data = detail::ExprID{"anID"};
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "anID");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+}
 TEST(ExpressionTests, DesignatorObjectType) {
   json data =
       detail::Designator<detail::ExprID>{"myObj", "object", {"theIndex"}};
@@ -14,6 +32,14 @@ TEST(ExpressionTests, DesignatorObjectType) {
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "myObj.theIndex");
+
+  json des = detail::Designator<detail::ExprID>{"obj", "object", {"indx"}};
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, des);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(ExpressionTests, DesignatorArrayType) {
@@ -26,6 +52,12 @@ TEST(ExpressionTests, DesignatorArrayType) {
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "newObj[arr_index]");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(ExpressionTests, DesignatorExprObjType){
@@ -43,6 +75,12 @@ TEST(ExpressionTests, DesignatorExprObjType){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "newObj[arr_index].theIndex");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(ExpressionTests, DesignatorExprArrType){
@@ -60,6 +98,12 @@ TEST(ExpressionTests, DesignatorExprArrType){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "newObj[arr_index][next_idx]");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(ExpressionTests, BinaryExpressionStrRef){
@@ -74,6 +118,12 @@ TEST(ExpressionTests, BinaryExpressionStrRef){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "my_lhs_value != my_rhs_value");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(ExpressionTests, MultisetCountTest){
@@ -88,4 +138,11 @@ TEST(ExpressionTests, MultisetCountTest){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ(result.c_str(), "MultisetCount(i:i_type, true)");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+
 }

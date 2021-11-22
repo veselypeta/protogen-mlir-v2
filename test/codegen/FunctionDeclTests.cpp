@@ -93,29 +93,47 @@ TEST(FunctionTest, MessageConstructor) {
 
 TEST(FunctionTests, OrderedSendFunction){
 
-  json j = detail::OrderedSendFunction{"fwd"};
+  json data = detail::OrderedSendFunction{"fwd"};
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("proc_decl.tmpl");
-  auto result = env.render(tmpl, j);
+  auto result = env.render(tmpl, data);
 
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ProcDecl.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(FunctionTests, OrderedPopFunction){
-  json j = detail::OrderedPopFunction{"fwd"};
+  json data = detail::OrderedPopFunction{"fwd"};
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("proc_decl.tmpl");
-  auto result = env.render(tmpl, j);
+  auto result = env.render(tmpl, data);
 
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ProcDecl.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(FunctionTests, UnorderedSendFunction){
-  json j = detail::UnorderedSendFunction{"resp"};
+  json data = detail::UnorderedSendFunction{"resp"};
 
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("proc_decl.tmpl");
-  auto result = env.render(tmpl, j);
+  auto result = env.render(tmpl, data);
 
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ProcDecl.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }

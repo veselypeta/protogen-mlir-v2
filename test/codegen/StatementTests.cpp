@@ -1,5 +1,6 @@
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include "translation/murphi/codegen/MurphiCodeGen.h"
+#include "translation/utils/JSONValidation.h"
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
 
@@ -12,6 +13,12 @@ TEST(StatementTests, AssignmentStatement) {
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 
   ASSERT_STREQ(result.c_str(), "msg.address := val;");
 }
@@ -26,6 +33,12 @@ TEST(StatementTests, AssertStmt) {
 
   ASSERT_STREQ(result.c_str(),
                "assert( value_to_be_tested ) \"assertion failed!\";");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(StatementTests, ForStmt){
@@ -38,6 +51,12 @@ TEST(StatementTests, ForStmt){
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 
@@ -54,6 +73,12 @@ TEST(StatementTests, IfStmt){
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 TEST(StatementTests, IfStmt_withelse){
@@ -70,6 +95,12 @@ TEST(StatementTests, IfStmt_withelse){
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 
@@ -83,6 +114,12 @@ TEST(StatementTests, UndefineStmt){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ("undefine obj[index];", result.c_str());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }
 
 
@@ -93,4 +130,10 @@ TEST(StatementTests, ProcCallStmt){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ("myfn(param1, param2);", result.c_str());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }

@@ -1,13 +1,5 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "anyOf": [
-        {
-            "$ref": "#/definitions/MurphiFunction"
-        },
-        {
-            "$ref": "#/definitions/MurphiProcedure"
-        }
-    ],
     "definitions": {
         "AssertStmt": {
             "properties": {
@@ -646,6 +638,14 @@
             "title": "ProcCall",
             "type": "object"
         },
+        "ProcType": {
+            "enum": [
+                "function",
+                "procedure"
+            ],
+            "title": "ProcType",
+            "type": "string"
+        },
         "Quantifier": {
             "properties": {
                 "quantifier": {
@@ -842,6 +842,28 @@
             "title": "VarDecl",
             "type": "object"
         }
-    }
+    },
+    "properties": {
+        "def": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/MurphiFunction"
+                },
+                {
+                    "$ref": "#/definitions/MurphiProcedure"
+                }
+            ],
+            "title": "def"
+        },
+        "procType": {
+            "$ref": "#/definitions/ProcType",
+            "title": "procType"
+        }
+    },
+    "required": [
+        "def",
+        "procType"
+    ],
+    "type": "object"
 }
 

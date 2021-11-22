@@ -1,4 +1,5 @@
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
+#include "translation/utils/JSONValidation.h"
 #include <gtest/gtest.h>
 #include <inja/inja.hpp>
 #include "translation/murphi/codegen/MurphiCodeGen.h"
@@ -20,6 +21,14 @@ TEST(FormalParamTests, RenderTemplate){
   auto result = env.render(tmpl, data);
 
   ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_Formal.json";
+  for(auto &d : data["params"]){
+    bool is_valid = JSONValidation::validate_json(schema_path, d);
+    ASSERT_TRUE(is_valid);
+  }
 }
 
 TEST(FormalParamTests, EmptyData){

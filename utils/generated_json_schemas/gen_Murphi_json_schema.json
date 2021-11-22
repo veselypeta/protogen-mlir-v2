@@ -22,7 +22,7 @@
         "AssignmentStmt": {
             "properties": {
                 "lhs": {
-                    "$ref": "#/definitions/Designator",
+                    "$ref": "#/definitions/DesignatorDescription",
                     "title": "lhs"
                 },
                 "rhs": {
@@ -36,6 +36,47 @@
             ],
             "title": "AssignmentStmt",
             "type": "object"
+        },
+        "BinaryExpr": {
+            "properties": {
+                "lhs": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "lhs"
+                },
+                "op": {
+                    "$ref": "#/definitions/BinaryOp",
+                    "title": "op"
+                },
+                "rhs": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "rhs"
+                }
+            },
+            "required": [
+                "lhs",
+                "op",
+                "rhs"
+            ],
+            "title": "BinaryExpr",
+            "type": "object"
+        },
+        "BinaryOp": {
+            "enum": [
+                "!=",
+                "&",
+                "*",
+                "+",
+                "-",
+                "->",
+                "/",
+                "<",
+                "<=",
+                "=",
+                ">",
+                ">="
+            ],
+            "title": "BinaryOp",
+            "type": "string"
         },
         "ConstDecl": {
             "properties": {
@@ -61,6 +102,10 @@
                     "$ref": "#/definitions/ExpressionDescription",
                     "title": "index"
                 },
+                "objId": {
+                    "title": "objId",
+                    "type": "string"
+                },
                 "objType": {
                     "enum": [
                         "array",
@@ -68,24 +113,49 @@
                     ],
                     "title": "objType",
                     "type": "string"
-                },
-                "objectId": {
-                    "title": "objectId",
-                    "type": "string"
                 }
             },
             "required": [
                 "index",
-                "objType",
-                "objectId"
+                "objId",
+                "objType"
             ],
             "title": "Designator",
+            "type": "object"
+        },
+        "DesignatorDescription": {
+            "properties": {
+                "expression": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "$ref": "#/definitions/DesignatorExpr"
+                        }
+                    ],
+                    "title": "expression"
+                },
+                "typeId": {
+                    "enum": [
+                        "designator",
+                        "designator_expr"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "expression",
+                "typeId"
+            ],
+            "title": "DesignatorDescription",
             "type": "object"
         },
         "DesignatorExpr": {
             "properties": {
                 "des": {
-                    "$ref": "#/definitions/Designator",
+                    "$ref": "#/definitions/DesignatorDescription",
                     "title": "des"
                 },
                 "index": {
@@ -136,10 +206,10 @@
                             "$ref": "#/definitions/DesignatorExpr"
                         },
                         {
-                            "$ref": "#/definitions/MultisetCount"
+                            "$ref": "#/definitions/BinaryExpr"
                         },
                         {
-                            "$ref": "#/definitions/ProcCall"
+                            "$ref": "#/definitions/MultisetCount"
                         },
                         {
                             "type": "string"
@@ -165,8 +235,7 @@
                 "binary",
                 "designator",
                 "designator_expr",
-                "ms_count",
-                "proc_call"
+                "ms_count"
             ],
             "title": "ExpressionType",
             "type": "string"
@@ -187,6 +256,29 @@
                 "type"
             ],
             "title": "ForEachQuantifier",
+            "type": "object"
+        },
+        "ForRangeQuantifier": {
+            "properties": {
+                "end": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "end"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "start": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "start"
+                }
+            },
+            "required": [
+                "end",
+                "id",
+                "start"
+            ],
+            "title": "ForRangeQuantifier",
             "type": "object"
         },
         "ForStmt": {
@@ -582,7 +674,14 @@
         "Quantifier": {
             "properties": {
                 "quantifier": {
-                    "$ref": "#/definitions/ForEachQuantifier",
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ForEachQuantifier"
+                        },
+                        {
+                            "$ref": "#/definitions/ForRangeQuantifier"
+                        }
+                    ],
                     "title": "quantifier"
                 },
                 "typeId": {
@@ -635,6 +734,9 @@
                         },
                         {
                             "$ref": "#/definitions/UndefineStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/ProcCall"
                         }
                     ],
                     "title": "statement"
@@ -657,6 +759,7 @@
                 "assignment",
                 "for",
                 "if",
+                "proc_call",
                 "undefine"
             ],
             "title": "StatementType",
@@ -706,14 +809,7 @@
         "UndefineStmt": {
             "properties": {
                 "value": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/Designator"
-                        },
-                        {
-                            "$ref": "#/definitions/DesignatorExpr"
-                        }
-                    ],
+                    "$ref": "#/definitions/DesignatorDescription",
                     "title": "value"
                 }
             },

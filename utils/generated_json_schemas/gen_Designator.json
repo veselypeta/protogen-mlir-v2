@@ -1,0 +1,199 @@
+{
+    "$ref": "#/definitions/Designator",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "BinaryExpr": {
+            "properties": {
+                "lhs": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "lhs"
+                },
+                "op": {
+                    "$ref": "#/definitions/BinaryOp",
+                    "title": "op"
+                },
+                "rhs": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "rhs"
+                }
+            },
+            "required": [
+                "lhs",
+                "op",
+                "rhs"
+            ],
+            "title": "BinaryExpr",
+            "type": "object"
+        },
+        "BinaryOp": {
+            "enum": [
+                "!=",
+                "&",
+                "*",
+                "+",
+                "-",
+                "->",
+                "/",
+                "<",
+                "<=",
+                "=",
+                ">",
+                ">="
+            ],
+            "title": "BinaryOp",
+            "type": "string"
+        },
+        "Designator": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "objId": {
+                    "title": "objId",
+                    "type": "string"
+                },
+                "objType": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "objType",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "index",
+                "objId",
+                "objType"
+            ],
+            "title": "Designator",
+            "type": "object"
+        },
+        "DesignatorDescription": {
+            "properties": {
+                "expression": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "$ref": "#/definitions/DesignatorExpr"
+                        }
+                    ],
+                    "title": "expression"
+                },
+                "typeId": {
+                    "enum": [
+                        "designator",
+                        "designator_expr"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "expression",
+                "typeId"
+            ],
+            "title": "DesignatorDescription",
+            "type": "object"
+        },
+        "DesignatorExpr": {
+            "properties": {
+                "des": {
+                    "$ref": "#/definitions/DesignatorDescription",
+                    "title": "des"
+                },
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "objType": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "objType",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "des",
+                "index",
+                "objType"
+            ],
+            "title": "DesignatorExpr",
+            "type": "object"
+        },
+        "ExpressionDescription": {
+            "properties": {
+                "expression": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "$ref": "#/definitions/DesignatorExpr"
+                        },
+                        {
+                            "$ref": "#/definitions/BinaryExpr"
+                        },
+                        {
+                            "$ref": "#/definitions/MultisetCount"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "expression"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/ExpressionType",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "expression",
+                "typeId"
+            ],
+            "title": "ExpressionDescription",
+            "type": "object"
+        },
+        "ExpressionType": {
+            "enum": [
+                "ID",
+                "binary",
+                "designator",
+                "designator_expr",
+                "ms_count"
+            ],
+            "title": "ExpressionType",
+            "type": "string"
+        },
+        "MultisetCount": {
+            "properties": {
+                "predicate": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "predicate"
+                },
+                "varId": {
+                    "title": "varId",
+                    "type": "string"
+                },
+                "varValue": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "varValue"
+                }
+            },
+            "required": [
+                "predicate",
+                "varId",
+                "varValue"
+            ],
+            "title": "MultisetCount",
+            "type": "object"
+        }
+    }
+}
+

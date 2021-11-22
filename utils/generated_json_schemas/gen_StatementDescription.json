@@ -1,13 +1,6 @@
 {
+    "$ref": "#/definitions/StatementDescription",
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "anyOf": [
-        {
-            "$ref": "#/definitions/MurphiFunction"
-        },
-        {
-            "$ref": "#/definitions/MurphiProcedure"
-        }
-    ],
     "definitions": {
         "AssertStmt": {
             "properties": {
@@ -85,24 +78,6 @@
             ],
             "title": "BinaryOp",
             "type": "string"
-        },
-        "ConstDecl": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "value": {
-                    "title": "value",
-                    "type": "number"
-                }
-            },
-            "required": [
-                "id",
-                "value"
-            ],
-            "title": "ConstDecl",
-            "type": "object"
         },
         "Designator": {
             "properties": {
@@ -310,57 +285,6 @@
             "title": "ForStmt",
             "type": "object"
         },
-        "Formal": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/TypeDescription",
-                    "title": "type"
-                }
-            },
-            "required": [
-                "id",
-                "type"
-            ],
-            "title": "Formal",
-            "type": "object"
-        },
-        "FwdDecl": {
-            "properties": {
-                "decl": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/ConstDecl"
-                        },
-                        {
-                            "$ref": "#/definitions/TypeDecl"
-                        },
-                        {
-                            "$ref": "#/definitions/VarDecl"
-                        }
-                    ],
-                    "title": "decl"
-                },
-                "typeId": {
-                    "enum": [
-                        "const",
-                        "type",
-                        "var"
-                    ],
-                    "title": "typeId",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "decl",
-                "typeId"
-            ],
-            "title": "FwdDecl",
-            "type": "object"
-        },
         "IfStmt": {
             "properties": {
                 "elseStatements": {
@@ -470,81 +394,6 @@
                 "type"
             ],
             "title": "MurphiArray",
-            "type": "object"
-        },
-        "MurphiFunction": {
-            "properties": {
-                "forwardDecls": {
-                    "items": {
-                        "$ref": "#/definitions/FwdDecl"
-                    },
-                    "title": "forwardDecls",
-                    "type": "array"
-                },
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "params": {
-                    "items": {
-                        "$ref": "#/definitions/Formal"
-                    },
-                    "title": "params",
-                    "type": "array"
-                },
-                "returnType": {
-                    "$ref": "#/definitions/TypeDescription",
-                    "title": "returnType"
-                },
-                "statements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "statements",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "id",
-                "params",
-                "returnType"
-            ],
-            "title": "MurphiFunction",
-            "type": "object"
-        },
-        "MurphiProcedure": {
-            "properties": {
-                "forwardDecls": {
-                    "items": {
-                        "$ref": "#/definitions/FwdDecl"
-                    },
-                    "title": "forwardDecls",
-                    "type": "array"
-                },
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "params": {
-                    "items": {
-                        "$ref": "#/definitions/Formal"
-                    },
-                    "title": "params",
-                    "type": "array"
-                },
-                "statements": {
-                    "items": {
-                        "$ref": "#/definitions/StatementDescription"
-                    },
-                    "title": "statements",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "id",
-                "params"
-            ],
-            "title": "MurphiProcedure",
             "type": "object"
         },
         "MurphiRecord": {
@@ -691,29 +540,33 @@
             "title": "ScalarsetType",
             "type": "object"
         },
+        "Statement": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/AssignmentStmt"
+                },
+                {
+                    "$ref": "#/definitions/AssertStmt"
+                },
+                {
+                    "$ref": "#/definitions/ForStmt"
+                },
+                {
+                    "$ref": "#/definitions/IfStmt"
+                },
+                {
+                    "$ref": "#/definitions/UndefineStmt"
+                },
+                {
+                    "$ref": "#/definitions/ProcCall"
+                }
+            ],
+            "title": "Statement"
+        },
         "StatementDescription": {
             "properties": {
                 "statement": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/AssignmentStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/AssertStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/ForStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/IfStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/UndefineStmt"
-                        },
-                        {
-                            "$ref": "#/definitions/ProcCall"
-                        }
-                    ],
+                    "$ref": "#/definitions/Statement",
                     "title": "statement"
                 },
                 "typeId": {
@@ -739,29 +592,6 @@
             ],
             "title": "StatementType",
             "type": "string"
-        },
-        "TypeDecl": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/MurphiType",
-                    "title": "type"
-                },
-                "typeId": {
-                    "$ref": "#/definitions/MurphiTypeId",
-                    "title": "typeId"
-                }
-            },
-            "required": [
-                "id",
-                "type",
-                "typeId"
-            ],
-            "title": "TypeDecl",
-            "type": "object"
         },
         "TypeDescription": {
             "properties": {
@@ -817,29 +647,6 @@
                 "listElems"
             ],
             "title": "UnionType",
-            "type": "object"
-        },
-        "VarDecl": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/MurphiType",
-                    "title": "type"
-                },
-                "typeId": {
-                    "$ref": "#/definitions/MurphiTypeId",
-                    "title": "typeId"
-                }
-            },
-            "required": [
-                "id",
-                "type",
-                "typeId"
-            ],
-            "title": "VarDecl",
             "type": "object"
         }
     }

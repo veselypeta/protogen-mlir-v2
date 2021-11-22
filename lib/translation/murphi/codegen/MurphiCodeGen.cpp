@@ -208,7 +208,8 @@ void to_json(json &j, const UnorderedSendFunction &usf) {
 
   // L2 -> MultiSetAdd(msg, req[msg.dst]);
   ExprID firsParam{msg_p};
-  Designator<Designator<ExprID>> secParam{usf.netId, "array", {msg_p, "object", {c_dst}}};
+  Designator<Designator<ExprID>> secParam{
+      usf.netId, "array", {msg_p, "object", {c_dst}}};
   ProcCall l2add{multiset_add_f, {firsParam, secParam}};
 
   j = {{"procType", "procedure"},
@@ -226,14 +227,9 @@ void to_json(json &j, const MultisetCount &ms) {
          {"predicate", ms.predicate}}}};
 }
 
-void to_json(json &j, const ProcCall &fn){
-  j = {
-    {"typeId", "proc_call"},
-    {"statement", {
-                       {"funId", fn.funId},
-                       {"actuals", fn.actuals}
-                   }}
-  };
+void to_json(json &j, const ProcCall &fn) {
+  j = {{"typeId", "proc_call"},
+       {"statement", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
 }
 
 /*
@@ -691,7 +687,8 @@ void MurphiCodeGen::_generateSendPopFunctions() {
               detail::OrderedSendFunction{netID.str()});
           data["proc_decls"].push_back(detail::OrderedPopFunction{netID.str()});
         } else {
-          data["proc_decls"].push_back(detail::UnorderedSendFunction{netID.str()});
+          data["proc_decls"].push_back(
+              detail::UnorderedSendFunction{netID.str()});
         }
       });
 }

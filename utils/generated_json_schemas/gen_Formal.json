@@ -1,0 +1,234 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "Enum": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls"
+            ],
+            "title": "Enum",
+            "type": "object"
+        },
+        "IntegerSubRange": {
+            "properties": {
+                "start": {
+                    "title": "start",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                },
+                "stop": {
+                    "title": "stop",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                }
+            },
+            "required": [
+                "start",
+                "stop"
+            ],
+            "title": "IntegerSubRange",
+            "type": "object"
+        },
+        "MultisetType": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "index"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "index",
+                "type"
+            ],
+            "title": "MultisetType",
+            "type": "object"
+        },
+        "MurphiArray": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "index"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "index",
+                "type"
+            ],
+            "title": "MurphiArray",
+            "type": "object"
+        },
+        "MurphiRecord": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "properties": {
+                            "id": {
+                                "title": "id",
+                                "type": "string"
+                            },
+                            "type": {
+                                "$ref": "#/definitions/MurphiType",
+                                "title": "type"
+                            },
+                            "typeId": {
+                                "$ref": "#/definitions/MurphiTypeId",
+                                "title": "typeId"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "type",
+                            "typeId"
+                        ],
+                        "type": "object"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls"
+            ],
+            "title": "MurphiRecord",
+            "type": "object"
+        },
+        "MurphiType": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/MurphiRecord"
+                },
+                {
+                    "$ref": "#/definitions/Enum"
+                },
+                {
+                    "$ref": "#/definitions/IntegerSubRange"
+                },
+                {
+                    "$ref": "#/definitions/MurphiArray"
+                },
+                {
+                    "$ref": "#/definitions/MultisetType"
+                },
+                {
+                    "$ref": "#/definitions/ScalarsetType"
+                },
+                {
+                    "$ref": "#/definitions/UnionType"
+                },
+                {
+                    "type": "string"
+                }
+            ],
+            "title": "MurphiType"
+        },
+        "MurphiTypeId": {
+            "enum": [
+                "ID",
+                "array",
+                "enum",
+                "multiset",
+                "record",
+                "scalarset",
+                "sub_range",
+                "union"
+            ],
+            "title": "MurphiTypeId",
+            "type": "string"
+        },
+        "ScalarsetType": {
+            "properties": {
+                "type": {
+                    "title": "type",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "title": "ScalarsetType",
+            "type": "object"
+        },
+        "TypeDescription": {
+            "properties": {
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "type",
+                "typeId"
+            ],
+            "title": "TypeDescription",
+            "type": "object"
+        },
+        "UnionType": {
+            "properties": {
+                "listElems": {
+                    "additionalItems": {
+                        "type": "string"
+                    },
+                    "items": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "minItems": 2,
+                    "title": "listElems",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "listElems"
+            ],
+            "title": "UnionType",
+            "type": "object"
+        }
+    },
+    "properties": {
+        "id": {
+            "title": "id",
+            "type": "string"
+        },
+        "type": {
+            "$ref": "#/definitions/TypeDescription",
+            "title": "type"
+        }
+    },
+    "required": [
+        "id",
+        "type"
+    ],
+    "type": "object"
+}
+
