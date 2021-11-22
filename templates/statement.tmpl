@@ -14,3 +14,13 @@ assert( {{ render_template("expression.tmpl", statement.expr) }} ) "{{ statement
 {% if typeId == "undefine" %}
 undefine {{ render_template("expression.tmpl", statement.value) }};{# -#}
 {% endif %}
+{% if typeId == "proc_call" %}
+{{ statement.funId }}({%- for act in statement.actuals -%}
+        {%- if loop.is_last -%}
+        {{- render_template("expression.tmpl", act) -}}
+        {%- else -%}
+        {{- render_template("expression.tmpl", act) -}}, {# -#}
+        {%- endif -%}
+    {%- endfor -%}
+);{# -#}
+{%- endif -%}

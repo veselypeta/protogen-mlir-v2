@@ -9,6 +9,24 @@
         }
     ],
     "definitions": {
+        "AssertStmt": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "msg": {
+                    "title": "msg",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "expr",
+                "msg"
+            ],
+            "title": "AssertStmt",
+            "type": "object"
+        },
         "AssignmentStmt": {
             "properties": {
                 "lhs": {
@@ -72,6 +90,33 @@
             "title": "Designator",
             "type": "object"
         },
+        "DesignatorExpr": {
+            "properties": {
+                "des": {
+                    "$ref": "#/definitions/Designator",
+                    "title": "des"
+                },
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "objType": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "objType",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "des",
+                "index",
+                "objType"
+            ],
+            "title": "DesignatorExpr",
+            "type": "object"
+        },
         "Enum": {
             "properties": {
                 "decls": {
@@ -96,6 +141,15 @@
                             "$ref": "#/definitions/Designator"
                         },
                         {
+                            "$ref": "#/definitions/DesignatorExpr"
+                        },
+                        {
+                            "$ref": "#/definitions/MultisetCount"
+                        },
+                        {
+                            "$ref": "#/definitions/ProcCall"
+                        },
+                        {
                             "type": "string"
                         }
                     ],
@@ -116,10 +170,53 @@
         "ExpressionType": {
             "enum": [
                 "ID",
-                "designator"
+                "binary",
+                "designator",
+                "designator_expr",
+                "ms_count",
+                "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"
+        },
+        "ForEachQuantifier": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "id",
+                "type"
+            ],
+            "title": "ForEachQuantifier",
+            "type": "object"
+        },
+        "ForStmt": {
+            "properties": {
+                "quantifier": {
+                    "$ref": "#/definitions/Quantifier",
+                    "title": "quantifier"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "quantifier",
+                "statements"
+            ],
+            "title": "ForStmt",
+            "type": "object"
         },
         "Formal": {
             "properties": {
@@ -172,6 +269,34 @@
             "title": "FwdDecl",
             "type": "object"
         },
+        "IfStmt": {
+            "properties": {
+                "elseStatements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "elseStatements",
+                    "type": "array"
+                },
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "thenStatements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "thenStatements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "expr",
+                "thenStatements"
+            ],
+            "title": "IfStmt",
+            "type": "object"
+        },
         "IntegerSubRange": {
             "properties": {
                 "start": {
@@ -194,6 +319,29 @@
                 "stop"
             ],
             "title": "IntegerSubRange",
+            "type": "object"
+        },
+        "MultisetCount": {
+            "properties": {
+                "predicate": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "predicate"
+                },
+                "varId": {
+                    "title": "varId",
+                    "type": "string"
+                },
+                "varValue": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "varValue"
+                }
+            },
+            "required": [
+                "predicate",
+                "varId",
+                "varValue"
+            ],
+            "title": "MultisetCount",
             "type": "object"
         },
         "MultisetType": {
@@ -273,6 +421,37 @@
             "type": "object"
         },
         "MurphiProcedure": {
+            "properties": {
+                "forwardDecls": {
+                    "items": {
+                        "$ref": "#/definitions/FwdDecl"
+                    },
+                    "title": "forwardDecls",
+                    "type": "array"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "params": {
+                    "items": {
+                        "$ref": "#/definitions/Formal"
+                    },
+                    "title": "params",
+                    "type": "array"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "params"
+            ],
             "title": "MurphiProcedure",
             "type": "object"
         },
@@ -354,6 +533,49 @@
             "title": "MurphiTypeId",
             "type": "string"
         },
+        "ProcCall": {
+            "properties": {
+                "actuals": {
+                    "items": {
+                        "$ref": "#/definitions/ExpressionDescription"
+                    },
+                    "title": "actuals",
+                    "type": "array"
+                },
+                "funId": {
+                    "title": "funId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "actuals",
+                "funId"
+            ],
+            "title": "ProcCall",
+            "type": "object"
+        },
+        "Quantifier": {
+            "properties": {
+                "quantifier": {
+                    "$ref": "#/definitions/ForEachQuantifier",
+                    "title": "quantifier"
+                },
+                "typeId": {
+                    "enum": [
+                        "for_each",
+                        "for_range"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "quantifier",
+                "typeId"
+            ],
+            "title": "Quantifier",
+            "type": "object"
+        },
         "ScalarsetType": {
             "properties": {
                 "type": {
@@ -373,15 +595,28 @@
         "StatementDescription": {
             "properties": {
                 "statement": {
-                    "$ref": "#/definitions/AssignmentStmt",
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/AssignmentStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/AssertStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/ForStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/IfStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/UndefineStmt"
+                        }
+                    ],
                     "title": "statement"
                 },
                 "typeId": {
-                    "enum": [
-                        "assignment"
-                    ],
-                    "title": "typeId",
-                    "type": "string"
+                    "$ref": "#/definitions/StatementType",
+                    "title": "typeId"
                 }
             },
             "required": [
@@ -390,6 +625,17 @@
             ],
             "title": "StatementDescription",
             "type": "object"
+        },
+        "StatementType": {
+            "enum": [
+                "assert",
+                "assignment",
+                "for",
+                "if",
+                "undefine"
+            ],
+            "title": "StatementType",
+            "type": "string"
         },
         "TypeDecl": {
             "properties": {
@@ -430,6 +676,26 @@
                 "typeId"
             ],
             "title": "TypeDescription",
+            "type": "object"
+        },
+        "UndefineStmt": {
+            "properties": {
+                "value": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "$ref": "#/definitions/DesignatorExpr"
+                        }
+                    ],
+                    "title": "value"
+                }
+            },
+            "required": [
+                "value"
+            ],
+            "title": "UndefineStmt",
             "type": "object"
         },
         "UnionType": {

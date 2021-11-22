@@ -193,6 +193,49 @@ void to_json(json &j, const OrderedPopFunction &opf) {
             {"statements", {line_1_assert, l2fstmt, l9dec}}}}};
 }
 
+void to_json(json &j, const UnorderedSendFunction &usf) {
+  constexpr char msg_p[] = "msg";
+  // L1 -> assert check not full
+  // Assert (MultiSetCount(i:resp[msg.dst], true) < U_NET_MAX) "Too many
+  // messages";
+  MultisetCount ms_count{"i",
+                         detail::Designator<detail::Designator<ExprID>>{
+                             usf.netId, "array", {msg_p, "object", {c_dst}}},
+                         detail::ExprID{"true"}};
+  BinaryExpr<decltype(ms_count), ExprID> assert_val{
+      ms_count, {"true"}, BinaryOps.less_than};
+  Assert<decltype(assert_val)> l1Ass{assert_val, excess_messages_err};
+
+  // L2 -> MultiSetAdd(msg, req[msg.dst]);
+  ExprID firsParam{msg_p};
+  Designator<Designator<ExprID>> secParam{usf.netId, "array", {msg_p, "object", {c_dst}}};
+  ProcCall l2add{multiset_add_f, {firsParam, secParam}};
+
+  j = {{"procType", "procedure"},
+       {"def",
+        {{"id", detail::send_pref_f + usf.netId},
+         {"params", {detail::Formal<detail::ID>{msg_p, {detail::r_message_t}}}},
+         {"statements", {l1Ass, l2add}}}}};
+}
+
+void to_json(json &j, const MultisetCount &ms) {
+  j = {{"typeId", "ms_count"},
+       {"expression",
+        {{"varId", ms.varId},
+         {"varValue", ms.varValue},
+         {"predicate", ms.predicate}}}};
+}
+
+void to_json(json &j, const ProcCall &fn){
+  j = {
+    {"typeId", "proc_call"},
+    {"statement", {
+                       {"funId", fn.funId},
+                       {"actuals", fn.actuals}
+                   }}
+  };
+}
+
 /*
  * Network Decl helper
  */
@@ -635,19 +678,22 @@ void MurphiCodeGen::_generateMutexHelpers() {
 
 void MurphiCodeGen::_generateSendPopFunctions() {
   auto networks = moduleInterpreter.getNetworks();
-  std::for_each(networks.begin(), networks.end(),
-                [&](mlir::pcc::NetDeclOp netDeclOp) {
-                  auto netID = netDeclOp.netId();
-                  auto order = netDeclOp.result()
-                                   .getType()
-                                   .cast<mlir::pcc::NetworkType>()
-                                   .getOrdering();
-                  if (order == "ordered") {
-                    // ordered networks
-                    data["proc_decls"].push_back(detail::OrderedSendFunction{netID.str()});
-                    data["proc_decls"].push_back(detail::OrderedPopFunction{netID.str()});
-                  }
-                });
+  std::for_each(
+      networks.begin(), networks.end(), [&](mlir::pcc::NetDeclOp netDeclOp) {
+        auto netID = netDeclOp.netId();
+        auto order = netDeclOp.result()
+                         .getType()
+                         .cast<mlir::pcc::NetworkType>()
+                         .getOrdering();
+        if (order == "ordered") {
+          // ordered networks
+          data["proc_decls"].push_back(
+              detail::OrderedSendFunction{netID.str()});
+          data["proc_decls"].push_back(detail::OrderedPopFunction{netID.str()});
+        } else {
+          data["proc_decls"].push_back(detail::UnorderedSendFunction{netID.str()});
+        }
+      });
 }
 
 /*

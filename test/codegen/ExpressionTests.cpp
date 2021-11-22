@@ -75,3 +75,17 @@ TEST(ExpressionTests, BinaryExpressionStrRef){
 
   ASSERT_STREQ(result.c_str(), "my_lhs_value != my_rhs_value");
 }
+
+TEST(ExpressionTests, MultisetCountTest){
+  json data = detail::MultisetCount{
+      "i",
+      detail::ExprID{"i_type"},
+      detail::ExprID{"true"}
+  };
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "MultisetCount(i:i_type, true)");
+}

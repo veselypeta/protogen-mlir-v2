@@ -73,7 +73,7 @@ TEST(StatementTests, IfStmt_withelse){
 }
 
 
-TEST(StatementTest, UndefineStmt){
+TEST(StatementTests, UndefineStmt){
   detail::Designator<detail::ExprID> des{"obj", "array", {"index"}};
   detail::UndefineStmt<decltype(des)> undefineStmt{des};
   json data = undefineStmt;
@@ -83,4 +83,14 @@ TEST(StatementTest, UndefineStmt){
   auto result = env.render(tmpl, data);
 
   ASSERT_STREQ("undefine obj[index];", result.c_str());
+}
+
+
+TEST(StatementTests, ProcCallStmt){
+  json data = detail::ProcCall{"myfn", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}};
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ("myfn(param1, param2);", result.c_str());
 }

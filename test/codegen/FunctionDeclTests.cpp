@@ -109,3 +109,13 @@ TEST(FunctionTests, OrderedPopFunction){
 
   ASSERT_FALSE(result.empty());
 }
+
+TEST(FunctionTests, UnorderedSendFunction){
+  json j = detail::UnorderedSendFunction{"resp"};
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, j);
+
+  ASSERT_FALSE(result.empty());
+}

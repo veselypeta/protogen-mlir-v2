@@ -168,6 +168,7 @@ constexpr char ordered_pop_err[] = "Trying to advance empty Q";
 /*
  * Murphi Functions
  */
+constexpr char multiset_add_f[] = "MultisetAdd";
 
 /*
  * Helper Structs to generate JSON
@@ -484,6 +485,26 @@ struct OrderedPopFunction {
 };
 
 void to_json(json &j, const OrderedPopFunction &opf);
+
+struct UnorderedSendFunction{
+  std::string netId;
+};
+void to_json(json &j, const UnorderedSendFunction& usf);
+
+
+struct MultisetCount{
+  std::string varId;
+  json varValue;
+  json predicate;
+};
+void to_json(json &j, const MultisetCount &ms);
+
+struct ProcCall{
+  std::string funId;
+  std::vector<json> actuals;
+};
+
+void to_json(json &j, const ProcCall &fn);
 /*
  * Helper Generating Functions
  */

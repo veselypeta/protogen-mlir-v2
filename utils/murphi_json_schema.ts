@@ -174,10 +174,21 @@ interface BinaryExpr {
     op: BinaryOp;
 }
 
+interface MultisetCount{
+    varId: ID;
+    varValue: ExpressionDescription;
+    predicate: ExpressionDescription;
+}
+
+interface ProcCall{
+    funId: ID;
+    actuals: ExpressionDescription[]
+}
+
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | DesignatorExpr | ID;
-type ExpressionType = "designator" | "designator_expr" | "ID" | "binary";
+type Expression = Designator | DesignatorExpr | ID | MultisetCount | ProcCall;
+type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count" | "proc_call";
 
 interface ExpressionDescription {
     typeId: ExpressionType;

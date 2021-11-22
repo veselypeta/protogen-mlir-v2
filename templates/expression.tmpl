@@ -11,3 +11,6 @@
 {% if typeId=="binary" %}
 {{ render_template("expression.tmpl", expression.lhs) }} {{ expression.op }} {{ render_template("expression.tmpl", expression.rhs) -}}
 {% endif %}
+{% if typeId=="ms_count"%}
+MultisetCount({{ expression.varId }}:{{ render_template("expression.tmpl", expression.varValue) }}, {{ render_template("expression.tmpl", expression.predicate) }}){# -#}
+{% endif %}
