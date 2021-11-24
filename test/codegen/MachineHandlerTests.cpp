@@ -19,7 +19,7 @@ TEST(MachineHandler, BasicTest){
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 
-  ASSERT_STREQ("", result.c_str());
-//  ASSERT_FALSE(result.empty());
+//  ASSERT_STREQ("", result.c_str());
+  ASSERT_FALSE(result.empty());
 
 }
