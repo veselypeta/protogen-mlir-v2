@@ -137,3 +137,25 @@ TEST(StatementTests, ProcCallStmt){
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
+
+
+TEST(StatementTests, AliasStmt){
+  auto aliasStmt = detail::AliasStmt<detail::ExprID>{"my_alias", {"to_be_aliased"}};
+  auto assignmentStmt = detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
+    {"msg", "object", {"address"}}, {"val"}};
+  aliasStmt.statements.emplace_back(assignmentStmt);
+
+
+  json data = aliasStmt;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+//  ASSERT_STREQ("alias my_alias : to_be_aliased do end;", result.c_str());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+}

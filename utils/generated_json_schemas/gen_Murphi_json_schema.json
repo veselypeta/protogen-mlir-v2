@@ -1,6 +1,32 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
+        "AliasStmt": {
+            "properties": {
+                "alias": {
+                    "title": "alias",
+                    "type": "string"
+                },
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "alias",
+                "expr",
+                "statements"
+            ],
+            "title": "AliasStmt",
+            "type": "object"
+        },
         "AssertStmt": {
             "properties": {
                 "expr": {
@@ -737,6 +763,9 @@
                         },
                         {
                             "$ref": "#/definitions/ProcCall"
+                        },
+                        {
+                            "$ref": "#/definitions/AliasStmt"
                         }
                     ],
                     "title": "statement"
@@ -755,6 +784,7 @@
         },
         "StatementType": {
             "enum": [
+                "alias",
                 "assert",
                 "assignment",
                 "for",

@@ -232,6 +232,48 @@ void to_json(json &j, const ProcCall &fn) {
        {"statement", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
 }
 
+void to_json(json &j, const detail::MachineHandler &mh) {
+  /*
+   * Parameters
+   */
+  // Param 1 -> inmsg:Message
+  auto msg_param = detail::Formal<ID>{c_inmsg, {{r_message_t}}};
+  // Param 2 -> m:OBJSET_directory
+  auto mach_param = detail::Formal<ID>{c_mach, {{SetKey + mh.machId}}};
+
+  /*
+   * Forward Decls
+   */
+  // var msg:Message;
+  constexpr char msg_var[] = "msg";
+  auto msg_fwd_decl = detail::ForwardDecl<detail::VarDecl<detail::ID>>{
+      "var", {msg_var, {r_message_t}}};
+
+  /*
+   * Alias Stmts
+   */
+  // alias 1 -> alias adr: inmsg.adr do
+  auto adr_alias = detail::AliasStmt<detail::Designator<detail::ExprID>>{
+      adr_a, {c_inmsg, "object", {c_adr}}};
+
+  // alias 2 -> cle: i_directory[m][adr]
+  auto rhsalias = DesignatorExpr<Designator<ExprID>, ExprID>{
+      {mach_prefix_v+mh.machId, "array", {c_mach}},
+      "array",
+      {{c_adr}}
+  };
+  auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias};
+  adr_alias.statements.emplace_back(cle_alias);
+
+  j = {{"procType", "function"},
+       {"def",
+        {{"id", detail::mach_handl_pref_f + mh.machId},
+         {"params", {msg_param, mach_param}},
+         {"returnType", detail::ID{detail::bool_t}},
+         {"forwardDecls", {msg_fwd_decl}},
+         {"statements", {adr_alias}}}}};
+}
+
 /*
  * Network Decl helper
  */
@@ -692,6 +734,12 @@ void MurphiCodeGen::_generateSendPopFunctions() {
         }
       });
 }
+
+/*
+ * Machine Handlers
+ */
+
+void MurphiCodeGen::_generateMachineHandlers() {}
 
 /*
  * Rules

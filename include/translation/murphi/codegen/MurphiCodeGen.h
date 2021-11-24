@@ -73,6 +73,10 @@ constexpr char e_message_type_t[] = "MessageType";
 constexpr char ss_address_t[] = "Address";
 constexpr char sr_cache_val_t[] = "ClValue";
 
+// *** Alias Terms *** //
+constexpr char adr_a[] = "adr";
+constexpr char cle_a[] = "cle";
+
 // *** Machine Keywords *** //
 static std::string cache_set_t() {
   return std::string(SetKey) + machines.cache.str();
@@ -107,6 +111,9 @@ static std::string e_directory_state_t();
 // *** Record Keywords *** //
 constexpr char r_message_t[] = "Message";
 
+// *** Built-in type *** //
+constexpr char bool_t[] = "boolean";
+
 // *** MSG ***
 // default msg fields
 constexpr auto c_adr = "adr";
@@ -116,8 +123,6 @@ constexpr auto c_dst = "dst";
 constexpr auto c_msg = "msg";
 
 constexpr char c_mach[] = "m";
-constexpr char c_cle[] = "cle";
-constexpr char c_dle[] = "dle";
 constexpr char c_inmsg[] = "inmsg";
 
 constexpr char a_cl_mutex_t[] = "CL_MUTEX";
@@ -148,10 +153,10 @@ constexpr struct {
 /*
  * VAR_DECL constants
  */
+constexpr char mach_prefix_v[] = "i_";
+static std::string cache_v() { return mach_prefix_v + machines.cache.str(); }
 
-static std::string cache_v() { return "i_" + machines.cache.str(); }
-
-static std::string directory_v() { return "i_" + machines.directory.str(); }
+static std::string directory_v() { return mach_prefix_v + machines.directory.str(); }
 
 constexpr char cl_mutex_v[] = "cl_mutex";
 
@@ -164,6 +169,8 @@ constexpr char send_pref_f[] = "Send_";
 constexpr char excess_messages_err[] = "Too many messages!";
 constexpr char pop_pref_f[] = "Pop_";
 constexpr char ordered_pop_err[] = "Trying to advance empty Q";
+
+constexpr char mach_handl_pref_f[] = "Func_";
 
 /*
  * Murphi Functions
@@ -467,6 +474,27 @@ void to_json(json &j, const UndefineStmt<T> &uds){
   };
 }
 
+template <class T>
+struct AliasStmt{
+  std::string alias;
+  T expr;
+  std::vector<json> statements;
+};
+
+template <class T>
+void to_json(json &j, const AliasStmt<T> &as){
+  j = {
+      {"typeId", "alias"},
+      {"statement", {
+                        {"alias", as.alias},
+                        {"expr", as.expr},
+                        {"statements", as.statements}
+                    }}
+  };
+}
+
+
+
 // *** specific cases
 
 struct MessageFactory {
@@ -505,6 +533,17 @@ struct ProcCall{
 };
 
 void to_json(json &j, const ProcCall &fn);
+
+/*
+ * Machine Handler
+ */
+
+struct MachineHandler{
+  std::string machId;
+};
+
+void to_json(json &j, const MachineHandler &mh);
+
 /*
  * Helper Generating Functions
  */
@@ -573,6 +612,8 @@ private:
   void _generateHelperFunctions();
   void _generateMutexHelpers();
   void _generateSendPopFunctions();
+
+  void _generateMachineHandlers();
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;
