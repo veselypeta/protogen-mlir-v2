@@ -112,6 +112,27 @@
             "title": "BinaryOp",
             "type": "string"
         },
+        "CaseStmt": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "expr",
+                "statements"
+            ],
+            "title": "CaseStmt",
+            "type": "object"
+        },
         "ConstDecl": {
             "properties": {
                 "id": {
@@ -741,6 +762,9 @@
                         },
                         {
                             "$ref": "#/definitions/AliasStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/SwitchStmt"
                         }
                     ],
                     "title": "statement"
@@ -765,10 +789,40 @@
                 "for",
                 "if",
                 "proc_call",
+                "switch",
                 "undefine"
             ],
             "title": "StatementType",
             "type": "string"
+        },
+        "SwitchStmt": {
+            "properties": {
+                "cases": {
+                    "items": {
+                        "$ref": "#/definitions/CaseStmt"
+                    },
+                    "title": "cases",
+                    "type": "array"
+                },
+                "elseStatements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "elseStatements",
+                    "type": "array"
+                },
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "cases",
+                "elseStatements",
+                "expr"
+            ],
+            "title": "SwitchStmt",
+            "type": "object"
         },
         "TypeDecl": {
             "properties": {

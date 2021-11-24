@@ -7,16 +7,17 @@
 using namespace inja;
 using namespace murphi;
 TEST(StatementTests, AssignmentStatement) {
-  json data = detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
-      {"msg", "object", {"address"}}, {"val"}};
+  json data =
+      detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
+          {"msg", "object", {"address"}}, {"val"}};
 
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 
@@ -35,16 +36,17 @@ TEST(StatementTests, AssertStmt) {
                "assert( value_to_be_tested ) \"assertion failed!\";");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-TEST(StatementTests, ForStmt){
-  detail::ForStmt<detail::ForEachQuantifier<detail::ID>> forStmt{{"i", {"type"}}};
+TEST(StatementTests, ForStmt) {
+  detail::ForStmt<detail::ForEachQuantifier<detail::ID>> forStmt{
+      {"i", {"type"}}};
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
-                                             "assertion failed!"};
+                                                    "assertion failed!"};
   forStmt.stmts.push_back(assert_stmt);
   json data = forStmt;
   auto &env = InjaEnvSingleton::getInstance();
@@ -53,14 +55,13 @@ TEST(StatementTests, ForStmt){
   ASSERT_FALSE(result.empty());
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-
-TEST(StatementTests, IfStmt){
+TEST(StatementTests, IfStmt) {
   detail::IfStmt<detail::ExprID> ifstmt{{"true"}};
 
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
@@ -75,13 +76,13 @@ TEST(StatementTests, IfStmt){
   ASSERT_FALSE(result.empty());
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-TEST(StatementTests, IfStmt_withelse){
+TEST(StatementTests, IfStmt_withelse) {
   detail::IfStmt<detail::ExprID> ifstmt{{"true"}};
 
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
@@ -97,14 +98,13 @@ TEST(StatementTests, IfStmt_withelse){
   ASSERT_FALSE(result.empty());
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-
-TEST(StatementTests, UndefineStmt){
+TEST(StatementTests, UndefineStmt) {
   detail::Designator<detail::ExprID> des{"obj", "array", {"index"}};
   detail::UndefineStmt<decltype(des)> undefineStmt{des};
   json data = undefineStmt;
@@ -116,15 +116,15 @@ TEST(StatementTests, UndefineStmt){
   ASSERT_STREQ("undefine obj[index];", result.c_str());
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-
-TEST(StatementTests, ProcCallStmt){
-  json data = detail::ProcCall{"myfn", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}};
+TEST(StatementTests, ProcCallStmt) {
+  json data = detail::ProcCall{
+      "myfn", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}};
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
@@ -132,30 +132,71 @@ TEST(StatementTests, ProcCallStmt){
   ASSERT_STREQ("myfn(param1, param2);", result.c_str());
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-
-TEST(StatementTests, AliasStmt){
-  auto aliasStmt = detail::AliasStmt<detail::ExprID>{"my_alias", {"to_be_aliased"}};
-  auto assignmentStmt = detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
-    {"msg", "object", {"address"}}, {"val"}};
+TEST(StatementTests, AliasStmt) {
+  auto aliasStmt =
+      detail::AliasStmt<detail::ExprID>{"my_alias", {"to_be_aliased"}};
+  auto assignmentStmt =
+      detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
+          {"msg", "object", {"address"}}, {"val"}};
   aliasStmt.statements.emplace_back(assignmentStmt);
-
 
   json data = aliasStmt;
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
 
-//  ASSERT_STREQ("alias my_alias : to_be_aliased do end;", result.c_str());
+  //  ASSERT_STREQ("alias my_alias : to_be_aliased do end;", result.c_str());
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_StatementDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
+}
+
+TEST(StatementTest, CaseStmt) {
+  json stateAssignment = detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
+          {"cache", "object", {"State"}}, {"cache_M"}};
+  auto case1 = detail::CaseStmt{detail::ExprID{"theState"}, {stateAssignment}};
+  json data = case1;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("case.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_CaseStmt.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(StatementTest, SwitchStmt){
+
+  auto switchStmt = detail::SwitchStmt{detail::ExprID{"to_be_switched_over"}};
+  json stateAssignment = detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
+      {"cache", "object", {"State"}}, {"cache_M"}};
+  auto case1 = detail::CaseStmt{detail::ExprID{"theState"}, {stateAssignment}};
+  switchStmt.cases.emplace_back(case1);
+  switchStmt.cases.emplace_back(case1);
+  switchStmt.elseStatements.emplace_back(stateAssignment);
+
+  json data = switchStmt;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+  EXPECT_FALSE(result.empty());
 }

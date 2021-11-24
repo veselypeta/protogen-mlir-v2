@@ -1,0 +1,4 @@
+case {{ render_template("expression.tmpl", expr) }}:
+{% for stmt in statements %}
+{{ render_template("statement.tmpl", stmt, 1) }}
+{% endfor %}

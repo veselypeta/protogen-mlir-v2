@@ -111,8 +111,8 @@ interface FwdDecl {
     decl: TypeDecl | VarDecl | ConstDecl;
 }
 
-type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt | ProcCall | AliasStmt;
-type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine" | "proc_call" | "alias";
+type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt | ProcCall | AliasStmt | SwitchStmt;
+type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine" | "proc_call" | "alias" | "switch";
 
 interface AssignmentStmt {
     lhs: DesignatorDescription;
@@ -134,6 +134,17 @@ interface AliasStmt {
     alias: ID;
     expr: ExpressionDescription;
     statements: StatementDescription[];
+}
+
+interface CaseStmt{
+    expr: ExpressionDescription;
+    statements: StatementDescription[];
+}
+
+interface SwitchStmt{
+    expr: ExpressionDescription;
+    cases: CaseStmt[];
+    elseStatements: StatementDescription[];
 }
 
 interface Quantifier{

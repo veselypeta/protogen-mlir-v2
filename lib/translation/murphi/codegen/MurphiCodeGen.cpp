@@ -232,6 +232,24 @@ void to_json(json &j, const ProcCall &fn) {
        {"statement", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
 }
 
+void to_json(json &j, const CaseStmt &caseStmt){
+  j = {
+    {"expr", caseStmt.expr},
+    {"statements", caseStmt.statements}
+  };
+}
+
+void to_json(json &j, const SwitchStmt &sw){
+  j = {
+    {"typeId", "switch"},
+    {"statement", {
+                        {"expr", sw.expr},
+                        {"cases", sw.cases},
+                        {"elseStatements", sw.elseStatements}
+                    }}
+  };
+}
+
 void to_json(json &j, const detail::MachineHandler &mh) {
   /*
    * Parameters
@@ -263,6 +281,7 @@ void to_json(json &j, const detail::MachineHandler &mh) {
       {{c_adr}}
   };
   auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias};
+  cle_alias.statements = mh.statements;
   adr_alias.statements.emplace_back(cle_alias);
 
   j = {{"procType", "function"},

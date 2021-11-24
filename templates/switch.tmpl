@@ -1,0 +1,11 @@
+switch {{ render_template("expression.tmpl", expr) }}
+{% for case in cases %}
+{{ render_template("case.tmpl", case, 1) }}
+{% endfor %}
+{% if not exists("elseStatements") or length(elseStatements) > 0 %}
+    else
+{% for stmt in elseStatements %}
+{{ render_template("statement.tmpl", stmt, 2) }}
+{% endfor %}
+{% endif %}
+endswitch;

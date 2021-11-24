@@ -30,3 +30,6 @@ alias {{ statement.alias }} : {{ render_template("expression.tmpl", statement.ex
 
 end;
 {% endif %}
+{% if typeId == "switch" %}
+{{ render_template("switch.tmpl", statement) }}
+{% endif %}

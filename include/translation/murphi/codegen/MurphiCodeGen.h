@@ -494,6 +494,23 @@ void to_json(json &j, const AliasStmt<T> &as){
 }
 
 
+struct CaseStmt{
+  json expr;
+  std::vector<json> statements;
+};
+
+void to_json(json &j, const CaseStmt &caseStmt);
+
+struct SwitchStmt{
+  json expr;
+  std::vector<CaseStmt> cases;
+  std::vector<json> elseStatements;
+};
+
+void to_json(json &j, const SwitchStmt &sw);
+
+
+
 
 // *** specific cases
 
@@ -540,6 +557,7 @@ void to_json(json &j, const ProcCall &fn);
 
 struct MachineHandler{
   std::string machId;
+  std::vector<json> statements;
 };
 
 void to_json(json &j, const MachineHandler &mh);
