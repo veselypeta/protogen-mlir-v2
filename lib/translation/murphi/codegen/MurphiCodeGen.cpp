@@ -281,7 +281,15 @@ void to_json(json &j, const detail::MachineHandler &mh) {
       {{c_adr}}
   };
   auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias};
-  cle_alias.statements = mh.statements;
+
+  /*
+   * Switch Statement
+   */
+
+  auto switch_stmt = detail::SwitchStmt{Designator<ExprID>{cle_a, "object", {c_state}}};
+
+
+  cle_alias.statements.emplace_back(switch_stmt);
   adr_alias.statements.emplace_back(cle_alias);
 
   j = {{"procType", "function"},

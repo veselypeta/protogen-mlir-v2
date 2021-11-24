@@ -122,6 +122,8 @@ constexpr auto c_src = "src";
 constexpr auto c_dst = "dst";
 constexpr auto c_msg = "msg";
 
+constexpr auto c_state = "State";
+
 constexpr char c_mach[] = "m";
 constexpr char c_inmsg[] = "inmsg";
 

@@ -7,8 +7,10 @@
 using namespace inja;
 using namespace murphi;
 TEST(MachineHandler, BasicTest){
-  json data = detail::MachineHandler{"cache"};
+  auto mach_handler = detail::MachineHandler{"cache"};
 
+
+  json data = mach_handler;
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("proc_decl.tmpl");
   auto result = env.render(tmpl, data);
