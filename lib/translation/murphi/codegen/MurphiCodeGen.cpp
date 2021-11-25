@@ -318,6 +318,24 @@ void to_json(json &j, const CPUEventHandler &cpuEventHandler) {
 }
 
 /*
+ * Rules
+ */
+
+/// *** SIMPLE RULE ***///
+
+void to_json(json &j, const SimpleRule &sr){
+  j = {
+    {"typeId", "simple_rule"},
+      {"rule", {
+                   {"ruleDesc", sr.ruleDesc},
+                   {"expr", sr.expr},
+                   {"decls", sr.decls},
+                   {"statements", sr.statements}
+               }}
+  };
+}
+
+/*
  * Network Decl helper
  */
 json emitNetworkDefinitionJson() {

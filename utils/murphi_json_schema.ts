@@ -224,6 +224,25 @@ interface StatementDescription {
     statement: Statement;
 }
 
+/*
+Rules
+ */
+
+type Rule = SimpleRule;
+type RuleType = "simple_rule";
+
+interface RuleDescription{
+    typeId: RuleType;
+    rule: Rule;
+}
+
+interface SimpleRule{
+    ruleDesc: string;
+    expr: ExpressionDescription;
+    decls?: FwdDecl[];
+    statements: StatementDescription[];
+}
+
 
 interface Murphi_json_schema {
     decls: {

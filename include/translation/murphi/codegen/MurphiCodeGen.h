@@ -574,6 +574,20 @@ struct CPUEventHandler{
 void to_json(json &j, const CPUEventHandler &cpuEventHandler);
 
 /*
+ * Rule States
+ */
+
+struct SimpleRule{
+  std::string ruleDesc;
+  json expr;
+  std::vector<json> decls;
+  std::vector<json> statements;
+};
+
+void to_json(json &j, const SimpleRule &sr);
+
+
+/*
  * Helper Generating Functions
  */
 json emitNetworkDefinitionJson();

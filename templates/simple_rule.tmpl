@@ -1,0 +1,14 @@
+rule "{{ ruleDesc }}"
+    {{ render_template("expression.tmpl", expr) }}
+
+==>
+{% if exists("decls") and length(decls) > 0 %}
+{% for decl in decls %}
+    {{ render_template("forward_decl.tmpl", decl) -}}
+{% endfor %}
+{% endif %}
+begin
+{% for stmt in statements %}
+{{ render_template("statement.tmpl", stmt, 1) }}
+{% endfor %}
+endrule;
