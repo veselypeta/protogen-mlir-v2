@@ -41,6 +41,10 @@ void ProcessOp::build(OpBuilder &builder, OperationState &state, StringRef name,
                                            llvm::None);
 }
 
+bool ProcessOp::hasNestedAwait() {
+  return false;   // TODO - implement this method properly
+}
+
 //===----------------------------------------------------------------------===//
 // CacheDeclOp
 //===----------------------------------------------------------------------===//

@@ -3,10 +3,10 @@
 
 include "PCC/PCC.td"
 
-def createTransientState : NativeCodeCall<"createTransientState($_builder)">;
-def : Pat<(InlineConstOp $theAttr), (createTransientState)>;
+def IncludesTransientState : Constraint<CPred<"$_self.hasNestedAwait()">, "nested await">;
 
-// You could potentially implement a pattern such as
-// if(true) { ... blah } => blah
+def createTransientState : NativeCodeCall<"createTransientState($_builder)">;
+def : Pat<(ProcessOp SymbolNameAttr:$symbol, TypeAttr:$type), (createTransientState)>;
+
 
 #endif // PCC_PATTERNS

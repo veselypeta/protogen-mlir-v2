@@ -180,6 +180,7 @@ def ProcessOp : PCC_Op<"process", [FunctionLike, NoTerminator]>{
     let extraClassDeclaration = [{
 //        static ProcessOp create(Location loc, ProcessType type);
 //        ProcessType getProcType();
+    bool hasNestedAwait();
     private:
         // This trait needs access to the hooks defined below.
         friend class OpTrait::FunctionLike<ProcessOp>;

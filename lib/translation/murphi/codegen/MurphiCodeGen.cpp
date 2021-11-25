@@ -232,22 +232,16 @@ void to_json(json &j, const ProcCall &fn) {
        {"statement", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
 }
 
-void to_json(json &j, const CaseStmt &caseStmt){
-  j = {
-    {"expr", caseStmt.expr},
-    {"statements", caseStmt.statements}
-  };
+void to_json(json &j, const CaseStmt &caseStmt) {
+  j = {{"expr", caseStmt.expr}, {"statements", caseStmt.statements}};
 }
 
-void to_json(json &j, const SwitchStmt &sw){
-  j = {
-    {"typeId", "switch"},
-    {"statement", {
-                        {"expr", sw.expr},
-                        {"cases", sw.cases},
-                        {"elseStatements", sw.elseStatements}
-                    }}
-  };
+void to_json(json &j, const SwitchStmt &sw) {
+  j = {{"typeId", "switch"},
+       {"statement",
+        {{"expr", sw.expr},
+         {"cases", sw.cases},
+         {"elseStatements", sw.elseStatements}}}};
 }
 
 void to_json(json &j, const detail::MachineHandler &mh) {
@@ -276,18 +270,15 @@ void to_json(json &j, const detail::MachineHandler &mh) {
 
   // alias 2 -> cle: i_directory[m][adr]
   auto rhsalias = DesignatorExpr<Designator<ExprID>, ExprID>{
-      {mach_prefix_v+mh.machId, "array", {c_mach}},
-      "array",
-      {{c_adr}}
-  };
+      {mach_prefix_v + mh.machId, "array", {c_mach}}, "array", {{c_adr}}};
   auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias};
 
   /*
    * Switch Statement
    */
 
-  auto switch_stmt = detail::SwitchStmt{Designator<ExprID>{cle_a, "object", {c_state}}};
-
+  auto switch_stmt =
+      detail::SwitchStmt{Designator<ExprID>{cle_a, "object", {c_state}}};
 
   cle_alias.statements.emplace_back(switch_stmt);
   adr_alias.statements.emplace_back(cle_alias);
@@ -299,6 +290,31 @@ void to_json(json &j, const detail::MachineHandler &mh) {
          {"returnType", detail::ID{detail::bool_t}},
          {"forwardDecls", {msg_fwd_decl}},
          {"statements", {adr_alias}}}}};
+}
+
+/*** CPU Event Handler ***/
+
+void to_json(json &j, const CPUEventHandler &cpuEventHandler) {
+
+  /*
+   * Params
+   */
+  auto adr_param = Formal<ID>{c_adr, {ss_address_t}};
+  auto cache_param = Formal<ID>{c_mach, {SetKey + machines.cache.str()}};
+
+  /*
+   * Forward Decls
+   */
+  auto msg_fwd_decl = detail::ForwardDecl<detail::VarDecl<detail::ID>>{
+      "var", {c_msg, {r_message_t}}};
+
+
+  j = {{"procType", "procedure"},
+       {"def",
+        {{"id", cpu_action_pref_f + cpuEventHandler.start_state},
+         {"params", {adr_param, cache_param}},
+         {"forwardDecls", {msg_fwd_decl}},
+         {"statements", cpuEventHandler.statements}}}};
 }
 
 /*

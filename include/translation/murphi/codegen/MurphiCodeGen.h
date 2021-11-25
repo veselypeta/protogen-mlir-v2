@@ -168,6 +168,7 @@ constexpr char cl_mutex_v[] = "cl_mutex";
 constexpr char aq_mut_f[] = "Acquire_Mutex";
 constexpr char rel_mut_f[] = "Release_Mutex";
 constexpr char send_pref_f[] = "Send_";
+constexpr auto cpu_action_pref_f = "SEND_";
 constexpr char excess_messages_err[] = "Too many messages!";
 constexpr char pop_pref_f[] = "Pop_";
 constexpr char ordered_pop_err[] = "Trying to advance empty Q";
@@ -563,6 +564,14 @@ struct MachineHandler{
 };
 
 void to_json(json &j, const MachineHandler &mh);
+
+
+struct CPUEventHandler{
+  std::string start_state;
+  std::vector<json> statements;
+};
+
+void to_json(json &j, const CPUEventHandler &cpuEventHandler);
 
 /*
  * Helper Generating Functions
