@@ -335,6 +335,17 @@ void to_json(json &j, const SimpleRule &sr){
   };
 }
 
+///*** RuleSet ***///
+void to_json(json &j, const RuleSet &rs){
+  j = {
+      {"typeId", "ruleset"},
+      {"rule", {
+                   {"quantifiers", rs.quantifiers},
+                   {"rules", rs.rules}
+               }}
+  };
+}
+
 /*
  * Network Decl helper
  */

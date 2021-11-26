@@ -1,6 +1,5 @@
 rule "{{ ruleDesc }}"
     {{ render_template("expression.tmpl", expr) }}
-
 ==>
 {% if exists("decls") and length(decls) > 0 %}
 {% for decl in decls %}

@@ -587,6 +587,14 @@ struct SimpleRule{
 void to_json(json &j, const SimpleRule &sr);
 
 
+struct RuleSet{
+  std::vector<json> quantifiers;
+  std::vector<json> rules;
+};
+
+void to_json(json &j, const RuleSet &rs);
+
+
 /*
  * Helper Generating Functions
  */

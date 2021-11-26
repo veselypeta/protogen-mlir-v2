@@ -1,4 +1,5 @@
 {
+    "$ref": "#/definitions/RuleDescription",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
         "AliasStmt": {
@@ -621,6 +622,67 @@
             "title": "Quantifier",
             "type": "object"
         },
+        "Rule": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/SimpleRule"
+                },
+                {
+                    "$ref": "#/definitions/RuleSet"
+                }
+            ],
+            "title": "Rule"
+        },
+        "RuleDescription": {
+            "properties": {
+                "rule": {
+                    "$ref": "#/definitions/Rule",
+                    "title": "rule"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/RuleType",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "rule",
+                "typeId"
+            ],
+            "title": "RuleDescription",
+            "type": "object"
+        },
+        "RuleSet": {
+            "properties": {
+                "quantifiers": {
+                    "items": {
+                        "$ref": "#/definitions/Quantifier"
+                    },
+                    "title": "quantifiers",
+                    "type": "array"
+                },
+                "rules": {
+                    "items": {
+                        "$ref": "#/definitions/RuleDescription"
+                    },
+                    "title": "rules",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "quantifiers",
+                "rules"
+            ],
+            "title": "RuleSet",
+            "type": "object"
+        },
+        "RuleType": {
+            "enum": [
+                "ruleset",
+                "simple_rule"
+            ],
+            "title": "RuleType",
+            "type": "string"
+        },
         "ScalarsetType": {
             "properties": {
                 "type": {
@@ -858,24 +920,6 @@
             "title": "VarDecl",
             "type": "object"
         }
-    },
-    "properties": {
-        "rule": {
-            "$ref": "#/definitions/SimpleRule",
-            "title": "rule"
-        },
-        "typeId": {
-            "enum": [
-                "simple_rule"
-            ],
-            "title": "typeId",
-            "type": "string"
-        }
-    },
-    "required": [
-        "rule",
-        "typeId"
-    ],
-    "type": "object"
+    }
 }
 

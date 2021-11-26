@@ -2,3 +2,6 @@
 {% if typeId == "simple_rule" %}
 {{ render_template("simple_rule.tmpl", rule) }}
 {% endif %}
+{% if typeId == "ruleset" %}
+{{ render_template("ruleset.tmpl", rule) }}
+{% endif %}

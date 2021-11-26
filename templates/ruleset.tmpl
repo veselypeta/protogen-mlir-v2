@@ -1,0 +1,7 @@
+{# Expects a RuleSet Object #}
+ruleset {% for quant in quantifiers %}{% if loop.is_first %}{{ render_template("quantifier.tmpl", quant) }}{% else %}; {{ render_template("quantifier.tmpl", quant) }}{% endif %}{% endfor %}
+ do
+{% for rule in rules %}
+{{ render_template("rule.tmpl", rule, 1) }}
+{% endfor %}
+endruleset;
