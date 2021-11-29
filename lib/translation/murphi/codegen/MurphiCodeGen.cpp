@@ -243,7 +243,7 @@ void to_json(json &j, const SwitchStmt &sw) {
          {"cases", sw.cases},
          {"elseStatements", sw.elseStatements}}}};
 }
-
+///*** Machine Handler ***///
 void to_json(json &j, const detail::MachineHandler &mh) {
   /*
    * Parameters
@@ -308,13 +308,48 @@ void to_json(json &j, const CPUEventHandler &cpuEventHandler) {
   auto msg_fwd_decl = detail::ForwardDecl<detail::VarDecl<detail::ID>>{
       "var", {c_msg, {r_message_t}}};
 
+  /*
+   * Alias Stmt
+   */
+  // alias cle: i_cache[m][adr]
+  auto alias_expr = DesignatorExpr<Designator<ExprID>, ExprID>{
+      {mach_prefix_v + machines.cache.str(), "array", {c_mach}},
+      "array",
+      {c_adr}};
+  auto alias_stmt = AliasStmt<decltype(alias_expr)>{cle_a, alias_expr, cpuEventHandler.statements};
 
   j = {{"procType", "procedure"},
        {"def",
         {{"id", cpu_action_pref_f + cpuEventHandler.start_state},
          {"params", {adr_param, cache_param}},
          {"forwardDecls", {msg_fwd_decl}},
-         {"statements", cpuEventHandler.statements}}}};
+         {"statements", {alias_stmt}}}}};
+}
+
+///*** Cache Event Handler ***///
+void to_json(json &j, const CacheRuleHandler &ceh) {
+  /*
+   * Quantifiers
+   */
+
+  // Q1 -> m:OBJSET_cache
+  auto q1 = ForEachQuantifier<ID>{c_mach, {SetKey + machines.cache.str()}};
+
+  // Q2 -> adr:Address
+  auto q2 = ForEachQuantifier<ID>{c_adr, {ss_address_t}};
+
+  /*
+   * Alias(s)
+   */
+  // A1 --> alias cle:i_cache[m][adr]
+  auto alias_expr = DesignatorExpr<Designator<ExprID>, ExprID>{
+      {mach_prefix_v + machines.cache.str(), "array", {c_mach}},
+      "array",
+      {c_adr}};
+  auto alias_rule = AliasRule{cle_a, alias_expr, ceh.rules};
+
+  j = {{"typeId", "ruleset"},
+       {"rule", {{"quantifiers", {q1, q2}}, {"rules", {alias_rule}}}}};
 }
 
 /*
@@ -323,27 +358,25 @@ void to_json(json &j, const CPUEventHandler &cpuEventHandler) {
 
 /// *** SIMPLE RULE ***///
 
-void to_json(json &j, const SimpleRule &sr){
-  j = {
-    {"typeId", "simple_rule"},
-      {"rule", {
-                   {"ruleDesc", sr.ruleDesc},
-                   {"expr", sr.expr},
-                   {"decls", sr.decls},
-                   {"statements", sr.statements}
-               }}
-  };
+void to_json(json &j, const SimpleRule &sr) {
+  j = {{"typeId", "simple_rule"},
+       {"rule",
+        {{"ruleDesc", sr.ruleDesc},
+         {"expr", sr.expr},
+         {"decls", sr.decls},
+         {"statements", sr.statements}}}};
 }
 
 ///*** RuleSet ***///
-void to_json(json &j, const RuleSet &rs){
-  j = {
-      {"typeId", "ruleset"},
-      {"rule", {
-                   {"quantifiers", rs.quantifiers},
-                   {"rules", rs.rules}
-               }}
-  };
+void to_json(json &j, const RuleSet &rs) {
+  j = {{"typeId", "ruleset"},
+       {"rule", {{"quantifiers", rs.quantifiers}, {"rules", rs.rules}}}};
+}
+
+///*** AliasRule ***///
+void to_json(json &j, const AliasRule &ar) {
+  j = {{"typeId", "alias_rule"},
+       {"rule", {{"id", ar.id}, {"expr", ar.expr}, {"rules", ar.rules}}}};
 }
 
 /*
@@ -748,6 +781,8 @@ void MurphiCodeGen::_generateMsgFactories() {
 void MurphiCodeGen::_generateHelperFunctions() {
   _generateMutexHelpers();
   _generateSendPopFunctions();
+  _generateMachineHandlers();
+  _generateCPUEventHandlers();
 }
 
 void MurphiCodeGen::_generateMutexHelpers() {
@@ -811,7 +846,39 @@ void MurphiCodeGen::_generateSendPopFunctions() {
  * Machine Handlers
  */
 
-void MurphiCodeGen::_generateMachineHandlers() {}
+void MurphiCodeGen::_generateMachineHandlers() {
+  // cache
+  // TODO - generate the inner states
+
+  auto cacheHandler = detail::MachineHandler{detail::machines.cache.str(), {}};
+  data["proc_decls"].push_back(cacheHandler);
+
+  // directory
+  // TODO - generate directory inner states
+  auto directoryHandler =
+      detail::MachineHandler{detail::machines.directory.str(), {}};
+  data["proc_decls"].push_back(directoryHandler);
+}
+
+/*
+ * CPU Event Handler
+ */
+
+void MurphiCodeGen::_generateCPUEventHandlers() {
+  // For Each stable state generate CPU Event handlers for load/store/evict
+  // I -> Special state -> NO EVICT
+  auto stableStates = std::vector<std::string>{"cache_I", "cache_S", "cache_M"};
+
+  for (auto &ss : stableStates) {
+    for (auto &cpu_event : detail::cpu_events) {
+      if (cpu_event != "evict" || ss != "cache_I") {
+        auto cpu_event_handler =
+            detail::CPUEventHandler{ss + "_" + cpu_event.str(), {}};
+        data["proc_decls"].push_back(cpu_event_handler);
+      }
+    }
+  }
+}
 
 /*
  * Rules

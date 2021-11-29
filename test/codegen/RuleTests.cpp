@@ -76,6 +76,41 @@ TEST(RuleTests, RuleSet) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
 
+  //  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(RuleTests, AliasRule) {
+  // basic simple rule
+  auto start_state = "cache_I_load";
+  auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
+  auto equal_expr =
+      detail::BinaryExpr<detail::Designator<detail::ExprID>, detail::ExprID>{
+          {detail::cle_a, "object", {detail::c_state}},
+          {"cache_I"},
+          detail::BinaryOps.eq};
+  auto proc_call = detail::ProcCall{
+      std::string(detail::send_pref_f) + start_state,
+      {detail::ExprID{detail::c_adr}, detail::ExprID{detail::c_mach}}};
+
+  simpleRule.expr = equal_expr;
+  simpleRule.statements.emplace_back(proc_call);
+
+  auto alias_rule = detail::AliasRule{
+      "my_alias", detail::ExprID{"expr_to_be_aliased"}, {simpleRule}};
+
+  json data = alias_rule;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+
 //  EXPECT_STREQ("", result.c_str());
   EXPECT_FALSE(result.empty());
 }

@@ -5,3 +5,6 @@
 {% if typeId == "ruleset" %}
 {{ render_template("ruleset.tmpl", rule) }}
 {% endif %}
+{% if typeId == "alias_rule" %}
+{{ render_template("alias_rule.tmpl", rule) }}
+{% endif %}

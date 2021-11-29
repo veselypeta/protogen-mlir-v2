@@ -152,13 +152,19 @@ constexpr struct {
   const llvm::StringRef dir_decl = "pcc.directory_decl";
 } opStringMap;
 
+// cpu events
+constexpr auto cpu_events =
+    std::array<llvm::StringRef, 3>{"load", "store", "evict"};
+
 /*
  * VAR_DECL constants
  */
 constexpr char mach_prefix_v[] = "i_";
 static std::string cache_v() { return mach_prefix_v + machines.cache.str(); }
 
-static std::string directory_v() { return mach_prefix_v + machines.directory.str(); }
+static std::string directory_v() {
+  return mach_prefix_v + machines.directory.str();
+}
 
 constexpr char cl_mutex_v[] = "cl_mutex";
 
@@ -429,91 +435,64 @@ template <class T> struct ForStmt {
   std::vector<json> stmts;
 };
 
-template <class T>
-void to_json(json &j, const ForStmt<T> &forStmt){
-  j = {
-      {"typeId", "for"},
-      {"statement", {
-                        {"quantifier", forStmt.quantifier},
-                        {"statements", forStmt.stmts}
-                    }}
-  };
+template <class T> void to_json(json &j, const ForStmt<T> &forStmt) {
+  j = {{"typeId", "for"},
+       {"statement",
+        {{"quantifier", forStmt.quantifier}, {"statements", forStmt.stmts}}}};
 }
 
-template <class T>
-struct IfStmt{
+template <class T> struct IfStmt {
   T expr;
   std::vector<json> thenStmts;
   std::vector<json> elseStmts;
 };
 
-template <class T>
-void to_json(json &j, const IfStmt<T> &ifStmt){
-  j = {
-    {"typeId", "if"},
-      {"statement", {
-                        {"expr", ifStmt.expr},
-                        {"thenStatements", ifStmt.thenStmts}
-                    }}
-  };
-  if(!ifStmt.elseStmts.empty()){
+template <class T> void to_json(json &j, const IfStmt<T> &ifStmt) {
+  j = {{"typeId", "if"},
+       {"statement",
+        {{"expr", ifStmt.expr}, {"thenStatements", ifStmt.thenStmts}}}};
+  if (!ifStmt.elseStmts.empty()) {
     j["statement"]["elseStatements"] = ifStmt.elseStmts;
   }
 }
 
+template <class T> struct UndefineStmt { T value; };
 
-template <class T>
-struct UndefineStmt{
-  T value;
-};
-
-template <class T>
-void to_json(json &j, const UndefineStmt<T> &uds){
+template <class T> void to_json(json &j, const UndefineStmt<T> &uds) {
   j = {
-    {"typeId", "undefine"},
-    {"statement", {
-                      {"value", uds.value}
-                  }},
+      {"typeId", "undefine"},
+      {"statement", {{"value", uds.value}}},
   };
 }
 
-template <class T>
-struct AliasStmt{
+template <class T> struct AliasStmt {
   std::string alias;
   T expr;
   std::vector<json> statements;
 };
 
-template <class T>
-void to_json(json &j, const AliasStmt<T> &as){
-  j = {
-      {"typeId", "alias"},
-      {"statement", {
-                        {"alias", as.alias},
-                        {"expr", as.expr},
-                        {"statements", as.statements}
-                    }}
-  };
+template <class T> void to_json(json &j, const AliasStmt<T> &as) {
+  j = {{"typeId", "alias"},
+       {"statement",
+        {{"alias", as.alias},
+         {"expr", as.expr},
+         {"statements", as.statements}}}};
 }
 
-
-struct CaseStmt{
+struct CaseStmt {
   json expr;
   std::vector<json> statements;
 };
 
 void to_json(json &j, const CaseStmt &caseStmt);
 
-struct SwitchStmt{
+struct SwitchStmt {
   json expr;
   std::vector<CaseStmt> cases;
   std::vector<json> elseStatements;
 };
 
 void to_json(json &j, const SwitchStmt &sw);
-
-
-
 
 // *** specific cases
 
@@ -534,20 +513,19 @@ struct OrderedPopFunction {
 
 void to_json(json &j, const OrderedPopFunction &opf);
 
-struct UnorderedSendFunction{
+struct UnorderedSendFunction {
   std::string netId;
 };
-void to_json(json &j, const UnorderedSendFunction& usf);
+void to_json(json &j, const UnorderedSendFunction &usf);
 
-
-struct MultisetCount{
+struct MultisetCount {
   std::string varId;
   json varValue;
   json predicate;
 };
 void to_json(json &j, const MultisetCount &ms);
 
-struct ProcCall{
+struct ProcCall {
   std::string funId;
   std::vector<json> actuals;
 };
@@ -558,26 +536,31 @@ void to_json(json &j, const ProcCall &fn);
  * Machine Handler
  */
 
-struct MachineHandler{
+struct MachineHandler {
   std::string machId;
   std::vector<json> statements;
 };
 
 void to_json(json &j, const MachineHandler &mh);
 
-
-struct CPUEventHandler{
+struct CPUEventHandler {
   std::string start_state;
   std::vector<json> statements;
 };
 
 void to_json(json &j, const CPUEventHandler &cpuEventHandler);
 
+struct CacheRuleHandler {
+  std::vector<json> rules;
+};
+
+void to_json(json &j, const CacheRuleHandler &crh);
+
 /*
  * Rule States
  */
 
-struct SimpleRule{
+struct SimpleRule {
   std::string ruleDesc;
   json expr;
   std::vector<json> decls;
@@ -586,14 +569,20 @@ struct SimpleRule{
 
 void to_json(json &j, const SimpleRule &sr);
 
-
-struct RuleSet{
+struct RuleSet {
   std::vector<json> quantifiers;
   std::vector<json> rules;
 };
 
 void to_json(json &j, const RuleSet &rs);
 
+struct AliasRule {
+  std::string id;
+  json expr;
+  std::vector<json> rules;
+};
+
+void to_json(json &j, const AliasRule &ar);
 
 /*
  * Helper Generating Functions
@@ -665,6 +654,7 @@ private:
   void _generateSendPopFunctions();
 
   void _generateMachineHandlers();
+  void _generateCPUEventHandlers();
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

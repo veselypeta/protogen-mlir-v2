@@ -228,8 +228,8 @@ interface StatementDescription {
 Rules
  */
 
-type Rule = SimpleRule | RuleSet;
-type RuleType = "simple_rule" | "ruleset";
+type Rule = SimpleRule | RuleSet | AliasRule;
+type RuleType = "simple_rule" | "ruleset" | "alias_rule";
 
 interface RuleDescription{
     typeId: RuleType;
@@ -245,6 +245,12 @@ interface SimpleRule{
 
 interface RuleSet{
     quantifiers: Quantifier[];
+    rules: RuleDescription[];
+}
+
+interface AliasRule{
+    id: ID;
+    expr: ExpressionDescription;
     rules: RuleDescription[];
 }
 

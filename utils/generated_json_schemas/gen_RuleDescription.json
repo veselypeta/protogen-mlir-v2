@@ -2,6 +2,32 @@
     "$ref": "#/definitions/RuleDescription",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
+        "AliasRule": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "rules": {
+                    "items": {
+                        "$ref": "#/definitions/RuleDescription"
+                    },
+                    "title": "rules",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "expr",
+                "id",
+                "rules"
+            ],
+            "title": "AliasRule",
+            "type": "object"
+        },
         "AliasStmt": {
             "properties": {
                 "alias": {
@@ -629,6 +655,9 @@
                 },
                 {
                     "$ref": "#/definitions/RuleSet"
+                },
+                {
+                    "$ref": "#/definitions/AliasRule"
                 }
             ],
             "title": "Rule"
@@ -677,6 +706,7 @@
         },
         "RuleType": {
             "enum": [
+                "alias_rule",
                 "ruleset",
                 "simple_rule"
             ],

@@ -1,0 +1,6 @@
+{# expects an AliasRule type object #}
+alias {{ id }}:{{ render_template("expression.tmpl", expr) }} do
+{% for rule in rules %}
+{{ render_template("rule.tmpl", rule, 1) }}
+{% endfor %}
+endalias;
