@@ -67,11 +67,30 @@ TEST(CacheRuleHandler, BasicTest) {
   auto result = env.render(tmpl, data);
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_RuleDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
 
-//  EXPECT_STREQ("", result.c_str());
+  //  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(CPUEventRuleTest, BasicTest) {
+
+  auto cpuEventRule = detail::CPUEventRule{"state_I", "evict"};
+  json data = cpuEventRule;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+
+  //  EXPECT_STREQ("", result.c_str());
   EXPECT_FALSE(result.empty());
 }

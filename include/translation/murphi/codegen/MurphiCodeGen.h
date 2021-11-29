@@ -556,6 +556,13 @@ struct CacheRuleHandler {
 
 void to_json(json &j, const CacheRuleHandler &crh);
 
+
+struct CPUEventRule {
+  std::string state;
+  std::string event;
+};
+
+void to_json(json &j, const CPUEventRule &er);
 /*
  * Rule States
  */
@@ -601,6 +608,7 @@ public:
     // initialize decls
     data["decls"] = json::object();
     data["proc_decls"] = json::array();
+    data["rules"] = json::array();
   }
 
   mlir::LogicalResult translate();
@@ -655,6 +663,11 @@ private:
 
   void _generateMachineHandlers();
   void _generateCPUEventHandlers();
+
+  /*
+   * Rules
+   */
+  void _generateCacheRuleHandler();
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

@@ -316,7 +316,8 @@ void to_json(json &j, const CPUEventHandler &cpuEventHandler) {
       {mach_prefix_v + machines.cache.str(), "array", {c_mach}},
       "array",
       {c_adr}};
-  auto alias_stmt = AliasStmt<decltype(alias_expr)>{cle_a, alias_expr, cpuEventHandler.statements};
+  auto alias_stmt = AliasStmt<decltype(alias_expr)>{cle_a, alias_expr,
+                                                    cpuEventHandler.statements};
 
   j = {{"procType", "procedure"},
        {"def",
@@ -350,6 +351,17 @@ void to_json(json &j, const CacheRuleHandler &ceh) {
 
   j = {{"typeId", "ruleset"},
        {"rule", {{"quantifiers", {q1, q2}}, {"rules", {alias_rule}}}}};
+}
+
+//*** CPUEventRule ***///
+void to_json(json &j, const CPUEventRule &er) {
+  auto ruleDesc = er.state + "_" + er.event;
+  auto ruleExpr = BinaryExpr<Designator<ExprID>, ExprID>{
+      {cle_a, "object", {c_state}}, {er.state}, BinaryOps.eq};
+  auto ruleStatement =
+      ProcCall{cpu_action_pref_f + ruleDesc, {ExprID{adr_a}, ExprID{c_mach}}};
+
+  j = SimpleRule{ruleDesc, ruleExpr, {}, {ruleStatement}};
 }
 
 /*
@@ -884,5 +896,22 @@ void MurphiCodeGen::_generateCPUEventHandlers() {
  * Rules
  */
 
-void MurphiCodeGen::generateRules() {}
+void MurphiCodeGen::generateRules() { _generateCacheRuleHandler(); }
+
+void MurphiCodeGen::_generateCacheRuleHandler() {
+  detail::CacheRuleHandler cacheRuleHandler;
+  const auto stableStates =
+      std::vector<std::string>{"cache_I", "cache_S", "cache_M"};
+
+  for (auto &ss : stableStates) {
+    for (auto cpu_event : detail::cpu_events) {
+      if (cpu_event != "evict" || ss != "cache_I") {
+        auto cpuEventRule = detail::CPUEventRule{ss, cpu_event.str()};
+        cacheRuleHandler.rules.emplace_back(std::move(cpuEventRule));
+      }
+    }
+  }
+  data["rules"].push_back(std::move(cacheRuleHandler));
+}
+
 } // namespace murphi

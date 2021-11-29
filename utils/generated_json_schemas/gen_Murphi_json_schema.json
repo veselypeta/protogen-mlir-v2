@@ -1,6 +1,32 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
+        "AliasRule": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "rules": {
+                    "items": {
+                        "$ref": "#/definitions/RuleDescription"
+                    },
+                    "title": "rules",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "expr",
+                "id",
+                "rules"
+            ],
+            "title": "AliasRule",
+            "type": "object"
+        },
         "AliasStmt": {
             "properties": {
                 "alias": {
@@ -747,6 +773,67 @@
             "title": "Quantifier",
             "type": "object"
         },
+        "RuleDescription": {
+            "properties": {
+                "rule": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/SimpleRule"
+                        },
+                        {
+                            "$ref": "#/definitions/RuleSet"
+                        },
+                        {
+                            "$ref": "#/definitions/AliasRule"
+                        }
+                    ],
+                    "title": "rule"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/RuleType",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "rule",
+                "typeId"
+            ],
+            "title": "RuleDescription",
+            "type": "object"
+        },
+        "RuleSet": {
+            "properties": {
+                "quantifiers": {
+                    "items": {
+                        "$ref": "#/definitions/Quantifier"
+                    },
+                    "title": "quantifiers",
+                    "type": "array"
+                },
+                "rules": {
+                    "items": {
+                        "$ref": "#/definitions/RuleDescription"
+                    },
+                    "title": "rules",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "quantifiers",
+                "rules"
+            ],
+            "title": "RuleSet",
+            "type": "object"
+        },
+        "RuleType": {
+            "enum": [
+                "alias_rule",
+                "ruleset",
+                "simple_rule"
+            ],
+            "title": "RuleType",
+            "type": "string"
+        },
         "ScalarsetType": {
             "properties": {
                 "type": {
@@ -761,6 +848,39 @@
                 "type"
             ],
             "title": "ScalarsetType",
+            "type": "object"
+        },
+        "SimpleRule": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "$ref": "#/definitions/FwdDecl"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                },
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "ruleDesc": {
+                    "title": "ruleDesc",
+                    "type": "string"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "expr",
+                "ruleDesc",
+                "statements"
+            ],
+            "title": "SimpleRule",
             "type": "object"
         },
         "StatementDescription": {
@@ -986,11 +1106,19 @@
             },
             "title": "proc_decls",
             "type": "array"
+        },
+        "rules": {
+            "items": {
+                "$ref": "#/definitions/RuleDescription"
+            },
+            "title": "rules",
+            "type": "array"
         }
     },
     "required": [
         "decls",
-        "proc_decls"
+        "proc_decls",
+        "rules"
     ],
     "type": "object"
 }

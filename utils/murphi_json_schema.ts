@@ -262,5 +262,5 @@ interface Murphi_json_schema {
         var_decls?: VarDecl[];
     };
     proc_decls: ProcDecl[];
-
+    rules: RuleDescription[];
 }

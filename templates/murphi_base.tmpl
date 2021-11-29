@@ -26,3 +26,10 @@
         {{- render_template("proc_decl.tmpl", procDecl) }}
     {%- endfor %}
 {% endif %}
+
+{# Render all the rules #}
+{% if exists("rules") %}
+{% for rule in rules %}
+{{ render_template("rule.tmpl", rule) }}
+{% endfor %}
+{% endif %}
