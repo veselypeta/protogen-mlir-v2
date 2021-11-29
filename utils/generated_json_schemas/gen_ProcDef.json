@@ -255,6 +255,9 @@
                 "expression": {
                     "anyOf": [
                         {
+                            "$ref": "#/definitions/ProcCall"
+                        },
+                        {
                             "$ref": "#/definitions/Designator"
                         },
                         {
@@ -290,7 +293,8 @@
                 "binary",
                 "designator",
                 "designator_expr",
-                "ms_count"
+                "ms_count",
+                "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"

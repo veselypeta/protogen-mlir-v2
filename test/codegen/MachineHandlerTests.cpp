@@ -94,3 +94,22 @@ TEST(CPUEventRuleTest, BasicTest) {
   //  EXPECT_STREQ("", result.c_str());
   EXPECT_FALSE(result.empty());
 }
+
+TEST(OrderedRuleset, BasicTest) {
+  auto ordRuleset = detail::OrderedRuleset{"fwd"};
+
+  json data = ordRuleset;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+
+//  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}

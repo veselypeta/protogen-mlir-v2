@@ -210,8 +210,8 @@ interface ProcCall{
 
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | DesignatorExpr | ID | MultisetCount | BinaryExpr;
-type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count";
+type Expression = Designator | DesignatorExpr | ID | MultisetCount | BinaryExpr | ProcCall;
+type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count" | "proc_call";
 
 interface ExpressionDescription {
     typeId: ExpressionType;

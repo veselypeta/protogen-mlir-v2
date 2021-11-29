@@ -185,6 +185,7 @@ constexpr char mach_handl_pref_f[] = "Func_";
  * Murphi Functions
  */
 constexpr char multiset_add_f[] = "MultisetAdd";
+constexpr auto is_member_f = "IsMember";
 
 /*
  * Helper Structs to generate JSON
@@ -532,6 +533,12 @@ struct ProcCall {
 
 void to_json(json &j, const ProcCall &fn);
 
+struct ProcCallExpr {
+  std::string funId;
+  std::vector<json> actuals;
+};
+
+void to_json(json &j, const ProcCallExpr &fn);
 /*
  * Machine Handler
  */
@@ -563,6 +570,13 @@ struct CPUEventRule {
 };
 
 void to_json(json &j, const CPUEventRule &er);
+
+struct OrderedRuleset{
+  std::string netId;
+};
+
+void to_json(json &j, const OrderedRuleset &orderedRuleset);
+
 /*
  * Rule States
  */
@@ -668,6 +682,7 @@ private:
    * Rules
    */
   void _generateCacheRuleHandler();
+  void _generateNetworkRules();
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

@@ -232,6 +232,11 @@ void to_json(json &j, const ProcCall &fn) {
        {"statement", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
 }
 
+void to_json(json &j, const ProcCallExpr &fn) {
+  j = {{"typeId", "proc_call"},
+       {"expression", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
+}
+
 void to_json(json &j, const CaseStmt &caseStmt) {
   j = {{"expr", caseStmt.expr}, {"statements", caseStmt.statements}};
 }
@@ -353,7 +358,7 @@ void to_json(json &j, const CacheRuleHandler &ceh) {
        {"rule", {{"quantifiers", {q1, q2}}, {"rules", {alias_rule}}}}};
 }
 
-//*** CPUEventRule ***///
+// *** CPUEventRule *** ///
 void to_json(json &j, const CPUEventRule &er) {
   auto ruleDesc = er.state + "_" + er.event;
   auto ruleExpr = BinaryExpr<Designator<ExprID>, ExprID>{
@@ -362,6 +367,55 @@ void to_json(json &j, const CPUEventRule &er) {
       ProcCall{cpu_action_pref_f + ruleDesc, {ExprID{adr_a}, ExprID{c_mach}}};
 
   j = SimpleRule{ruleDesc, ruleExpr, {}, {ruleStatement}};
+}
+
+// *** OrderedRuleset *** //
+void to_json(json &j, const OrderedRuleset &orderedRuleset) {
+  constexpr auto mach_q = "n";
+  /*
+   * Quantifier
+   */
+  // n:Machines
+  auto ruleset_quant = detail::ForEachQuantifier<ID>{mach_q, {e_machines_t}};
+
+  /*
+   * Alias
+   */
+  auto alias =
+      AliasRule{c_msg,
+                DesignatorExpr<Designator<ExprID>, ExprID>{
+                    {orderedRuleset.netId, "array", {mach_q}}, "array", {"0"}},
+                {}};
+
+  /*
+   * Network Rule
+   */
+  constexpr auto net_rule_name_pref = "Receive ";
+  auto net_rule =
+      SimpleRule{net_rule_name_pref + orderedRuleset.netId,
+                 BinaryExpr<Designator<ExprID>, ExprID>{
+                     {CntKey + orderedRuleset.netId, "array", {mach_q}},
+                     {"0"},
+                     BinaryOps.grtr_than}};
+
+  auto get_inner = [&](const std::string &mach) -> json {
+    return IfStmt<ProcCallExpr>{
+        {mach_handl_pref_f + mach, {ExprID{c_msg}, ExprID{mach_q}}},
+        {ProcCall{pop_pref_f + orderedRuleset.netId, {ExprID{mach_q}}}},
+        {}};
+  };
+
+  /*
+   * Call Correct Machine Handler
+   */
+  auto if_member = IfStmt<ProcCallExpr>{
+      {is_member_f, {ExprID{mach_q}, ExprID{directory_set_t()}}},
+      {get_inner(machines.directory.str())},
+      {get_inner(machines.cache.str())}};
+
+  net_rule.statements.emplace_back(if_member);
+  alias.rules.emplace_back(net_rule);
+  j = detail::RuleSet{{ruleset_quant}, {alias}};
 }
 
 /*
@@ -896,7 +950,10 @@ void MurphiCodeGen::_generateCPUEventHandlers() {
  * Rules
  */
 
-void MurphiCodeGen::generateRules() { _generateCacheRuleHandler(); }
+void MurphiCodeGen::generateRules() {
+  _generateCacheRuleHandler();
+  _generateNetworkRules();
+}
 
 void MurphiCodeGen::_generateCacheRuleHandler() {
   detail::CacheRuleHandler cacheRuleHandler;
@@ -912,6 +969,15 @@ void MurphiCodeGen::_generateCacheRuleHandler() {
     }
   }
   data["rules"].push_back(std::move(cacheRuleHandler));
+}
+
+void MurphiCodeGen::_generateNetworkRules() {
+  auto networks = moduleInterpreter.getNetworks();
+  for (auto &nw : networks) {
+    if (nw.getType().getOrdering() == "ordered") {
+      data["rules"].push_back(detail::OrderedRuleset{nw.netId().str()});
+    }
+  }
 }
 
 } // namespace murphi

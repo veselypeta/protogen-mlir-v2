@@ -146,3 +146,21 @@ TEST(ExpressionTests, MultisetCountTest){
   ASSERT_TRUE(is_valid);
 
 }
+
+TEST(ExpressionTests, ProcCallExpr){
+  detail::ProcCallExpr procCallExpr{"my_func", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}};
+
+  json data = procCallExpr;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "my_func(param1, param2)");
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+
+}

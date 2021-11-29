@@ -82,6 +82,12 @@ def NetDeclOp : PCC_Op<"net_decl">{
     let assemblyFormat = [{
         attr-dict `:` type($result)
     }];
+    let extraClassDeclaration = [{
+    StringRef netOrdering(){
+        return getType().getOrdering();
+    }
+
+    }];
     // TODO - Add a method to get the type of network (ordered/unordered)
 }
 

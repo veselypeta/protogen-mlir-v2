@@ -131,6 +131,9 @@
                 "expression": {
                     "anyOf": [
                         {
+                            "$ref": "#/definitions/ProcCall"
+                        },
+                        {
                             "$ref": "#/definitions/Designator"
                         },
                         {
@@ -166,7 +169,8 @@
                 "binary",
                 "designator",
                 "designator_expr",
-                "ms_count"
+                "ms_count",
+                "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"
@@ -192,6 +196,27 @@
                 "varValue"
             ],
             "title": "MultisetCount",
+            "type": "object"
+        },
+        "ProcCall": {
+            "properties": {
+                "actuals": {
+                    "items": {
+                        "$ref": "#/definitions/ExpressionDescription"
+                    },
+                    "title": "actuals",
+                    "type": "array"
+                },
+                "funId": {
+                    "title": "funId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "actuals",
+                "funId"
+            ],
+            "title": "ProcCall",
             "type": "object"
         }
     }

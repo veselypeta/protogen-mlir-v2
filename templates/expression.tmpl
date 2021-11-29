@@ -14,3 +14,6 @@
 {% if typeId=="ms_count"%}
 MultisetCount({{ expression.varId }}:{{ render_template("expression.tmpl", expression.varValue) }}, {{ render_template("expression.tmpl", expression.predicate) }}){# -#}
 {% endif %}
+{% if typeId=="proc_call" %}
+{{ expression.funId }}({% for act in expression.actuals %}{% if loop.is_first %}{{ render_template("expression.tmpl", act)}}{% else %}, {{ render_template("expression.tmpl", act) }}{% endif %}{% endfor %}){# -#}
+{% endif %}
