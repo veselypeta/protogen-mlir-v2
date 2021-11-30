@@ -158,6 +158,9 @@
                             "$ref": "#/definitions/BinaryExpr"
                         },
                         {
+                            "$ref": "#/definitions/NegExpr"
+                        },
+                        {
                             "$ref": "#/definitions/MultisetCount"
                         },
                         {
@@ -185,6 +188,7 @@
                 "designator",
                 "designator_expr",
                 "ms_count",
+                "neg_expr",
                 "proc_call"
             ],
             "title": "ExpressionType",
@@ -391,6 +395,19 @@
             ],
             "title": "MurphiTypeId",
             "type": "string"
+        },
+        "NegExpr": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "expr"
+            ],
+            "title": "NegExpr",
+            "type": "object"
         },
         "ProcCall": {
             "properties": {

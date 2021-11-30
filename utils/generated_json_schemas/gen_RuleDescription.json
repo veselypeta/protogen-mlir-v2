@@ -152,6 +152,32 @@
             "title": "CaseStmt",
             "type": "object"
         },
+        "ChooseRule": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "index": {
+                    "title": "index",
+                    "type": "string"
+                },
+                "rules": {
+                    "items": {
+                        "$ref": "#/definitions/RuleDescription"
+                    },
+                    "title": "rules",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "expr",
+                "index",
+                "rules"
+            ],
+            "title": "ChooseRule",
+            "type": "object"
+        },
         "ConstDecl": {
             "properties": {
                 "id": {
@@ -286,6 +312,9 @@
                             "$ref": "#/definitions/BinaryExpr"
                         },
                         {
+                            "$ref": "#/definitions/NegExpr"
+                        },
+                        {
                             "$ref": "#/definitions/MultisetCount"
                         },
                         {
@@ -313,6 +342,7 @@
                 "designator",
                 "designator_expr",
                 "ms_count",
+                "neg_expr",
                 "proc_call"
             ],
             "title": "ExpressionType",
@@ -602,6 +632,19 @@
             "title": "MurphiTypeId",
             "type": "string"
         },
+        "NegExpr": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "expr"
+            ],
+            "title": "NegExpr",
+            "type": "object"
+        },
         "ProcCall": {
             "properties": {
                 "actuals": {
@@ -662,6 +705,9 @@
                 },
                 {
                     "$ref": "#/definitions/AliasRule"
+                },
+                {
+                    "$ref": "#/definitions/ChooseRule"
                 }
             ],
             "title": "Rule"
@@ -711,6 +757,7 @@
         "RuleType": {
             "enum": [
                 "alias_rule",
+                "choose_rule",
                 "ruleset",
                 "simple_rule"
             ],

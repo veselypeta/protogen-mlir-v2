@@ -143,6 +143,9 @@
                             "$ref": "#/definitions/BinaryExpr"
                         },
                         {
+                            "$ref": "#/definitions/NegExpr"
+                        },
+                        {
                             "$ref": "#/definitions/MultisetCount"
                         },
                         {
@@ -170,6 +173,7 @@
                 "designator",
                 "designator_expr",
                 "ms_count",
+                "neg_expr",
                 "proc_call"
             ],
             "title": "ExpressionType",
@@ -196,6 +200,19 @@
                 "varValue"
             ],
             "title": "MultisetCount",
+            "type": "object"
+        },
+        "NegExpr": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "expr"
+            ],
+            "title": "NegExpr",
             "type": "object"
         },
         "ProcCall": {

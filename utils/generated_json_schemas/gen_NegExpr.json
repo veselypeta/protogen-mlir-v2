@@ -1,5 +1,5 @@
 {
-    "$ref": "#/definitions/ExpressionDescription",
+    "$ref": "#/definitions/NegExpr",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
         "BinaryExpr": {
@@ -126,36 +126,32 @@
             "title": "DesignatorExpr",
             "type": "object"
         },
-        "Expression": {
-            "anyOf": [
-                {
-                    "$ref": "#/definitions/ProcCall"
-                },
-                {
-                    "$ref": "#/definitions/Designator"
-                },
-                {
-                    "$ref": "#/definitions/DesignatorExpr"
-                },
-                {
-                    "$ref": "#/definitions/BinaryExpr"
-                },
-                {
-                    "$ref": "#/definitions/NegExpr"
-                },
-                {
-                    "$ref": "#/definitions/MultisetCount"
-                },
-                {
-                    "type": "string"
-                }
-            ],
-            "title": "Expression"
-        },
         "ExpressionDescription": {
             "properties": {
                 "expression": {
-                    "$ref": "#/definitions/Expression",
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ProcCall"
+                        },
+                        {
+                            "$ref": "#/definitions/Designator"
+                        },
+                        {
+                            "$ref": "#/definitions/DesignatorExpr"
+                        },
+                        {
+                            "$ref": "#/definitions/BinaryExpr"
+                        },
+                        {
+                            "$ref": "#/definitions/NegExpr"
+                        },
+                        {
+                            "$ref": "#/definitions/MultisetCount"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
                     "title": "expression"
                 },
                 "typeId": {

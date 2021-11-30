@@ -185,7 +185,9 @@ constexpr char mach_handl_pref_f[] = "Func_";
  * Murphi Functions
  */
 constexpr char multiset_add_f[] = "MultisetAdd";
+constexpr auto multiset_remove_f = "MultiSetRemove";
 constexpr auto is_member_f = "IsMember";
+constexpr auto is_undefined_f = "isundefined";
 
 /*
  * Helper Structs to generate JSON
@@ -386,6 +388,12 @@ void to_json(json &j, const BinaryExpr<LHS, RHS> &binaryExpr) {
          {"op", binaryExpr.op}}}};
 }
 
+struct NegExpr{
+  json expr;
+};
+
+void to_json(json &j, const NegExpr &negExpr);
+
 // *** Statement Types
 
 // TODO - designator is allowed to have 0 or more {rhs}
@@ -577,6 +585,11 @@ struct OrderedRuleset{
 
 void to_json(json &j, const OrderedRuleset &orderedRuleset);
 
+struct UnorderedRuleset{
+  std::string netId;
+};
+
+void to_json(json &j, const UnorderedRuleset &urs);
 /*
  * Rule States
  */
@@ -604,6 +617,15 @@ struct AliasRule {
 };
 
 void to_json(json &j, const AliasRule &ar);
+
+struct ChooseRule{
+  std::string index;
+  json expr;
+  std::vector<json> rules;
+};
+
+void to_json(json &j, const ChooseRule &cr);
+
 
 /*
  * Helper Generating Functions

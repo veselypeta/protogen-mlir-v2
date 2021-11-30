@@ -17,3 +17,6 @@ MultisetCount({{ expression.varId }}:{{ render_template("expression.tmpl", expre
 {% if typeId=="proc_call" %}
 {{ expression.funId }}({% for act in expression.actuals %}{% if loop.is_first %}{{ render_template("expression.tmpl", act)}}{% else %}, {{ render_template("expression.tmpl", act) }}{% endif %}{% endfor %}){# -#}
 {% endif %}
+{% if typeId == "neg_expr" %}
+!{{ render_template("expression.tmpl", expression.expr) }}{# -#}
+{% endif %}

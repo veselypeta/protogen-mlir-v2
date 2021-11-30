@@ -1,0 +1,6 @@
+{# expects a ChooseRule object #}
+choose {{ index }} : {{ render_template("expression.tmpl", expr) }} do
+{% for rule in rules %}
+{{ render_template("rule.tmpl", rule, 1) }}
+{% endfor %}
+endchoose;

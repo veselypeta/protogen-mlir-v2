@@ -111,6 +111,27 @@ TEST(RuleTests, AliasRule) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
 
+  //  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(RuleTests, ChooseRule) {
+
+  auto chooseRule = detail::ChooseRule{
+      "i", detail::ExprID{"n"}, {detail::CPUEventRule{"start_state", "evict"}}};
+
+  json data = chooseRule;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+
 //  EXPECT_STREQ("", result.c_str());
   EXPECT_FALSE(result.empty());
 }

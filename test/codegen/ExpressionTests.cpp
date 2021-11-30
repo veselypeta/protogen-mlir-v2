@@ -7,7 +7,7 @@
 using namespace inja;
 using namespace murphi;
 
-TEST(ExpressionTests, ExprIdTest){
+TEST(ExpressionTests, ExprIdTest) {
 
   json data = detail::ExprID{"anID"};
 
@@ -18,8 +18,8 @@ TEST(ExpressionTests, ExprIdTest){
   ASSERT_STREQ(result.c_str(), "anID");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
@@ -36,16 +36,15 @@ TEST(ExpressionTests, DesignatorObjectType) {
   json des = detail::Designator<detail::ExprID>{"obj", "object", {"indx"}};
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, des);
   ASSERT_TRUE(is_valid);
 }
 
 TEST(ExpressionTests, DesignatorArrayType) {
-  json data = detail::Designator<detail::ExprID>{
-      "newObj", "array", {"arr_index"}
-  };
+  json data =
+      detail::Designator<detail::ExprID>{"newObj", "array", {"arr_index"}};
 
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("expression.tmpl");
@@ -54,21 +53,17 @@ TEST(ExpressionTests, DesignatorArrayType) {
   ASSERT_STREQ(result.c_str(), "newObj[arr_index]");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-TEST(ExpressionTests, DesignatorExprObjType){
+TEST(ExpressionTests, DesignatorExprObjType) {
   detail::Designator<detail::ExprID> designatorIdx{
-      "newObj", "array", {"arr_index"}
-  };
+      "newObj", "array", {"arr_index"}};
   detail::DesignatorExpr<decltype(designatorIdx), detail::ExprID> desExpr{
-      designatorIdx,
-      "object",
-      {"theIndex"}
-  };
+      designatorIdx, "object", {"theIndex"}};
   json data = desExpr;
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("expression.tmpl");
@@ -77,21 +72,17 @@ TEST(ExpressionTests, DesignatorExprObjType){
   ASSERT_STREQ(result.c_str(), "newObj[arr_index].theIndex");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-TEST(ExpressionTests, DesignatorExprArrType){
+TEST(ExpressionTests, DesignatorExprArrType) {
   detail::Designator<detail::ExprID> designatorIdx{
-      "newObj", "array", {"arr_index"}
-  };
+      "newObj", "array", {"arr_index"}};
   detail::DesignatorExpr<decltype(designatorIdx), detail::ExprID> desExpr{
-      designatorIdx,
-      "array",
-      {"next_idx"}
-  };
+      designatorIdx, "array", {"next_idx"}};
   json data = desExpr;
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("expression.tmpl");
@@ -100,19 +91,16 @@ TEST(ExpressionTests, DesignatorExprArrType){
   ASSERT_STREQ(result.c_str(), "newObj[arr_index][next_idx]");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-TEST(ExpressionTests, BinaryExpressionStrRef){
+TEST(ExpressionTests, BinaryExpressionStrRef) {
 
   json data = detail::BinaryExpr<detail::ExprID, detail::ExprID>{
-      {"my_lhs_value"},
-      {"my_rhs_value"},
-      detail::BinaryOps.n_eq
-  };
+      {"my_lhs_value"}, {"my_rhs_value"}, detail::BinaryOps.n_eq};
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("expression.tmpl");
   auto result = env.render(tmpl, data);
@@ -120,18 +108,15 @@ TEST(ExpressionTests, BinaryExpressionStrRef){
   ASSERT_STREQ(result.c_str(), "my_lhs_value != my_rhs_value");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
 
-TEST(ExpressionTests, MultisetCountTest){
-  json data = detail::MultisetCount{
-      "i",
-      detail::ExprID{"i_type"},
-      detail::ExprID{"true"}
-  };
+TEST(ExpressionTests, MultisetCountTest) {
+  json data = detail::MultisetCount{"i", detail::ExprID{"i_type"},
+                                    detail::ExprID{"true"}};
 
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("expression.tmpl");
@@ -140,15 +125,15 @@ TEST(ExpressionTests, MultisetCountTest){
   ASSERT_STREQ(result.c_str(), "MultisetCount(i:i_type, true)");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
-
 }
 
-TEST(ExpressionTests, ProcCallExpr){
-  detail::ProcCallExpr procCallExpr{"my_func", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}};
+TEST(ExpressionTests, ProcCallExpr) {
+  detail::ProcCallExpr procCallExpr{
+      "my_func", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}};
 
   json data = procCallExpr;
   auto &env = InjaEnvSingleton::getInstance();
@@ -158,9 +143,24 @@ TEST(ExpressionTests, ProcCallExpr){
   ASSERT_STREQ(result.c_str(), "my_func(param1, param2)");
 
   // verify json
-  std::string schema_path =
-      std::string(JSONValidation::schema_base_directory) + "gen_ExpressionDescription.json";
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
+}
 
+TEST(ExpressionTests, NegExpr) {
+  auto negExpr = detail::NegExpr{detail::ExprID{"to_be_negated"}};
+  json data = negExpr;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_STREQ(result.c_str(), "!to_be_negated");
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
 }

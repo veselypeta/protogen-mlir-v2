@@ -56,6 +56,10 @@ void to_json(json &j, const ExprID &id) {
   j = {{"typeId", "ID"}, {"expression", id.id}};
 }
 
+void to_json(json &j, const NegExpr &negExpr) {
+  j = {{"typeId", "neg_expr"}, {"expression", {{"expr", negExpr.expr}}}};
+}
+
 void to_json(json &j, const MessageFactory &m) {
   // bit of a hack here to remove the const from the parameter
   // it's a requirement of inja to have the parameter be const
@@ -418,6 +422,50 @@ void to_json(json &j, const OrderedRuleset &orderedRuleset) {
   j = detail::RuleSet{{ruleset_quant}, {alias}};
 }
 
+void to_json(json &j, const UnorderedRuleset &urs) {
+  constexpr auto ms_idx = "midx";
+  constexpr auto ruleset_idx = "n";
+  constexpr auto mach_alias = "mach";
+  constexpr auto msg_alias = "msg";
+
+  auto get_inner = [](const std::string &mach) -> json {
+    return IfStmt<ProcCallExpr>{
+        {mach_handl_pref_f + mach, {ExprID{msg_alias}, ExprID{ruleset_idx}}},
+        {ProcCall{multiset_remove_f, {ExprID{ms_idx}, ExprID{mach_alias}}}},
+        {}};
+  };
+
+  auto network_rule = SimpleRule{
+      "Receive " + urs.netId,
+      NegExpr{
+          ProcCallExpr{is_undefined_f,
+                       {Designator<ExprID>{msg_alias, "object", {c_mtype}}}}},
+      {},
+      {IfStmt<ProcCallExpr>{
+          {is_member_f, {ExprID{ruleset_idx}, ExprID{directory_set_t()}}},
+          {get_inner(machines.directory.str())},
+          {get_inner(machines.cache.str())}}}};
+
+  auto msg_aliasrule =
+      AliasRule{msg_alias,
+                Designator<ExprID>{mach_alias, "array", {ms_idx}},
+                {network_rule}};
+
+  auto mach_aliasrule =
+      AliasRule{mach_alias,
+                Designator<ExprID>{urs.netId, "array", {ruleset_idx}},
+                {msg_aliasrule}};
+
+  auto choose_rule =
+      ChooseRule{ms_idx,
+                 Designator<ExprID>{urs.netId, "array", {ruleset_idx}},
+                 {mach_aliasrule}};
+
+  auto ruleset = RuleSet{{ForEachQuantifier<ID>{ruleset_idx, {e_machines_t}}},
+                         {choose_rule}};
+
+  j = ruleset;
+}
 /*
  * Rules
  */
@@ -443,6 +491,12 @@ void to_json(json &j, const RuleSet &rs) {
 void to_json(json &j, const AliasRule &ar) {
   j = {{"typeId", "alias_rule"},
        {"rule", {{"id", ar.id}, {"expr", ar.expr}, {"rules", ar.rules}}}};
+}
+
+///*** ChooseRule ***///
+void to_json(json &j, const ChooseRule &cr) {
+  j = {{"typeId", "choose_rule"},
+       {"rule", {{"index", cr.index}, {"expr", cr.expr}, {"rules", cr.rules}}}};
 }
 
 /*

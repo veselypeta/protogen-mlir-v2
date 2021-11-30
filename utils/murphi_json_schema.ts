@@ -197,6 +197,10 @@ interface BinaryExpr {
     op: BinaryOp;
 }
 
+interface NegExpr {
+    expr: ExpressionDescription;
+}
+
 interface MultisetCount{
     varId: ID;
     varValue: ExpressionDescription;
@@ -210,8 +214,8 @@ interface ProcCall{
 
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | DesignatorExpr | ID | MultisetCount | BinaryExpr | ProcCall;
-type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count" | "proc_call";
+type Expression = Designator | DesignatorExpr | ID | MultisetCount | BinaryExpr | ProcCall | NegExpr;
+type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count" | "proc_call" | "neg_expr";
 
 interface ExpressionDescription {
     typeId: ExpressionType;
@@ -228,8 +232,8 @@ interface StatementDescription {
 Rules
  */
 
-type Rule = SimpleRule | RuleSet | AliasRule;
-type RuleType = "simple_rule" | "ruleset" | "alias_rule";
+type Rule = SimpleRule | RuleSet | AliasRule | ChooseRule;
+type RuleType = "simple_rule" | "ruleset" | "alias_rule" | "choose_rule";
 
 interface RuleDescription{
     typeId: RuleType;
@@ -250,6 +254,12 @@ interface RuleSet{
 
 interface AliasRule{
     id: ID;
+    expr: ExpressionDescription;
+    rules: RuleDescription[];
+}
+
+interface ChooseRule{
+    index: ID;
     expr: ExpressionDescription;
     rules: RuleDescription[];
 }
