@@ -115,7 +115,7 @@ type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt |
 type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine" | "proc_call" | "alias" | "switch";
 
 interface AssignmentStmt {
-    lhs: DesignatorDescription;
+    lhs: ExpressionDescription;
     rhs: ExpressionDescription;
 }
 
@@ -175,19 +175,29 @@ interface IfStmt{
 }
 
 interface UndefineStmt{
-    value: DesignatorDescription;
+    value: ExpressionDescription;
 }
 
 interface Designator {
     objId: ID;
-    objType: "array" | "object";
-    index: ExpressionDescription
+    objType?: "array" | "object";
+    index?: ExpressionDescription
 }
 
 // HACK - This is for the case when you want to chain a designator onto the result of a previous designator
 interface DesignatorExpr {
     des: DesignatorDescription;
     objType: "array" | "object";
+    index: ExpressionDescription;
+}
+
+interface SimpleDes {
+    id: ID;
+    indexes: Indexer[]
+}
+
+interface Indexer {
+    typeId: "object" | "array";
     index: ExpressionDescription;
 }
 
@@ -214,8 +224,8 @@ interface ProcCall{
 
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | DesignatorExpr | ID | MultisetCount | BinaryExpr | ProcCall | NegExpr;
-type ExpressionType = "designator" | "designator_expr" | "ID" | "binary" | "ms_count" | "proc_call" | "neg_expr";
+type Expression = Designator | DesignatorExpr | SimpleDes | ID | MultisetCount | BinaryExpr | ProcCall | NegExpr;
+type ExpressionType = "designator" | "designator_expr" | "simple_des" | "ID" | "binary" | "ms_count" | "proc_call" | "neg_expr";
 
 interface ExpressionDescription {
     typeId: ExpressionType;
@@ -232,8 +242,8 @@ interface StatementDescription {
 Rules
  */
 
-type Rule = SimpleRule | RuleSet | AliasRule | ChooseRule;
-type RuleType = "simple_rule" | "ruleset" | "alias_rule" | "choose_rule";
+type Rule = SimpleRule | RuleSet | AliasRule | ChooseRule | StartState;
+type RuleType = "simple_rule" | "ruleset" | "alias_rule" | "choose_rule" | "start_state";
 
 interface RuleDescription{
     typeId: RuleType;
@@ -262,6 +272,12 @@ interface ChooseRule{
     index: ID;
     expr: ExpressionDescription;
     rules: RuleDescription[];
+}
+
+interface StartState {
+    desc: string;
+    decls: FwdDecl[];
+    statements: StatementDescription[];
 }
 
 

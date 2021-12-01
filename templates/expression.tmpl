@@ -8,6 +8,9 @@
 {% if typeId=="designator_expr" %}
 {{ render_template("expression.tmpl", expression.des) }}{% if expression.objType == "array" %}[{{ render_template("expression.tmpl", expression.index) }}]{% else %}.{{ render_template("expression.tmpl", expression.index) }}{% endif %}
 {% endif %}
+{% if typeId == "simple_des" %}
+{{ expression.id }}{% for index in expression.indexes %}{{ render_template("index.tmpl", index) }}{% endfor %}{# -#}
+{% endif %}
 {% if typeId=="binary" %}
 {{ render_template("expression.tmpl", expression.lhs) }} {{ expression.op }} {{ render_template("expression.tmpl", expression.rhs) -}}
 {% endif %}

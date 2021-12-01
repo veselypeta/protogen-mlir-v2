@@ -1,0 +1,7 @@
+{# expects an Indexer object #}
+{% if typeId == "object" %}
+.{{ render_template("expression.tmpl", index) }}{# -#}
+{% endif %}
+{% if typeId == "array" %}
+[{{ render_template("expression.tmpl", index) }}]{# -#}
+{% endif %}

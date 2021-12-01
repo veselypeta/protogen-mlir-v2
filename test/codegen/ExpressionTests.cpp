@@ -59,6 +59,60 @@ TEST(ExpressionTests, DesignatorArrayType) {
   ASSERT_TRUE(is_valid);
 }
 
+TEST(ExpressionTests, SimpleDesWithIndexer) {
+  auto simpleDes = detail::SimpleDes{
+      "my_object", {detail::Indexer{"object", detail::ExprID{"indexing"}}}};
+
+  json data = simpleDes;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  EXPECT_STREQ(result.c_str(), "my_object.indexing");
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+}
+
+TEST(ExpressionTests, SimpleDesWithArrayIndexer) {
+  auto simpleDes = detail::SimpleDes{
+      "my_object", {detail::Indexer{"array", detail::ExprID{"indexing"}}}};
+
+  json data = simpleDes;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  EXPECT_STREQ(result.c_str(), "my_object[indexing]");
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+}
+
+TEST(ExpressionTests, SimpleDesWOIndexing) {
+  auto simpleDes = detail::SimpleDes{
+      "my_object", {}};
+
+  json data = simpleDes;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  EXPECT_STREQ(result.c_str(), "my_object");
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+}
+
 TEST(ExpressionTests, DesignatorExprObjType) {
   detail::Designator<detail::ExprID> designatorIdx{
       "newObj", "array", {"arr_index"}};

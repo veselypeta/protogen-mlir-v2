@@ -132,6 +132,30 @@ TEST(RuleTests, ChooseRule) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
 
+  //  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(RuleTests, StartState) {
+
+  auto ss = detail::StartState{
+      "my start state",
+      {detail::ForwardDecl<detail::VarDecl<detail::ID>>{"var",
+                                                        {"msg", {"message"}}}},
+      {detail::Assert<detail::ExprID>{{"is_valid"}, "the message"}}};
+
+  json data = ss;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+
 //  EXPECT_STREQ("", result.c_str());
   EXPECT_FALSE(result.empty());
 }

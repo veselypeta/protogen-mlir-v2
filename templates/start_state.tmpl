@@ -1,0 +1,10 @@
+{# expects a StartState object #}
+startstate "{{ desc }}"
+{% for decl in decls %}
+{{ render_template("forward_decl.tmpl", decl, 1) }}
+{% endfor %}
+begin
+{% for stmt in statements %}
+{{ render_template("statement.tmpl", stmt, 1) }}
+{% endfor %}
+endstartstate;

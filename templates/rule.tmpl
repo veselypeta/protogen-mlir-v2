@@ -11,3 +11,6 @@
 {% if typeId == "choose_rule" %}
 {{ render_template("choose_rule.tmpl", rule) }}
 {% endif %}
+{% if typeId == "start_state"%}
+{{ render_template("start_state.tmpl", rule) }}
+{% endif %}

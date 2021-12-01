@@ -19,9 +19,9 @@ TEST(StatementTests, AssignmentStatement) {
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 
-  ASSERT_STREQ(result.c_str(), "msg.address := val;");
+  EXPECT_STREQ(result.c_str(), "msg.address := val;");
 }
 
 TEST(StatementTests, AssertStmt) {
@@ -32,14 +32,14 @@ TEST(StatementTests, AssertStmt) {
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
 
-  ASSERT_STREQ(result.c_str(),
+  EXPECT_STREQ(result.c_str(),
                "assert( value_to_be_tested ) \"assertion failed!\";");
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTests, ForStmt) {
@@ -52,13 +52,13 @@ TEST(StatementTests, ForStmt) {
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
-  ASSERT_FALSE(result.empty());
+  EXPECT_FALSE(result.empty());
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTests, IfStmt) {
@@ -73,13 +73,13 @@ TEST(StatementTests, IfStmt) {
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
-  ASSERT_FALSE(result.empty());
+  EXPECT_FALSE(result.empty());
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTests, IfStmt_withelse) {
@@ -95,13 +95,13 @@ TEST(StatementTests, IfStmt_withelse) {
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
-  ASSERT_FALSE(result.empty());
+  EXPECT_FALSE(result.empty());
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTests, UndefineStmt) {
@@ -113,13 +113,33 @@ TEST(StatementTests, UndefineStmt) {
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
 
-  ASSERT_STREQ("undefine obj[index];", result.c_str());
+  EXPECT_STREQ("undefine obj[index];", result.c_str());
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
+}
+
+TEST(StatementTests, UndefineStmtWithSimpleDes){
+  detail::UndefineStmt<detail::SimpleDes> undefineStmt{
+    {"obj", {detail::Indexer{"array", detail::ExprID{"index"}}}}
+  };
+
+  json data = undefineStmt;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+  EXPECT_STREQ("undefine obj[index];", result.c_str());
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTests, ProcCallStmt) {
@@ -129,13 +149,13 @@ TEST(StatementTests, ProcCallStmt) {
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
 
-  ASSERT_STREQ("myfn(param1, param2);", result.c_str());
+  EXPECT_STREQ("myfn(param1, param2);", result.c_str());
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTests, AliasStmt) {
@@ -151,13 +171,13 @@ TEST(StatementTests, AliasStmt) {
   const auto tmpl = env.parse_template("statement.tmpl");
   auto result = env.render(tmpl, data);
 
-  //  ASSERT_STREQ("alias my_alias : to_be_aliased do end;", result.c_str());
+  //  EXPECT_STREQ("alias my_alias : to_be_aliased do end;", result.c_str());
 
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";
   bool is_valid = JSONValidation::validate_json(schema_path, data);
-  ASSERT_TRUE(is_valid);
+  EXPECT_TRUE(is_valid);
 }
 
 TEST(StatementTest, CaseStmt) {

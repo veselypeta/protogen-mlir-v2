@@ -31,6 +31,7 @@ void registerInjaCallbacks(Environment &env) {
    * Takes two Arguments
    * (1) a string name for the template held in the templates folder
    * (2) a json object which is passed to the template during rendering
+   * (3) *optional* an integer for degree of indentation
    */
   env.add_callback("render_template", [&env](Arguments &args){
     std::string tmplName = args.at(0)->get<std::string>();

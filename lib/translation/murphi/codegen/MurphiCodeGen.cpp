@@ -56,6 +56,15 @@ void to_json(json &j, const ExprID &id) {
   j = {{"typeId", "ID"}, {"expression", id.id}};
 }
 
+void to_json(json &j, const SimpleDes &sd) {
+  j = {{"typeId", "simple_des"},
+       {"expression", {{"id", sd.id}, {"indexes", sd.indexes}}}};
+}
+
+void to_json(json &j, const Indexer &indexer) {
+  j = {{"typeId", indexer.typeId}, {"index", indexer.index}};
+}
+
 void to_json(json &j, const NegExpr &negExpr) {
   j = {{"typeId", "neg_expr"}, {"expression", {{"expr", negExpr.expr}}}};
 }
@@ -497,6 +506,15 @@ void to_json(json &j, const AliasRule &ar) {
 void to_json(json &j, const ChooseRule &cr) {
   j = {{"typeId", "choose_rule"},
        {"rule", {{"index", cr.index}, {"expr", cr.expr}, {"rules", cr.rules}}}};
+}
+
+///*** StartState ***///
+void to_json(json &j, const StartState &ss) {
+  j = {{"typeId", "start_state"},
+       {"rule",
+        {{"desc", ss.desc},
+         {"decls", ss.decls},
+         {"statements", ss.statements}}}};
 }
 
 /*
@@ -1007,6 +1025,7 @@ void MurphiCodeGen::_generateCPUEventHandlers() {
 void MurphiCodeGen::generateRules() {
   _generateCacheRuleHandler();
   _generateNetworkRules();
+  _generateStartState();
 }
 
 void MurphiCodeGen::_generateCacheRuleHandler() {
@@ -1030,8 +1049,93 @@ void MurphiCodeGen::_generateNetworkRules() {
   for (auto &nw : networks) {
     if (nw.getType().getOrdering() == "ordered") {
       data["rules"].push_back(detail::OrderedRuleset{nw.netId().str()});
+    } else {
+      data["rules"].push_back(detail::UnorderedRuleset{nw.netId().str()});
     }
   }
+}
+
+void MurphiCodeGen::_generateStartState() {
+  auto ss = detail::StartState{"murphi start state", {}, {}};
+  ///*** Initialize the Directory and Cache objects ***///
+  auto mach_ss_stmts = [&](const std::string &machId) -> json {
+    constexpr auto mach_idx = "i";
+    constexpr auto adr_idx = "a";
+    auto for_mach = detail::ForStmt<detail::ForEachQuantifier<detail::ID>>{
+        {mach_idx, {detail::SetKey + machId}}, {}};
+
+    auto for_adr = detail::ForStmt<detail::ForEachQuantifier<detail::ID>>{
+        {adr_idx, {detail::ss_address_t}}, {}};
+
+    // for each value in the struct setup a default;
+    // i_cache[i][a].??? := cache_I;
+    // TODO - implement this properly
+    auto decl = detail::ExprID{"State"};
+    auto default_value = detail::ExprID{machId + "_I"};
+
+    auto common_start =
+        detail::DesignatorExpr<detail::Designator<detail::ExprID>,
+                               detail::ExprID>{
+            {detail::mach_prefix_v + machId, "array", {mach_idx}},
+            "array",
+            {adr_idx}};
+
+    auto lhs = detail::DesignatorExpr<decltype(common_start), detail::ExprID>{
+        common_start, "object", decl};
+
+    for_adr.stmts.emplace_back(
+        detail::Assignment<decltype(lhs), decltype(default_value)>{
+            lhs, default_value});
+    for_mach.stmts.emplace_back(for_adr);
+    return for_mach;
+  };
+  ss.statements.push_back(mach_ss_stmts(detail::machines.cache.str()));
+  ss.statements.push_back(mach_ss_stmts(detail::machines.directory.str()));
+
+  /// *** Initialize Mutexes *** ///
+  auto generate_mutex_inits = []() -> json {
+    constexpr auto adr_idx = "a";
+    auto mut_false =
+        detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
+            {detail::cl_mutex_v, "array", {adr_idx}}, {"false"}};
+    auto for_adr = detail::ForStmt<detail::ForEachQuantifier<detail::ID>>{
+        {adr_idx, {detail::ss_address_t}}, {std::move(mut_false)}};
+    return for_adr;
+  };
+  ss.statements.emplace_back(generate_mutex_inits());
+
+  /// ** Undefine networks //
+  for (auto nw : moduleInterpreter.getNetworks()) {
+    auto netId = nw.netId().str();
+    auto rhs = detail::SimpleDes{netId, {}};
+    ss.statements.emplace_back(detail::UndefineStmt<decltype(rhs)>{rhs});
+  }
+
+  /// ***  Set all ordered counts to zero  *** ///
+  auto gen_ordered_cnt_ss = [](llvm::StringRef netId) -> json {
+    constexpr auto mach_idx = "n";
+    auto for_quant = detail::ForEachQuantifier<detail::ID>{
+        mach_idx, {detail::e_machines_t}
+    };
+
+    auto cnt_stmt = detail::Assignment<detail::SimpleDes, detail::ExprID>{
+        {detail::CntKey + netId.str(), {detail::Indexer{"array", detail::ExprID{mach_idx}}}},
+        {"0"}
+    };
+
+    return detail::ForStmt<decltype(for_quant)>{
+        std::move(for_quant),
+        {std::move(cnt_stmt)}
+    };
+  };
+
+  for (auto &nw : moduleInterpreter.getNetworks()){
+    if(nw.getType().getOrdering() == "ordered"){
+      ss.statements.emplace_back(gen_ordered_cnt_ss(nw.netId()));
+    }
+  }
+
+  data["rules"].push_back(ss);
 }
 
 } // namespace murphi

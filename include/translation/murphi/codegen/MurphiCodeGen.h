@@ -356,6 +356,20 @@ void to_json(json &j, const DesignatorExpr<Des, Idx> &designatorExpr) {
          {"index", designatorExpr.index}}}};
 }
 
+struct SimpleDes{
+  std::string id;
+  std::vector<json> indexes;
+};
+
+void to_json(json &j, const SimpleDes &sd);
+
+struct Indexer {
+  std::string typeId;
+  json index;
+};
+
+void to_json(json &j, const Indexer &indexer);
+
 constexpr struct {
   const llvm::StringRef plus = "+";
   const llvm::StringRef minus = "-";
@@ -627,6 +641,14 @@ struct ChooseRule{
 void to_json(json &j, const ChooseRule &cr);
 
 
+struct StartState{
+  std::string desc;
+  std::vector<json> decls;
+  std::vector<json> statements;
+};
+
+void to_json(json &j, const StartState &ss);
+
 /*
  * Helper Generating Functions
  */
@@ -705,6 +727,7 @@ private:
    */
   void _generateCacheRuleHandler();
   void _generateNetworkRules();
+  void _generateStartState();
 
   ModuleInterpreter moduleInterpreter;
   mlir::raw_ostream &output;

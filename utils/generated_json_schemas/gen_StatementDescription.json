@@ -49,7 +49,7 @@
         "AssignmentStmt": {
             "properties": {
                 "lhs": {
-                    "$ref": "#/definitions/DesignatorDescription",
+                    "$ref": "#/definitions/ExpressionDescription",
                     "title": "lhs"
                 },
                 "rhs": {
@@ -146,9 +146,7 @@
                 }
             },
             "required": [
-                "index",
-                "objId",
-                "objType"
+                "objId"
             ],
             "title": "Designator",
             "type": "object"
@@ -239,6 +237,9 @@
                             "$ref": "#/definitions/DesignatorExpr"
                         },
                         {
+                            "$ref": "#/definitions/SimpleDes"
+                        },
+                        {
                             "$ref": "#/definitions/BinaryExpr"
                         },
                         {
@@ -273,7 +274,8 @@
                 "designator_expr",
                 "ms_count",
                 "neg_expr",
-                "proc_call"
+                "proc_call",
+                "simple_des"
             ],
             "title": "ExpressionType",
             "type": "string"
@@ -366,6 +368,28 @@
                 "thenStatements"
             ],
             "title": "IfStmt",
+            "type": "object"
+        },
+        "Indexer": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "typeId": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "index",
+                "typeId"
+            ],
+            "title": "Indexer",
             "type": "object"
         },
         "IntegerSubRange": {
@@ -608,6 +632,27 @@
             "title": "ScalarsetType",
             "type": "object"
         },
+        "SimpleDes": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "indexes": {
+                    "items": {
+                        "$ref": "#/definitions/Indexer"
+                    },
+                    "title": "indexes",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "indexes"
+            ],
+            "title": "SimpleDes",
+            "type": "object"
+        },
         "Statement": {
             "anyOf": [
                 {
@@ -719,7 +764,7 @@
         "UndefineStmt": {
             "properties": {
                 "value": {
-                    "$ref": "#/definitions/DesignatorDescription",
+                    "$ref": "#/definitions/ExpressionDescription",
                     "title": "value"
                 }
             },

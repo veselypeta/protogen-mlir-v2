@@ -74,7 +74,7 @@
         "AssignmentStmt": {
             "properties": {
                 "lhs": {
-                    "$ref": "#/definitions/DesignatorDescription",
+                    "$ref": "#/definitions/ExpressionDescription",
                     "title": "lhs"
                 },
                 "rhs": {
@@ -215,9 +215,7 @@
                 }
             },
             "required": [
-                "index",
-                "objId",
-                "objType"
+                "objId"
             ],
             "title": "Designator",
             "type": "object"
@@ -308,6 +306,9 @@
                             "$ref": "#/definitions/DesignatorExpr"
                         },
                         {
+                            "$ref": "#/definitions/SimpleDes"
+                        },
+                        {
                             "$ref": "#/definitions/BinaryExpr"
                         },
                         {
@@ -342,7 +343,8 @@
                 "designator_expr",
                 "ms_count",
                 "neg_expr",
-                "proc_call"
+                "proc_call",
+                "simple_des"
             ],
             "title": "ExpressionType",
             "type": "string"
@@ -486,6 +488,28 @@
                 "thenStatements"
             ],
             "title": "IfStmt",
+            "type": "object"
+        },
+        "Indexer": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "index"
+                },
+                "typeId": {
+                    "enum": [
+                        "array",
+                        "object"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "index",
+                "typeId"
+            ],
+            "title": "Indexer",
             "type": "object"
         },
         "IntegerSubRange": {
@@ -835,6 +859,9 @@
                         },
                         {
                             "$ref": "#/definitions/ChooseRule"
+                        },
+                        {
+                            "$ref": "#/definitions/StartState"
                         }
                     ],
                     "title": "rule"
@@ -880,7 +907,8 @@
                 "alias_rule",
                 "choose_rule",
                 "ruleset",
-                "simple_rule"
+                "simple_rule",
+                "start_state"
             ],
             "title": "RuleType",
             "type": "string"
@@ -899,6 +927,27 @@
                 "type"
             ],
             "title": "ScalarsetType",
+            "type": "object"
+        },
+        "SimpleDes": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "indexes": {
+                    "items": {
+                        "$ref": "#/definitions/Indexer"
+                    },
+                    "title": "indexes",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "indexes"
+            ],
+            "title": "SimpleDes",
             "type": "object"
         },
         "SimpleRule": {
@@ -932,6 +981,35 @@
                 "statements"
             ],
             "title": "SimpleRule",
+            "type": "object"
+        },
+        "StartState": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "$ref": "#/definitions/FwdDecl"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                },
+                "desc": {
+                    "title": "desc",
+                    "type": "string"
+                },
+                "statements": {
+                    "items": {
+                        "$ref": "#/definitions/StatementDescription"
+                    },
+                    "title": "statements",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls",
+                "desc",
+                "statements"
+            ],
+            "title": "StartState",
             "type": "object"
         },
         "StatementDescription": {
@@ -1064,7 +1142,7 @@
         "UndefineStmt": {
             "properties": {
                 "value": {
-                    "$ref": "#/definitions/DesignatorDescription",
+                    "$ref": "#/definitions/ExpressionDescription",
                     "title": "value"
                 }
             },
