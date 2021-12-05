@@ -14,8 +14,8 @@ detail::SimpleRule getSimpleRule() {
           {"lhs"}, {"rhs"}, detail::BinaryOps.eq},
       {detail::ForwardDecl<detail::VarDecl<detail::ID>>{
           "var", {"new_var", {"var_type"}}}},
-      {detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
-          {"cle", "object", {"State"}}, {"cache_M"}}}};
+      {detail::Assignment<detail::Designator, detail::ExprID>{
+          {"cle",{detail::Indexer{"object", detail::ExprID{"State"}}}}, {"cache_M"}}}};
   return sr;
 }
 

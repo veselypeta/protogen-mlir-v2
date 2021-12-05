@@ -14,8 +14,8 @@ TEST(RuleTests, SimpleRule) {
   auto start_state = "cache_I_load";
   auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
   auto equal_expr =
-      detail::BinaryExpr<detail::Designator<detail::ExprID>, detail::ExprID>{
-          {detail::cle_a, "object", {detail::c_state}},
+      detail::BinaryExpr<detail::Designator, detail::ExprID>{
+          {detail::cle_a, {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
           {"cache_I"},
           detail::BinaryOps.eq};
   auto proc_call = detail::ProcCall{
@@ -50,8 +50,8 @@ TEST(RuleTests, RuleSet) {
   auto start_state = "cache_I_load";
   auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
   auto equal_expr =
-      detail::BinaryExpr<detail::Designator<detail::ExprID>, detail::ExprID>{
-          {detail::cle_a, "object", {detail::c_state}},
+      detail::BinaryExpr<detail::Designator, detail::ExprID>{
+          {detail::cle_a, {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
           {"cache_I"},
           detail::BinaryOps.eq};
   auto proc_call = detail::ProcCall{
@@ -85,8 +85,8 @@ TEST(RuleTests, AliasRule) {
   auto start_state = "cache_I_load";
   auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
   auto equal_expr =
-      detail::BinaryExpr<detail::Designator<detail::ExprID>, detail::ExprID>{
-          {detail::cle_a, "object", {detail::c_state}},
+      detail::BinaryExpr<detail::Designator, detail::ExprID>{
+          {detail::cle_a, {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
           {"cache_I"},
           detail::BinaryOps.eq};
   auto proc_call = detail::ProcCall{

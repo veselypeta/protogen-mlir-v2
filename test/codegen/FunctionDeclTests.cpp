@@ -24,8 +24,8 @@ TEST(FunctionTest, RenderTemplate) {
       detail::ForwardDecl<detail::VarDecl<detail::ID>>{"var",
                                                        {"msg", {"Message"}}}};
 
-  data["statements"] = {detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
-      {"msg", "object", {"adr"}}, {"adr"}}};
+  data["statements"] = {detail::Assignment<detail::Designator, detail::ExprID>{
+      {"msg",{detail::Indexer{"object", detail::ExprID{"adr"}}}}, {"adr"}}};
 
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("function_decl.tmpl");

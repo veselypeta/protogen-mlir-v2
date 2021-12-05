@@ -56,8 +56,8 @@ void to_json(json &j, const ExprID &id) {
   j = {{"typeId", "ID"}, {"expression", id.id}};
 }
 
-void to_json(json &j, const SimpleDes &sd) {
-  j = {{"typeId", "simple_des"},
+void to_json(json &j, const Designator &sd) {
+  j = {{"typeId", "designator"},
        {"expression", {{"id", sd.id}, {"indexes", sd.indexes}}}};
 }
 
@@ -86,12 +86,11 @@ void to_json(json &j, const MessageFactory &m) {
   std::vector<Formal<ID>> params = {std::move(adr), std::move(msgType),
                                     std::move(src), std::move(dst)};
   // add the default parameter assignments
-  std::vector<Assignment<Designator<ExprID>, ExprID>> paramAssignments{
-      {{c_msg, "object", {c_adr}}, {c_adr}},
-      {{c_msg, "object", {c_mtype}}, {c_mtype}},
-      {{c_msg, "object", {c_src}}, {c_src}},
-      {{c_msg, "object", {c_dst}}, {c_dst}},
-
+  std::vector<Assignment<Designator, ExprID>> paramAssignments{
+      {{c_msg, {Indexer{"object", ExprID{c_adr}}}}, {c_adr}},
+      {{c_msg, {Indexer{"object", ExprID{c_mtype}}}}, {c_mtype}},
+      {{c_msg, {Indexer{"object", ExprID{c_src}}}}, {c_src}},
+      {{c_msg, {Indexer{"object", ExprID{c_dst}}}}, {c_dst}},
   };
   // additional params
   auto attrs = messageFactory.msgOp->getAttrs();
@@ -106,7 +105,7 @@ void to_json(json &j, const MessageFactory &m) {
           // TODO - possibly this could lead to incosistencies since we don't
           // un-define for the global msg type
           paramAssignments.push_back(
-              {{c_msg, "object", {paramName}}, {paramName}});
+              {{c_msg, {Indexer{"object", ExprID{paramName}}}}, {paramName}});
         }
       });
 
@@ -122,26 +121,40 @@ void to_json(json &j, const MessageFactory &m) {
 void to_json(json &j, const OrderedSendFunction &usf) {
   constexpr char msg_p[] = "msg";
   // Line 1 -> Assert Statement (for too many messages in queue)
-  Designator<Designator<ExprID>> net_count{
-      CntKey + usf.netId, "array", {msg_p, "object", {c_dst}}};
+  // cnt_fwd[msg.dst]
+  Designator net_count{
+      CntKey + usf.netId,
+      {Indexer{"array",
+               Designator{msg_p, {Indexer{"object", ExprID{c_dst}}}}}}};
+
   BinaryExpr<decltype(net_count), ExprID> assert_val{
       net_count, {c_ordered_t}, BinaryOps.less_than};
   Assert<decltype(assert_val)> assert_stmt{assert_val, excess_messages_err};
 
   // Line 2 -> push message onto queue
-  Designator<Designator<ExprID>> rhs_index{
-      CntKey + usf.netId, "array", {msg_p, "object", {c_dst}}};
-  Designator<Designator<ExprID>> lhs_des{
-      usf.netId, "array", {msg_p, "object", {c_dst}}};
-  Assignment<DesignatorExpr<decltype(lhs_des), decltype(rhs_index)>, ExprID>
-      push_stmt{{lhs_des, "array", rhs_index}, {msg_p}};
+  // fwd[msg.dst][cnt_fwd[msg.dst]] := msg;
+
+  Designator lhs{
+      usf.netId,
+      {Indexer{"array", Designator{msg_p, {Indexer{"object", ExprID{c_dst}}}}},
+       Indexer{"array",
+               Designator{
+                   CntKey + usf.netId,
+                   {Indexer{"array", Designator{msg_p,
+                                      {Indexer{"object", ExprID{c_dst}}}}}}}}}};
+
+  Assignment<decltype(lhs), ExprID> push_stmt{lhs, {msg_p}};
 
   // Line 3 -> increment count
-  Designator<Designator<ExprID>> lhs_ass{
-      CntKey + usf.netId, "array", {msg_p, "object", {c_dst}}};
-  BinaryExpr<decltype(lhs_ass), ExprID> rhs_ass{lhs_ass, {"1"}, BinaryOps.plus};
-  Assignment<decltype(lhs_ass), decltype(rhs_ass)> inc_count_stmt{lhs_ass,
-                                                                  rhs_ass};
+  // cnt_fwd[msg.dst] := cnt_fwd[msg.dst] + 1;
+  Designator cur_cnt{
+      CntKey + usf.netId,
+      {Indexer{"array",
+               Designator{msg_p, {Indexer{"object", ExprID{c_dst}}}}}}};
+
+  BinaryExpr<decltype(cur_cnt), ExprID> l3_rhs{cur_cnt, {"1"}, BinaryOps.plus};
+  Assignment<decltype(cur_cnt), decltype(l3_rhs)> inc_count_stmt{cur_cnt,
+                                                                 l3_rhs};
 
   j = {{"procType", "procedure"},
        {"def",
@@ -155,46 +168,63 @@ void to_json(json &j, const OrderedPopFunction &opf) {
   constexpr char msg_p[] = "n";
 
   // Line 1 -> assert stmt
-  Assert<BinaryExpr<Designator<ExprID>, ExprID>> line_1_assert{
-      {{CntKey + opf.netId, "array", {msg_p}}, {{"0"}}, BinaryOps.grtr_than},
+  // Assert(cnt_fwd[n] > 0) "Trying to advance empty Q";
+  Assert<BinaryExpr<Designator, ExprID>> line_1_assert{
+      {{CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
+       {{"0"}},
+       BinaryOps.grtr_than},
       ordered_pop_err};
 
   // line 2 for statement
   constexpr char loopIV[] = "i";
-  ForStmt<ForRangeQuantifier<ExprID, BinaryExpr<Designator<ExprID>, ExprID>>>
-      l2fstmt{
-          {loopIV,
-           {"0"},
-           {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus}}};
+  ForStmt<ForRangeQuantifier<ExprID, BinaryExpr<Designator, ExprID>>> l2fstmt{
+      {loopIV,
+       {"0"},
+       {{CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
+        {"1"},
+        BinaryOps.minus}}};
 
   // ---- Line 3 if stmt
   // expr = i < cnt_fwd[n]-1
-  BinaryExpr<ExprID, BinaryExpr<Designator<ExprID>, ExprID>> l3ifexpr = {
+  BinaryExpr<ExprID, BinaryExpr<Designator, ExprID>> l3ifexpr = {
       {loopIV},
-      {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus},
+      {{CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
+       {"1"},
+       BinaryOps.minus},
       BinaryOps.less_than};
 
   IfStmt<decltype(l3ifexpr)> l3ifstmt{l3ifexpr};
 
   // l4 -> move each element in buffer
-  Designator<ExprID> desIdx{opf.netId, "array", {msg_p}};
-  DesignatorExpr<decltype(desIdx), ExprID> l4lhs{desIdx, "array", {loopIV}};
-  DesignatorExpr<decltype(desIdx), BinaryExpr<ExprID, ExprID>> l4rhs{
-      desIdx, "array", {{loopIV}, {"1"}, BinaryOps.plus}};
-  Assignment<decltype(l4lhs), decltype(l4rhs)> l4Ass{l4lhs, l4rhs};
+  //  fwd[n][i] := fwd[n][i+1];
+  Designator l4_lhs{
+      opf.netId,
+      {Indexer{"array", ExprID{msg_p}}, Indexer{"array", ExprID{loopIV}}}};
+
+  Designator l4_rhs{opf.netId,
+                   {Indexer{"array", ExprID{msg_p}},
+                    Indexer{"array", BinaryExpr<ExprID, ExprID>{
+                                         {loopIV}, {"1"}, BinaryOps.plus
+
+                                     }}}};
+
+  Assignment<decltype(l4_lhs), decltype(l4_rhs)> l4Ass{l4_lhs, l4_rhs};
   l3ifstmt.thenStmts.emplace_back(l4Ass);
 
   // l6 -> else un-define;
-  UndefineStmt<decltype(l4lhs)> l6undef{l4lhs};
+  UndefineStmt<decltype(l4_lhs)> l6undef{l4_lhs};
   l3ifstmt.elseStmts.emplace_back(l6undef);
 
   // nest if stmt within for loop
   l2fstmt.stmts.emplace_back(l3ifstmt);
 
   // l9 --> decrement count
-  Assignment<Designator<ExprID>, BinaryExpr<Designator<ExprID>, ExprID>> l9dec{
-      {CntKey + opf.netId, "array", {msg_p}},
-      {{CntKey + opf.netId, "array", {msg_p}}, {"1"}, BinaryOps.minus}};
+  // cnt_fwd[n] := cnt_fwd[n] - 1;
+  Assignment<Designator, BinaryExpr<Designator, ExprID>> l9dec{
+      {CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
+      {{CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
+       {"1"},
+       BinaryOps.minus}};
 
   j = {{"procType", "procedure"},
        {"def",
@@ -211,18 +241,23 @@ void to_json(json &j, const UnorderedSendFunction &usf) {
   // L1 -> assert check not full
   // Assert (MultiSetCount(i:resp[msg.dst], true) < U_NET_MAX) "Too many
   // messages";
-  MultisetCount ms_count{"i",
-                         detail::Designator<detail::Designator<ExprID>>{
-                             usf.netId, "array", {msg_p, "object", {c_dst}}},
-                         detail::ExprID{"true"}};
+  MultisetCount ms_count{
+      "i",
+      Designator{
+          usf.netId,
+          {Indexer{"array",
+                   Designator{msg_p, {Indexer{"object", ExprID{c_dst}}}}}}},
+      detail::ExprID{"true"}};
   BinaryExpr<decltype(ms_count), ExprID> assert_val{
       ms_count, {"true"}, BinaryOps.less_than};
   Assert<decltype(assert_val)> l1Ass{assert_val, excess_messages_err};
 
   // L2 -> MultiSetAdd(msg, req[msg.dst]);
   ExprID firsParam{msg_p};
-  Designator<Designator<ExprID>> secParam{
-      usf.netId, "array", {msg_p, "object", {c_dst}}};
+  Designator secParam{
+      usf.netId,
+      {Indexer{"array",
+               Designator{msg_p, {Indexer{"object", ExprID{c_dst}}}}}}};
   ProcCall l2add{multiset_add_f, {firsParam, secParam}};
 
   j = {{"procType", "procedure"},
@@ -283,20 +318,21 @@ void to_json(json &j, const detail::MachineHandler &mh) {
    * Alias Stmts
    */
   // alias 1 -> alias adr: inmsg.adr do
-  auto adr_alias = detail::AliasStmt<detail::Designator<detail::ExprID>>{
-      adr_a, {c_inmsg, "object", {c_adr}}};
+  auto adr_alias = detail::AliasStmt<Designator>{
+      adr_a, {c_inmsg, {Indexer{"object", ExprID{c_adr}}}}};
 
   // alias 2 -> cle: i_directory[m][adr]
-  auto rhsalias = DesignatorExpr<Designator<ExprID>, ExprID>{
-      {mach_prefix_v + mh.machId, "array", {c_mach}}, "array", {{c_adr}}};
+  auto rhsalias = Designator{
+      mach_prefix_v + mh.machId,
+      {Indexer{"array", ExprID{c_mach}}, Indexer{"array", ExprID{c_adr}}}};
   auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias};
 
   /*
    * Switch Statement
    */
-
-  auto switch_stmt =
-      detail::SwitchStmt{Designator<ExprID>{cle_a, "object", {c_state}}};
+  // switch directory_entry.State
+  auto switch_stmt = detail::SwitchStmt{
+      Designator{cle_a, {Indexer{"object", ExprID{c_state}}}}};
 
   cle_alias.statements.emplace_back(switch_stmt);
   adr_alias.statements.emplace_back(cle_alias);
@@ -330,10 +366,10 @@ void to_json(json &j, const CPUEventHandler &cpuEventHandler) {
    * Alias Stmt
    */
   // alias cle: i_cache[m][adr]
-  auto alias_expr = DesignatorExpr<Designator<ExprID>, ExprID>{
-      {mach_prefix_v + machines.cache.str(), "array", {c_mach}},
-      "array",
-      {c_adr}};
+  auto alias_expr = Designator{
+      mach_prefix_v + machines.cache.str(),
+      {Indexer{"array", ExprID{c_mach}}, Indexer{"array", ExprID{c_adr}}}};
+
   auto alias_stmt = AliasStmt<decltype(alias_expr)>{cle_a, alias_expr,
                                                     cpuEventHandler.statements};
 
@@ -361,10 +397,9 @@ void to_json(json &j, const CacheRuleHandler &ceh) {
    * Alias(s)
    */
   // A1 --> alias cle:i_cache[m][adr]
-  auto alias_expr = DesignatorExpr<Designator<ExprID>, ExprID>{
-      {mach_prefix_v + machines.cache.str(), "array", {c_mach}},
-      "array",
-      {c_adr}};
+  auto alias_expr = Designator{
+      mach_prefix_v + machines.cache.str(),
+      {Indexer{"array", ExprID{c_mach}}, Indexer{"array", ExprID{c_adr}}}};
   auto alias_rule = AliasRule{cle_a, alias_expr, ceh.rules};
 
   j = {{"typeId", "ruleset"},
@@ -374,8 +409,8 @@ void to_json(json &j, const CacheRuleHandler &ceh) {
 // *** CPUEventRule *** ///
 void to_json(json &j, const CPUEventRule &er) {
   auto ruleDesc = er.state + "_" + er.event;
-  auto ruleExpr = BinaryExpr<Designator<ExprID>, ExprID>{
-      {cle_a, "object", {c_state}}, {er.state}, BinaryOps.eq};
+  auto ruleExpr = BinaryExpr<Designator, ExprID>{
+      {cle_a, {Indexer{"object", ExprID{c_state}}}}, {er.state}, BinaryOps.eq};
   auto ruleStatement =
       ProcCall{cpu_action_pref_f + ruleDesc, {ExprID{adr_a}, ExprID{c_mach}}};
 
@@ -394,22 +429,24 @@ void to_json(json &j, const OrderedRuleset &orderedRuleset) {
   /*
    * Alias
    */
-  auto alias =
-      AliasRule{c_msg,
-                DesignatorExpr<Designator<ExprID>, ExprID>{
-                    {orderedRuleset.netId, "array", {mach_q}}, "array", {"0"}},
-                {}};
+  // msg:fwd[n][0]
+  auto alias = AliasRule{c_msg,
+                         Designator{orderedRuleset.netId,
+                                   {Indexer{"array", ExprID{mach_q}},
+                                    Indexer{"array", ExprID{"0"}}}},
+                         {}};
 
   /*
    * Network Rule
    */
+  // cnt_fwd[n] > 0
   constexpr auto net_rule_name_pref = "Receive ";
-  auto net_rule =
-      SimpleRule{net_rule_name_pref + orderedRuleset.netId,
-                 BinaryExpr<Designator<ExprID>, ExprID>{
-                     {CntKey + orderedRuleset.netId, "array", {mach_q}},
-                     {"0"},
-                     BinaryOps.grtr_than}};
+  auto net_rule = SimpleRule{
+      net_rule_name_pref + orderedRuleset.netId,
+      BinaryExpr<Designator, ExprID>{
+          {CntKey + orderedRuleset.netId, {Indexer{"array", ExprID{mach_q}}}},
+          {"0"},
+          BinaryOps.grtr_than}};
 
   auto get_inner = [&](const std::string &mach) -> json {
     return IfStmt<ProcCallExpr>{
@@ -446,9 +483,9 @@ void to_json(json &j, const UnorderedRuleset &urs) {
 
   auto network_rule = SimpleRule{
       "Receive " + urs.netId,
-      NegExpr{
-          ProcCallExpr{is_undefined_f,
-                       {Designator<ExprID>{msg_alias, "object", {c_mtype}}}}},
+      NegExpr{ProcCallExpr{
+          is_undefined_f,
+          {Designator{msg_alias, {Indexer{"object", ExprID{c_mtype}}}}}}},
       {},
       {IfStmt<ProcCallExpr>{
           {is_member_f, {ExprID{ruleset_idx}, ExprID{directory_set_t()}}},
@@ -457,17 +494,17 @@ void to_json(json &j, const UnorderedRuleset &urs) {
 
   auto msg_aliasrule =
       AliasRule{msg_alias,
-                Designator<ExprID>{mach_alias, "array", {ms_idx}},
+                Designator{mach_alias, {Indexer{"array", ExprID{ms_idx}}}},
                 {network_rule}};
 
   auto mach_aliasrule =
       AliasRule{mach_alias,
-                Designator<ExprID>{urs.netId, "array", {ruleset_idx}},
+                Designator{urs.netId, {Indexer{"array", ExprID{ruleset_idx}}}},
                 {msg_aliasrule}};
 
   auto choose_rule =
       ChooseRule{ms_idx,
-                 Designator<ExprID>{urs.netId, "array", {ruleset_idx}},
+                 Designator{urs.netId, {Indexer{"array", ExprID{ruleset_idx}}}},
                  {mach_aliasrule}};
 
   auto ruleset = RuleSet{{ForEachQuantifier<ID>{ruleset_idx, {e_machines_t}}},
@@ -932,9 +969,10 @@ void MurphiCodeGen::_generateMutexHelpers() {
       {"params", json::array({detail::Formal<detail::ID>{
                      adr_param, {{detail::ss_address_t}}}})},
       {"statements",
-       json::array({detail::Assignment<detail::Designator<detail::ExprID>,
-                                       detail::ExprID>{
-           {detail::cl_mutex_v, "array", {adr_param}}, {"true"}}
+       json::array({detail::Assignment<detail::Designator, detail::ExprID>{
+           {detail::cl_mutex_v,
+            {detail::Indexer{"array", detail::ExprID{adr_param}}}},
+           {"true"}}
 
        })}};
   json acq_proc_decl = {{"procType", "procedure"},
@@ -946,9 +984,10 @@ void MurphiCodeGen::_generateMutexHelpers() {
       {"params", json::array({detail::Formal<detail::ID>{
                      adr_param, {{detail::ss_address_t}}}})},
       {"statements",
-       json::array({detail::Assignment<detail::Designator<detail::ExprID>,
-                                       detail::ExprID>{
-           {detail::cl_mutex_v, "array", {adr_param}}, {"false"}}
+       json::array({detail::Assignment<detail::Designator, detail::ExprID>{
+           {detail::cl_mutex_v,
+            {detail::Indexer{"array", detail::ExprID{adr_param}}}},
+           {"false"}}
 
        })}};
   json rel_proc_decl = {{"procType", "procedure"},
@@ -1074,14 +1113,12 @@ void MurphiCodeGen::_generateStartState() {
     auto default_value = detail::ExprID{machId + "_I"};
 
     auto common_start =
-        detail::DesignatorExpr<detail::Designator<detail::ExprID>,
-                               detail::ExprID>{
-            {detail::mach_prefix_v + machId, "array", {mach_idx}},
-            "array",
-            {adr_idx}};
+        detail::Designator{detail::mach_prefix_v + machId,
+                          {detail::Indexer{"array", detail::ExprID{mach_idx}},
+                           detail::Indexer{"array", detail::ExprID{adr_idx}}}};
 
-    auto lhs = detail::DesignatorExpr<decltype(common_start), detail::ExprID>{
-        common_start, "object", decl};
+    auto lhs = common_start; // copy the start
+    lhs.indexes.emplace_back(detail::Indexer{"object", detail::ExprID{decl}});
 
     for_adr.stmts.emplace_back(
         detail::Assignment<decltype(lhs), decltype(default_value)>{
@@ -1095,9 +1132,10 @@ void MurphiCodeGen::_generateStartState() {
   /// *** Initialize Mutexes *** ///
   auto generate_mutex_inits = []() -> json {
     constexpr auto adr_idx = "a";
-    auto mut_false =
-        detail::Assignment<detail::Designator<detail::ExprID>, detail::ExprID>{
-            {detail::cl_mutex_v, "array", {adr_idx}}, {"false"}};
+    auto mut_false = detail::Assignment<detail::Designator, detail::ExprID>{
+        {detail::cl_mutex_v,
+         {detail::Indexer{"array", detail::ExprID{adr_idx}}}},
+        {"false"}};
     auto for_adr = detail::ForStmt<detail::ForEachQuantifier<detail::ID>>{
         {adr_idx, {detail::ss_address_t}}, {std::move(mut_false)}};
     return for_adr;
@@ -1107,30 +1145,27 @@ void MurphiCodeGen::_generateStartState() {
   /// ** Undefine networks //
   for (auto nw : moduleInterpreter.getNetworks()) {
     auto netId = nw.netId().str();
-    auto rhs = detail::SimpleDes{netId, {}};
+    auto rhs = detail::Designator{netId, {}};
     ss.statements.emplace_back(detail::UndefineStmt<decltype(rhs)>{rhs});
   }
 
   /// ***  Set all ordered counts to zero  *** ///
   auto gen_ordered_cnt_ss = [](llvm::StringRef netId) -> json {
     constexpr auto mach_idx = "n";
-    auto for_quant = detail::ForEachQuantifier<detail::ID>{
-        mach_idx, {detail::e_machines_t}
-    };
+    auto for_quant =
+        detail::ForEachQuantifier<detail::ID>{mach_idx, {detail::e_machines_t}};
 
-    auto cnt_stmt = detail::Assignment<detail::SimpleDes, detail::ExprID>{
-        {detail::CntKey + netId.str(), {detail::Indexer{"array", detail::ExprID{mach_idx}}}},
-        {"0"}
-    };
+    auto cnt_stmt = detail::Assignment<detail::Designator, detail::ExprID>{
+        {detail::CntKey + netId.str(),
+         {detail::Indexer{"array", detail::ExprID{mach_idx}}}},
+        {"0"}};
 
-    return detail::ForStmt<decltype(for_quant)>{
-        std::move(for_quant),
-        {std::move(cnt_stmt)}
-    };
+    return detail::ForStmt<decltype(for_quant)>{std::move(for_quant),
+                                                {std::move(cnt_stmt)}};
   };
 
-  for (auto &nw : moduleInterpreter.getNetworks()){
-    if(nw.getType().getOrdering() == "ordered"){
+  for (auto &nw : moduleInterpreter.getNetworks()) {
+    if (nw.getType().getOrdering() == "ordered") {
       ss.statements.emplace_back(gen_ordered_cnt_ss(nw.netId()));
     }
   }

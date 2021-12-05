@@ -325,43 +325,12 @@ template <class TypeT> void to_json(json &j, const ForwardDecl<TypeT> &fd) {
   j = {{"typeId", fd.typeId}, {"decl", fd.decl}};
 }
 
-// *** Expression Types -> ExpressionDescription
-template <class T> struct Designator {
-  std::string objId;
-  std::string objType;
-  T index;
-};
-
-template <class T> void to_json(json &j, const Designator<T> &designator) {
-  j = {{"typeId", "designator"},
-       {"expression",
-        {{"objId", designator.objId},
-         {"objType", designator.objType},
-         {"index", designator.index}}}};
-}
-
-// TODO - solidify this concept
-template <class Des, class Idx> struct DesignatorExpr {
-  Des des;
-  std::string objType;
-  Idx index;
-};
-
-template <class Des, class Idx>
-void to_json(json &j, const DesignatorExpr<Des, Idx> &designatorExpr) {
-  j = {{"typeId", "designator_expr"},
-       {"expression",
-        {{"des", designatorExpr.des},
-         {"objType", designatorExpr.objType},
-         {"index", designatorExpr.index}}}};
-}
-
-struct SimpleDes{
+struct Designator {
   std::string id;
   std::vector<json> indexes;
 };
 
-void to_json(json &j, const SimpleDes &sd);
+void to_json(json &j, const Designator &sd);
 
 struct Indexer {
   std::string typeId;

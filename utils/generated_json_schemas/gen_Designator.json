@@ -45,83 +45,23 @@
         },
         "Designator": {
             "properties": {
-                "index": {
-                    "$ref": "#/definitions/ExpressionDescription",
-                    "title": "index"
-                },
-                "objId": {
-                    "title": "objId",
+                "id": {
+                    "title": "id",
                     "type": "string"
                 },
-                "objType": {
-                    "enum": [
-                        "array",
-                        "object"
-                    ],
-                    "title": "objType",
-                    "type": "string"
+                "indexes": {
+                    "items": {
+                        "$ref": "#/definitions/Indexer"
+                    },
+                    "title": "indexes",
+                    "type": "array"
                 }
             },
             "required": [
-                "objId"
+                "id",
+                "indexes"
             ],
             "title": "Designator",
-            "type": "object"
-        },
-        "DesignatorDescription": {
-            "properties": {
-                "expression": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/definitions/Designator"
-                        },
-                        {
-                            "$ref": "#/definitions/DesignatorExpr"
-                        }
-                    ],
-                    "title": "expression"
-                },
-                "typeId": {
-                    "enum": [
-                        "designator",
-                        "designator_expr"
-                    ],
-                    "title": "typeId",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "expression",
-                "typeId"
-            ],
-            "title": "DesignatorDescription",
-            "type": "object"
-        },
-        "DesignatorExpr": {
-            "properties": {
-                "des": {
-                    "$ref": "#/definitions/DesignatorDescription",
-                    "title": "des"
-                },
-                "index": {
-                    "$ref": "#/definitions/ExpressionDescription",
-                    "title": "index"
-                },
-                "objType": {
-                    "enum": [
-                        "array",
-                        "object"
-                    ],
-                    "title": "objType",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "des",
-                "index",
-                "objType"
-            ],
-            "title": "DesignatorExpr",
             "type": "object"
         },
         "ExpressionDescription": {
@@ -133,12 +73,6 @@
                         },
                         {
                             "$ref": "#/definitions/Designator"
-                        },
-                        {
-                            "$ref": "#/definitions/DesignatorExpr"
-                        },
-                        {
-                            "$ref": "#/definitions/SimpleDes"
                         },
                         {
                             "$ref": "#/definitions/BinaryExpr"
@@ -172,11 +106,9 @@
                 "ID",
                 "binary",
                 "designator",
-                "designator_expr",
                 "ms_count",
                 "neg_expr",
-                "proc_call",
-                "simple_des"
+                "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"
@@ -258,27 +190,6 @@
                 "funId"
             ],
             "title": "ProcCall",
-            "type": "object"
-        },
-        "SimpleDes": {
-            "properties": {
-                "id": {
-                    "title": "id",
-                    "type": "string"
-                },
-                "indexes": {
-                    "items": {
-                        "$ref": "#/definitions/Indexer"
-                    },
-                    "title": "indexes",
-                    "type": "array"
-                }
-            },
-            "required": [
-                "id",
-                "indexes"
-            ],
-            "title": "SimpleDes",
             "type": "object"
         }
     }
