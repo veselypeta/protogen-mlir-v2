@@ -2,6 +2,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "PCC/PCCDialect.h"
+#include "FSM/FSMDialect.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 namespace mlir

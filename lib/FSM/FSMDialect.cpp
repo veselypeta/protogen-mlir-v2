@@ -1,3 +1,4 @@
+#include "Support/LLVM.h"
 #include "FSM/FSMDialect.h"
 
 using namespace mlir;
