@@ -1,5 +1,5 @@
 #pragma once
-
+#include "mlir/IR/BuiltinOps.h"
 #include "FSM/FSMDialect.h"
 #include "FSM/FSMOps.h"
 #include "mlir/IR/Builders.h"
