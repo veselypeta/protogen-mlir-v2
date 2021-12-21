@@ -80,6 +80,10 @@ add_dependencies(protocc-antlr4 antlr4_static)
 
 # --- END ANTLR
 
+# Sanitisers
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/externals/sanitizers-cmake/cmake" ${CMAKE_MODULE_PATH})
+find_package(Sanitizers)
+
 # -- valijson
 set(valijson_BUILD_TESTS OFF CACHE BOOL "disable valijson tests")
 add_subdirectory(third-party/valijson)
@@ -100,3 +104,5 @@ if (NOT CMAKE_BUILD_TYPE EQUAL RELEASE)
     add_subdirectory(test)
 endif ()
 add_subdirectory(tools)
+
+
