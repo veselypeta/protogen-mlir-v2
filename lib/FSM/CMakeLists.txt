@@ -11,3 +11,4 @@ add_mlir_dialect_library(ProtogenFSM
         MLIRIR
 
         )
+add_sanitizers(ProtogenFSM)
