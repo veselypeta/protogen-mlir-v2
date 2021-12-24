@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.2 FATAL_ERROR)
 
 project(protogen-mlir LANGUAGES CXX C)
-
+ 
 if (NOT CMAKE_BUILD_TYPE EQUAL RELEASE)
     include(FetchContent)
     FetchContent_Declare(
