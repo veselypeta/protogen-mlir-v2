@@ -21,7 +21,8 @@ void MachineOp::build(::mlir::OpBuilder &odsBuilder,
   if (argAttrs.empty())
     return;
   assert(type.getNumInputs() == argAttrs.size());
-  function_like_impl::addArgAndResultAttrs(odsBuilder, odsState, argAttrs, /*resultAttrs*/llvm::None);
+  function_like_impl::addArgAndResultAttrs(odsBuilder, odsState, argAttrs,
+                                           /*resultAttrs*/ llvm::None);
 }
 
 static ParseResult parseMachineOp(OpAsmParser &parser, OperationState &result) {
@@ -45,6 +46,14 @@ static void print(MachineOp op, OpAsmPrinter &p) {
 static LogicalResult verifyMachineOp(MachineOp op) {
   // TODO - implement any necessary logic here
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// VariableOp
+//===----------------------------------------------------------------------===//
+void VariableOp::getAsmResultNames(
+    function_ref<void(Value, StringRef)> setNameFn) {
+  setNameFn(result(), name());
 }
 
 //===----------------------------------------------------------------------===//

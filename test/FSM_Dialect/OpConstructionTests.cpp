@@ -2,10 +2,10 @@
 // Created by petr on 10/01/2022.
 //
 #include "FSM/FSMOps.h"
-#include "mlir/IR/DialectImplementation.h"
-#include <gtest/gtest.h>
-#include "mlir/Parser.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/IR/DialectImplementation.h"
+#include "mlir/Parser.h"
+#include <gtest/gtest.h>
 
 using namespace mlir;
 using namespace mlir::fsm;
@@ -36,29 +36,33 @@ TEST(OpConstructionTests, PrintMachineOp) {
   Block *entry = machineOp.addEntryBlock();
 
   //// add a constant to the body
-  //set the insertion point to inside the body of the machine
+  // set the insertion point to inside the body of the machine
   helper.builder.setInsertionPointToStart(entry);
 
   // create the constant op
-  helper.builder.create<ConstantOp>(helper.builder.getUnknownLoc(), helper.builder.getI64IntegerAttr(21));
-
+  auto initAttr = helper.builder.getI64IntegerAttr(21);
+  helper.builder.create<VariableOp>(helper.builder.getUnknownLoc(),
+                                    initAttr.getType(), initAttr, "some_count");
 
   // print operation to string
   std::string str;
   llvm::raw_string_ostream stream{str};
   machineOp.print(stream);
 
-  ASSERT_STREQ(str.c_str(), "fsm.machine @cache() {\n  %c21_i64 = constant 21 : i64\n}");
+  ASSERT_STREQ(str.c_str(),
+               "fsm.machine @cache() {\n  %some_count = fsm.variable "
+               "\"some_count\" {initValue = 21 : i64} : i64\n}");
 }
 
-TEST(OpConstructionTests, ParseMachineOp){
+TEST(OpConstructionTests, ParseMachineOp) {
   OpHelper helper;
-  llvm::StringRef machineOp = "fsm.machine @cache() {\n  %c21_i64 = constant 21 : i64\n}";
+  llvm::StringRef machineOp ="fsm.machine @cache() {\n  %some_count = fsm.variable "
+                              "\"some_count\" {initValue = 21 : i64} : i64\n}";
   auto result = parseSourceString<ModuleOp>(machineOp, &helper.ctx);
-  result->walk([&](MachineOp op){
+  result->walk([&](MachineOp op) {
     ASSERT_STREQ(op.sym_name().str().c_str(), "cache");
   });
-  result->walk([&](ConstantOp op){
-    ASSERT_EQ(op.getValue().cast<IntegerAttr>().getInt(), 21);
+  result->walk([&](VariableOp op) {
+    ASSERT_EQ(op.initValue().cast<IntegerAttr>().getInt(), 21);
   });
 }

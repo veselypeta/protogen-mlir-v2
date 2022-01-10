@@ -5,6 +5,7 @@ include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 
+def HasCustomSSAName : DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResultNames"]>;
 
 
 def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
@@ -54,6 +55,20 @@ def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
     let verifier = [{ return ::verify$cppClass(*this); }];
+}
+
+def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
+      FirstAttrDerivedResultType]> {
+  let summary = "Declare a variable in a state machine";
+  let description = [{
+    `fsm.variable` represents an internal variable in a state machine with an
+    initialization value.
+  }];
+
+  let arguments = (ins AnyAttr:$initValue, StrAttr:$name);
+  let results = (outs AnyType:$result);
+
+  let assemblyFormat = [{ $name attr-dict `:` type($result) }];
 }
 
 def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, NoTerminator]> {
