@@ -27,3 +27,4 @@ target_link_libraries(murphi-translate
         )
 
 mlir_check_link_libraries(murphi-translate)
+add_sanitizers(murphi-translate)

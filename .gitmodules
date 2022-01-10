@@ -4,3 +4,6 @@
 [submodule "third-party/valijson"]
 	path = third-party/valijson
 	url = https://github.com/tristanpenman/valijson
+[submodule "externals/sanitizers-cmake"]
+	path = externals/sanitizers-cmake
+	url = git://github.com/arsenm/sanitizers-cmake.git

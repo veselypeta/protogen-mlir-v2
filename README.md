@@ -7,10 +7,11 @@
 - `clang`
 - `lld`
 - `uuid-dev`
+- `pkg-config`
 
 On Ubuntu you can install all dependencies with the following:
 ```zsh
-sudo apt-get install -y git cmake ninja-build clang lld uuid-dev
+sudo apt-get install -y git cmake ninja-build clang lld uuid-dev pkg-config
 ```
 
 

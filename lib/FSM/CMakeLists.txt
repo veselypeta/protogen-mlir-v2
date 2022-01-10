@@ -17,4 +17,5 @@ add_mlir_dialect_library(ProtogenFSM
         protocc-antlr4
 
         )
+add_sanitizers(ProtogenFSM)
 add_subdirectory(Passes)
