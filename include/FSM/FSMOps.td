@@ -8,13 +8,52 @@ include "mlir/Interfaces/ControlFlowInterfaces.td"
 
 
 def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
-        Symbol, SymbolTable, IsolatedFromAbove, NoTerminator]>{
+        Symbol, SymbolTable, IsolatedFromAbove, NoTerminator, FunctionLike]>{
     let summary = "Define an FSM (typically a cache or directory controller)";
     let description = [{
     `fsm.machine` represents a finite-state machine
     }];
     let arguments = (ins StrAttr:$sym_name, TypeAttr:$type);
     let regions = (region SizedRegion<1>:$body);
+
+    let builders = [OpBuilder<(ins
+                    "StringRef":$name, "FunctionType":$type,
+                    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+                    CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)
+    >];
+
+    let extraClassDeclaration = [{
+    /// Get the starting state of the machine i.e. the default state/ usually I
+
+
+    private:
+        /// This train needs access to the hooks defined below.
+        friend class OpTrait::FunctionLike<MachineOp>;
+
+        /// Returns the number of arguments. This is a hook for
+        /// OpTrait::FunctionLike.
+        unsigned getNumFuncArguments() { return getType().getInputs().size(); }
+
+        /// Return the number of results. This is a hook for OpTrait::FunctionLike.
+        unsigned getNumFuncResults() { return getType().getResults().size(); }
+
+        /// Hook for OpTrait::FunctionLike, called after verifying that the 'type'
+        /// attribute is present and checks if it holds a function type. Ensures
+        /// getType, getNumFuncArguments, and getNumFuncResults can be called
+        /// safely.
+        LogicalResult verifyType(){
+            auto type = getTypeAttr().getValue();
+            if(!type.isa<FunctionType>())
+                return emitOpError("requires '" + getTypeAttrName() +
+                    "' attribute of function type");
+            return success();
+        }
+
+    }];
+
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+    let verifier = [{ return ::verify$cppClass(*this); }];
 }
 
 def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, NoTerminator]> {

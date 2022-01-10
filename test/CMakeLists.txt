@@ -17,9 +17,12 @@ add_executable(protogen-mlir-test
         murphi-translate/MurphiCodeGenTests.cpp
         codegen/FunctionDeclTests.cpp
         codegen/FormalParamsTests.cpp codegen/ExpressionTests.cpp codegen/StatementTests.cpp
-        codegen/QuantifierTests.cpp codegen/MachineHandlerTests.cpp codegen/RuleTests.cpp)
+        codegen/QuantifierTests.cpp codegen/MachineHandlerTests.cpp codegen/RuleTests.cpp
 
-target_link_libraries(protogen-mlir-test gtest_main MLIRIR antlr4_static mlir-gen trans-murphi)
+        # fsm dialect tests
+        FSM_Dialect/OpConstructionTests.cpp)
+
+target_link_libraries(protogen-mlir-test gtest_main MLIRIR antlr4_static mlir-gen trans-murphi ProtogenFSM)
 
 include(GoogleTest)
 gtest_discover_tests(protogen-mlir-test)

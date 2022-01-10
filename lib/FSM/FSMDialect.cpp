@@ -5,6 +5,8 @@
 using namespace mlir;
 using namespace fsm;
 
+#include "FSM/FSMDialect.cpp.inc"
+
 void FSMDialect::initialize() {
   addTypes<
 #define GET_TYPEDEF_LIST

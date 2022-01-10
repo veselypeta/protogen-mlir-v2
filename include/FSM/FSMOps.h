@@ -1,7 +1,7 @@
 #pragma once
 #include "mlir/IR/BuiltinOps.h"
 #include "FSM/FSMDialect.h"
-#include "FSM/FSMOps.h"
+#include "FSM/FSMTypes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/FunctionSupport.h"
 #include "mlir/IR/OpImplementation.h"

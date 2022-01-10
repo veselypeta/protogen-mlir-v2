@@ -3,11 +3,18 @@ add_mlir_dialect_library(ProtogenFSM
         FSMOps.cpp
         FSMTypes.cpp
 
+        ADDITIONAL_HEADER_DIRS
+        ${PROJECT_SOURCE_DIR}/include/FSM
+
         DEPENDS
         MLIRFSMIncGen
+        protocc-antlr4
 
         LINK_LIBS PUBLIC
         MLIRStandard
         MLIRIR
+        PRIVATE antlr4_static
+        protocc-antlr4
 
         )
+add_subdirectory(Passes)
