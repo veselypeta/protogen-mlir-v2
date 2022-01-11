@@ -66,3 +66,38 @@ TEST(OpConstructionTests, ParseMachineOp) {
     ASSERT_EQ(op.initValue().cast<IntegerAttr>().getInt(), 21);
   });
 }
+
+
+TEST(OpConstructionTests, StateOp){
+  OpHelper helper;
+
+  // set up the test
+
+  // first build the machine op
+  auto machType = helper.builder.getFunctionType(llvm::None, llvm::None);
+  auto mach = helper.builder.create<MachineOp>(helper.builder.getUnknownLoc(), "cache", machType);
+  // set the insertion point
+  Block *entry = mach.addEntryBlock();
+  helper.builder.setInsertionPointToStart(entry);
+
+  // create the state op
+  auto stateOp = helper.builder.create<StateOp>(helper.builder.getUnknownLoc(), "S");
+
+  // print operation to string
+  std::string str;
+  llvm::raw_string_ostream stream{str};
+  stateOp.print(stream);
+
+  ASSERT_STREQ("fsm.state \"S\" transitions  {\n}", str.c_str());
+}
+
+TEST(OpConstructionTests, ParseStateOp){
+  OpHelper helper;
+  llvm::StringRef opText = "fsm.machine @cache() {\n  fsm.state \"S\" transitions  {\n %0 = std.constant 21 : i64\n }\n}";
+
+  auto result = parseSourceString(opText, &helper.ctx);
+
+  result->walk([](StateOp op){
+    ASSERT_TRUE(op.sym_name() == "S");
+  });
+}

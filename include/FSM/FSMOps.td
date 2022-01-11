@@ -58,7 +58,7 @@ def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
 }
 
 def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
-      FirstAttrDerivedResultType]> {
+      FirstAttrDerivedResultType, Symbol]> {
   let summary = "Declare a variable in a state machine";
   let description = [{
     `fsm.variable` represents an internal variable in a state machine with an
@@ -71,7 +71,7 @@ def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
   let assemblyFormat = [{ $name attr-dict `:` type($result) }];
 }
 
-def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, NoTerminator]> {
+def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTerminator]> {
 
     let summary = "Define a state of a machine";
     let description = [{
@@ -84,7 +84,7 @@ def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, NoTerminator]> {
     }];
 }
 
-def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">]>{
+def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminator]>{
     let summary = "Define a transition of a state";
     let description = [{
         `fsm.transition` represents a transition of a fsm.
