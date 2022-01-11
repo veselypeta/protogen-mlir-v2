@@ -87,10 +87,10 @@ find_package(Sanitizers)
 # -- valijson
 set(valijson_BUILD_TESTS OFF CACHE BOOL "disable valijson tests")
 add_subdirectory(third-party/valijson)
-include_directories(third-party/valijson/include)
+include_directories(SYSTEM third-party/valijson/include)
 
 # --- include 3rd party code
-include_directories(third-party)
+include_directories(SYSTEM third-party)
 
 # code is dependant on tablegen'd targets
 add_custom_target(protogen-headers)
