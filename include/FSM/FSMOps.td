@@ -58,7 +58,7 @@ def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
 }
 
 def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
-      FirstAttrDerivedResultType, Symbol]> {
+      FirstAttrDerivedResultType]> {
   let summary = "Declare a variable in a state machine";
   let description = [{
     `fsm.variable` represents an internal variable in a state machine with an
