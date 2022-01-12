@@ -71,16 +71,26 @@ def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
   let assemblyFormat = [{ $name attr-dict `:` type($result) }];
 }
 
-def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTerminator]> {
+def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTerminator, SingleBlock]> {
 
     let summary = "Define a state of a machine";
     let description = [{
        `fsm.state` represents a state of a state machine.
     }];
-    let arguments = (ins StrAttr:$sym_name);
+    let arguments = (ins SymbolNameAttr:$sym_name);
     let regions = (region SizedRegion<1>:$transitions);
     let assemblyFormat = [{
         $sym_name attr-dict `transitions` $transitions
+    }];
+    let extraClassDeclaration = [{
+    public:
+    Block *addEntryBlock(){
+        assert(this->transitions().getBlocks().size() == 0 && "already added an entry block");
+        auto block = new Block();
+        this->transitions().push_back(block);
+        return block;
+    }
+
     }];
 }
 
@@ -89,8 +99,24 @@ def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminat
     let description = [{
         `fsm.transition` represents a transition of a fsm.
     }];
+    let arguments = (ins SymbolNameAttr:$sym_name, OptionalAttr<SymbolRefAttr>:$nextState);
 
     let regions = (region SizedRegion<1>:$body);
+
+    let assemblyFormat = [{
+        attr-dict `action` $sym_name $body
+    }];
+
+    let extraClassDeclaration = [{
+        public:
+        Block *addEntryBlock(){
+            assert(this->body().getBlocks().size() == 0 && "already added an entry block");
+            auto block = new Block();
+            this->body().push_back(block);
+            return block;
+        }
+
+    }];
 }
 
 

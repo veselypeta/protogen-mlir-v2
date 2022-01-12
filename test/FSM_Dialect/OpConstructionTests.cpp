@@ -49,15 +49,18 @@ TEST(OpConstructionTests, PrintMachineOp) {
   llvm::raw_string_ostream stream{str};
   machineOp.print(stream);
 
-  ASSERT_STREQ(str.c_str(),
-               "fsm.machine @cache() {\n  %some_count = fsm.variable "
-               "\"some_count\" {initValue = 21 : i64} : i64\n}");
+  auto expectedStr = "fsm.machine @cache() {\n"
+                     "  %some_count = fsm.variable \"some_count\" {initValue = 21 : i64} : i64\n"
+                     "}";
+
+  ASSERT_STREQ(str.c_str(), expectedStr);
 }
 
 TEST(OpConstructionTests, ParseMachineOp) {
   OpHelper helper;
-  llvm::StringRef machineOp ="fsm.machine @cache() {\n  %some_count = fsm.variable "
-                              "\"some_count\" {initValue = 21 : i64} : i64\n}";
+  llvm::StringRef machineOp =
+      "fsm.machine @cache() {\n  %some_count = fsm.variable "
+      "\"some_count\" {initValue = 21 : i64} : i64\n}";
   auto result = parseSourceString<ModuleOp>(machineOp, &helper.ctx);
   result->walk([&](MachineOp op) {
     ASSERT_STREQ(op.sym_name().str().c_str(), "cache");
@@ -67,37 +70,119 @@ TEST(OpConstructionTests, ParseMachineOp) {
   });
 }
 
-
-TEST(OpConstructionTests, StateOp){
+TEST(OpConstructionTests, StateOp) {
   OpHelper helper;
 
   // set up the test
 
   // first build the machine op
   auto machType = helper.builder.getFunctionType(llvm::None, llvm::None);
-  auto mach = helper.builder.create<MachineOp>(helper.builder.getUnknownLoc(), "cache", machType);
+  auto mach = helper.builder.create<MachineOp>(helper.builder.getUnknownLoc(),
+                                               "cache", machType);
   // set the insertion point
   Block *entry = mach.addEntryBlock();
   helper.builder.setInsertionPointToStart(entry);
 
   // create the state op
-  auto stateOp = helper.builder.create<StateOp>(helper.builder.getUnknownLoc(), "S");
+  auto stateOp =
+      helper.builder.create<StateOp>(helper.builder.getUnknownLoc(), "S");
+  Block *sEntry = stateOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(sEntry);
+  // add the constant
+  helper.builder.create<ConstantOp>(
+      helper.builder.getUnknownLoc(), helper.builder.getI64IntegerAttr(21));
 
   // print operation to string
   std::string str;
   llvm::raw_string_ostream stream{str};
-  stateOp.print(stream);
+  mach.print(stream);
+  auto expectedText = "fsm.machine @cache() {\n"
+                      "  fsm.state @S transitions  {\n"
+                      "    %c21_i64 = constant 21 : i64\n"
+                      "  }\n"
+                      "}";
 
-  ASSERT_STREQ("fsm.state \"S\" transitions  {\n}", str.c_str());
+  ASSERT_STREQ(expectedText, str.c_str());
 }
 
-TEST(OpConstructionTests, ParseStateOp){
+TEST(OpConstructionTests, ParseStateOp) {
   OpHelper helper;
-  llvm::StringRef opText = "fsm.machine @cache() {\n  fsm.state \"S\" transitions  {\n %0 = std.constant 21 : i64\n }\n}";
+  llvm::StringRef opText = "fsm.machine @cache() {\n"
+                           "  fsm.state @S transitions  {\n"
+                           "    %0 = std.constant 21 : i64\n "
+                           "  }\n"
+                           "}";
 
   auto result = parseSourceString(opText, &helper.ctx);
 
-  result->walk([](StateOp op){
-    ASSERT_TRUE(op.sym_name() == "S");
+  result->walk([](StateOp op) { ASSERT_TRUE(op.sym_name() == "S"); });
+
+  ASSERT_TRUE(succeeded(result->verify()));
+}
+
+TEST(OpConstructionTests, PrintTransitionOp) {
+  OpHelper helper;
+  // set up the test
+  Location unkLoc = helper.builder.getUnknownLoc();
+
+  // create the necessary ops
+  FunctionType machType =
+      helper.builder.getFunctionType(llvm::None, llvm::None);
+  MachineOp machOp =
+      helper.builder.create<MachineOp>(unkLoc, "cache", machType);
+  Block *entry = machOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(entry);
+
+  StateOp sState = helper.builder.create<StateOp>(unkLoc, "S");
+  Block *sEntry = sState.addEntryBlock();
+  helper.builder.setInsertionPointToStart(sEntry);
+
+  // create the transition Op
+  TransitionOp transOp = helper.builder.create<TransitionOp>(
+      unkLoc, helper.builder.getStringAttr("load"),
+      helper.builder.getSymbolRefAttr("M"));
+  Block *tEntry = transOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(tEntry);
+
+  // create a dummy op
+  helper.builder.create<ConstantOp>(unkLoc,
+                                    helper.builder.getI64IntegerAttr(21));
+
+  // print operation to string
+  std::string str;
+  llvm::raw_string_ostream stream{str};
+  machOp.print(stream);
+
+  auto expctStr = "fsm.machine @cache() {\n"
+                  "  fsm.state @S transitions  {\n"
+                  "    fsm.transition {nextState = @M} action @load  {\n"
+                  "      %c21_i64 = constant 21 : i64\n"
+                  "    }\n"
+                  "  }\n"
+                  "}";
+
+  ASSERT_STREQ(expctStr, str.c_str());
+}
+
+TEST(OpConstructionTests, ParseTransitionOp) {
+  OpHelper helper;
+  llvm::StringRef opText =
+      "fsm.machine @cache() {\n"
+      "  fsm.state @S transitions  {\n"
+      "    fsm.transition {nextState = @M} action @load  {\n"
+      "      %c21_i64 = constant 21 : i64\n"
+      "    }\n"
+      "  }\n"
+      "}";
+
+  auto result = parseSourceString(opText, &helper.ctx);
+
+  result->walk([](TransitionOp op){
+    ASSERT_TRUE(op.nextState().hasValue());
+    ASSERT_TRUE(op.nextState().getValue().getLeafReference() == "M");
+    ASSERT_TRUE(op.sym_name() == "load");
   });
+
+  auto logRes = result->verify();
+  ASSERT_TRUE(succeeded(logRes));
 }
