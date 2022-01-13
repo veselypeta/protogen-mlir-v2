@@ -268,6 +268,58 @@ TEST(OpConstructionTests, SymbolTableTest) {
   ASSERT_NE(dirTrans, nullptr);
 
   // 6 - works with colons? - NO
+}
 
+TEST(OpConstructionTests, MessageOpConstruction) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create some dummy constant ops to be passed in as operands
+  auto c1 = helper.builder.create<ConstantOp>(
+      unknLoc, helper.builder.getI64IntegerAttr(1));
+  auto c2 = helper.builder.create<ConstantOp>(
+      unknLoc, helper.builder.getI64IntegerAttr(2));
+  auto c3 = helper.builder.create<ConstantOp>(
+      unknLoc, helper.builder.getI64IntegerAttr(3));
+
+  ValueRange vr = {c1, c2, c3};
+
+  helper.builder.create<MessageOp>(
+      unknLoc, helper.builder.getI64Type(),
+      helper.builder.getSymbolRefAttr("Resp"),
+      helper.builder.getStringAttr("Inv"), vr);
+
+  auto expctText = "module  {\n"
+                              "  %c1_i64 = constant 1 : i64\n"
+                              "  %c2_i64 = constant 2 : i64\n"
+                              "  %c3_i64 = constant 3 : i64\n"
+                              "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 : i64, i64, i64 -> i64\n"
+                              "}\n";
+
+  // print operation to string
+  std::string str;
+  llvm::raw_string_ostream stream{str};
+  helper.module.print(stream);
+
+  ASSERT_STREQ(str.c_str(), expctText);
+
+}
+
+TEST(OpConstructionTests, MessageOpParse){
+  OpHelper helper;
+  llvm::StringRef parseText = "module  {\n"
+                   "  %c1_i64 = constant 1 : i64\n"
+                   "  %c2_i64 = constant 2 : i64\n"
+                   "  %c3_i64 = constant 3 : i64\n"
+                   "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 : i64, i64, i64 -> i64\n"
+                   "}\n";
+
+  auto result = parseSourceString(parseText, &helper.ctx);
+
+ result->walk([](MessageOp msgOp){
+    EXPECT_EQ(msgOp.msgTypeAttr().getLeafReference(), "Resp");
+    EXPECT_EQ(msgOp.msgNameAttr().getValue(), "Inv");
+    EXPECT_EQ(msgOp.inputs().size(), 3);
+  });
 
 }

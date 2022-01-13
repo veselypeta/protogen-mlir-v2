@@ -126,8 +126,12 @@ def MessageOp : FSMOp<"message", []>{
     let summary = "Constructs a message which can then be sent onto a network";
     let description = [{}];
 
-    let arguments = (ins SymbolRefAttr:$msgType, StrAttr:$msgName);
+    let arguments = (ins SymbolRefAttr:$msgType, StrAttr:$msgName, Variadic<AnyType>:$inputs);
     let results = (outs AnyType:$result);
+
+    let assemblyFormat = [{
+    attr-dict $msgType $msgName ($inputs^ `:` type($inputs))? `->` type($result)
+    }];
 
 }
 
