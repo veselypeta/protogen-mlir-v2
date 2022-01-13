@@ -251,6 +251,9 @@ TEST(OpConstructionTests, SymbolTableTest) {
   ASSERT_NE(sLoadTransLookUp, nullptr);
   ASSERT_TRUE(sLoadTransLookUp.nextState().getValue().getLeafReference() ==
               "M");
+  // lookup a symbol by a symbol ref attr from another op
+  auto lookup = cacheOp.lookupSymbol<StateOp>(sLoadTransLookUp.nextStateAttr());
+  ASSERT_NE(lookup, nullptr);
 
   // 4 - try and lookup the state linked from
   auto nextStateLookUp = cacheOp.lookupSymbol<StateOp>(
@@ -264,5 +267,7 @@ TEST(OpConstructionTests, SymbolTableTest) {
   auto dirTrans = cacheOp.lookupSymbol<TransitionOp>(symbolRef);
   ASSERT_NE(dirTrans, nullptr);
 
-  // 6 - works with colons?
+  // 6 - works with colons? - NO
+
+
 }
