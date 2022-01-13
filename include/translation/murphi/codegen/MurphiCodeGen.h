@@ -78,35 +78,36 @@ constexpr char adr_a[] = "adr";
 constexpr char cle_a[] = "cle";
 
 // *** Machine Keywords *** //
-static std::string cache_set_t() {
+__attribute__((unused)) static std::string cache_set_t() {
   return std::string(SetKey) + machines.cache.str();
 }
-static std::string directory_set_t() {
+
+__attribute__((unused)) static std::string directory_set_t() {
   return std::string(SetKey) + machines.directory.str();
 }
 
-static std::string cache_mach_t() {
+__attribute__((unused)) static std::string cache_mach_t() {
   return std::string(MachKey) + machines.cache.str();
 }
 
-static std::string directory_mach_t() {
+__attribute__((unused)) static std::string directory_mach_t() {
   return std::string(MachKey) + machines.directory.str();
 }
 
-static std::string cache_obj_t() {
+__attribute__((unused)) static std::string cache_obj_t() {
   return std::string(ObjKey) + machines.cache.str();
 }
 
-static std::string directory_obj_t() {
+__attribute__((unused)) static std::string directory_obj_t() {
   return std::string(ObjKey) + machines.directory.str();
 }
 
 constexpr char e_machines_t[] = "Machines";
 
-static std::string e_directory_state_t();
-[[nodiscard]] static std::string e_cache_state_t();
-[[nodiscard]] static std::string r_cache_entry_t();
-[[nodiscard]] static std::string r_directory_entry_t();
+std::string e_directory_state_t();
+std::string e_cache_state_t();
+std::string r_cache_entry_t();
+std::string r_directory_entry_t();
 
 // *** Record Keywords *** //
 constexpr char r_message_t[] = "Message";
@@ -160,11 +161,8 @@ constexpr auto cpu_events =
  * VAR_DECL constants
  */
 constexpr char mach_prefix_v[] = "i_";
-static std::string cache_v() { return mach_prefix_v + machines.cache.str(); }
-
-static std::string directory_v() {
-  return mach_prefix_v + machines.directory.str();
-}
+std::string cache_v();
+std::string directory_v();
 
 constexpr char cl_mutex_v[] = "cl_mutex";
 
@@ -371,7 +369,7 @@ void to_json(json &j, const BinaryExpr<LHS, RHS> &binaryExpr) {
          {"op", binaryExpr.op}}}};
 }
 
-struct NegExpr{
+struct NegExpr {
   json expr;
 };
 
@@ -554,7 +552,6 @@ struct CacheRuleHandler {
 
 void to_json(json &j, const CacheRuleHandler &crh);
 
-
 struct CPUEventRule {
   std::string state;
   std::string event;
@@ -562,13 +559,13 @@ struct CPUEventRule {
 
 void to_json(json &j, const CPUEventRule &er);
 
-struct OrderedRuleset{
+struct OrderedRuleset {
   std::string netId;
 };
 
 void to_json(json &j, const OrderedRuleset &orderedRuleset);
 
-struct UnorderedRuleset{
+struct UnorderedRuleset {
   std::string netId;
 };
 
@@ -601,7 +598,7 @@ struct AliasRule {
 
 void to_json(json &j, const AliasRule &ar);
 
-struct ChooseRule{
+struct ChooseRule {
   std::string index;
   json expr;
   std::vector<json> rules;
@@ -609,8 +606,7 @@ struct ChooseRule{
 
 void to_json(json &j, const ChooseRule &cr);
 
-
-struct StartState{
+struct StartState {
   std::string desc;
   std::vector<json> decls;
   std::vector<json> statements;

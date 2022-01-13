@@ -77,7 +77,10 @@ def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTer
     let description = [{
        `fsm.state` represents a state of a state machine.
     }];
-    let arguments = (ins SymbolNameAttr:$sym_name);
+    let arguments = (ins    SymbolNameAttr:$sym_name,
+                            OptionalAttr<BoolAttr>:$isTransient,
+                            OptionalAttr<SymbolRefAttr>:$prevTransition);
+
     let regions = (region SizedRegion<1>:$transitions);
     let assemblyFormat = [{
         $sym_name attr-dict `transitions` $transitions
@@ -90,8 +93,8 @@ def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTer
         this->transitions().push_back(block);
         return block;
     }
-
     }];
+    let builders = [OpBuilder<(ins "StringRef":$state)>];
 }
 
 def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminator]>{
@@ -117,6 +120,15 @@ def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminat
         }
 
     }];
+}
+
+def MessageOp : FSMOp<"message", []>{
+    let summary = "Constructs a message which can then be sent onto a network";
+    let description = [{}];
+
+    let arguments = (ins SymbolRefAttr:$msgType, StrAttr:$msgName);
+    let results = (outs AnyType:$result);
+
 }
 
 

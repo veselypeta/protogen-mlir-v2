@@ -440,7 +440,7 @@ private:
                                                  field_attributes);
       return declare(cache_id, cache_decl);
     }
-    mlir::pcc::CacheDeclOp cache_decl = builder.create<mlir::pcc::CacheDeclOp>(
+    mlir::pcc::CacheDeclOp cache_decl __attribute__((unused)) = builder.create<mlir::pcc::CacheDeclOp>(
         cache_loc, cache_id, cache_struct, field_attributes);
     return mlir::success();
   }
@@ -697,7 +697,7 @@ private:
     std::string msgTypeId = ctx->ID()->getText();
     mlir::Location msgLoc = loc(*ctx->ID());
     // lookup the type
-    mlir::Value msgTypeConstr = lookup(msgTypeId);
+    mlir::Value msgTypeConstr __attribute__((unused)) = lookup(msgTypeId);
     mlir::pcc::MsgDeclOp msgDeclOp =
         mlir::dyn_cast<mlir::pcc::MsgDeclOp>(lookup(msgTypeId).getDefiningOp());
 
@@ -922,6 +922,7 @@ private:
   mlir::LogicalResult mlirGen(ProtoCCParser::ConditionalContext *ctx) {
     if (ctx->if_stmt())
       return mlirGen(ctx->if_stmt());
+    return mlir::success();
   }
 
   mlir::LogicalResult mlirGen(ProtoCCParser::If_stmtContext *ctx) {
@@ -1046,6 +1047,8 @@ private:
       return mlirGen(ctx->expressions());
     if (ctx->network_send())
       return mlirGen(ctx->network_send());
+
+    return mlir::success();
   }
 };
 } // namespace mlirGenImpl

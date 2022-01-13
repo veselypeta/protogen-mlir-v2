@@ -57,6 +57,15 @@ void VariableOp::getAsmResultNames(
 }
 
 //===----------------------------------------------------------------------===//
+// StateOp
+//===----------------------------------------------------------------------===//
+void StateOp::build(::mlir::OpBuilder &odsBuilder,
+                    ::mlir::OperationState &odsState, StringRef state) {
+  StateOp::build(odsBuilder, odsState, state,
+                 /*isTransient*/ nullptr, /*prevTransition*/ nullptr);
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//
 

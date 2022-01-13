@@ -77,11 +77,6 @@ void to_json(json &j, const MurphiTestConstant &m) {
   j = json{{"id", m.id}, {"value", m.value}};
 }
 
-void from_json(const json &j, MurphiTestConstant &m) {
-  j.at("id").get_to(m.id);
-  j.at("value").get_to(m.value);
-}
-
 json getMessageType() {
   json data;
   data["decls"] = {{{"id", "adr"}, {"typeId", "ID"}, {"type", "Address"}},

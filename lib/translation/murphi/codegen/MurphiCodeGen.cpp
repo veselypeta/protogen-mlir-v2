@@ -141,7 +141,8 @@ void to_json(json &j, const OrderedSendFunction &usf) {
                Designator{
                    CntKey + usf.netId,
                    {Indexer{"array", Designator{msg_p,
-                                      {Indexer{"object", ExprID{c_dst}}}}}}}}}};
+                                                {Indexer{"object",
+                                                         ExprID{c_dst}}}}}}}}}};
 
   Assignment<decltype(lhs), ExprID> push_stmt{lhs, {msg_p}};
 
@@ -202,11 +203,11 @@ void to_json(json &j, const OrderedPopFunction &opf) {
       {Indexer{"array", ExprID{msg_p}}, Indexer{"array", ExprID{loopIV}}}};
 
   Designator l4_rhs{opf.netId,
-                   {Indexer{"array", ExprID{msg_p}},
-                    Indexer{"array", BinaryExpr<ExprID, ExprID>{
-                                         {loopIV}, {"1"}, BinaryOps.plus
+                    {Indexer{"array", ExprID{msg_p}},
+                     Indexer{"array", BinaryExpr<ExprID, ExprID>{
+                                          {loopIV}, {"1"}, BinaryOps.plus
 
-                                     }}}};
+                                      }}}};
 
   Assignment<decltype(l4_lhs), decltype(l4_rhs)> l4Ass{l4_lhs, l4_rhs};
   l3ifstmt.thenStmts.emplace_back(l4Ass);
@@ -432,8 +433,8 @@ void to_json(json &j, const OrderedRuleset &orderedRuleset) {
   // msg:fwd[n][0]
   auto alias = AliasRule{c_msg,
                          Designator{orderedRuleset.netId,
-                                   {Indexer{"array", ExprID{mach_q}},
-                                    Indexer{"array", ExprID{"0"}}}},
+                                    {Indexer{"array", ExprID{mach_q}},
+                                     Indexer{"array", ExprID{"0"}}}},
                          {}};
 
   /*
@@ -585,18 +586,24 @@ bool validateMurphiJSON(const json &j) {
       "gen_Murphi_json_schema.json";
   return JSONValidation::validate_json(schema_path, j);
 }
-[[nodiscard]] static std::string e_directory_state_t() {
+std::string e_directory_state_t() {
   return machines.directory.str() + state_suffix;
 }
-[[nodiscard]] static std::string e_cache_state_t() {
+std::string e_cache_state_t() {
   return machines.cache.str() + state_suffix;
 }
-[[nodiscard]] static std::string r_cache_entry_t() {
+std::string r_cache_entry_t() {
   return std::string(EntryKey) + machines.cache.str();
 }
-[[nodiscard]] static std::string r_directory_entry_t() {
+std::string r_directory_entry_t() {
   return std::string(EntryKey) + machines.directory.str();
 }
+
+std::string cache_v() { return mach_prefix_v + machines.cache.str(); }
+std::string directory_v() {
+  return mach_prefix_v + machines.directory.str();
+}
+
 } // namespace detail
 
 mlir::LogicalResult MurphiCodeGen::translate() {
@@ -732,9 +739,9 @@ void MurphiCodeGen::_typeMachines() {
 void MurphiCodeGen::_getMachineEntry(mlir::Operation *machineOp) {
   // Check that the operation is either cache or directory decl
   const auto opIdent = machineOp->getName().getIdentifier().strref();
-  assert(opIdent == detail::opStringMap.cache_decl ||
-         opIdent == detail::opStringMap.dir_decl &&
-             "invalid operation passed to generation machine function");
+  assert((opIdent == detail::opStringMap.cache_decl ||
+          opIdent == detail::opStringMap.dir_decl) &&
+         "invalid operation passed to generation machine function");
   const auto machineIdent = opIdent == detail::opStringMap.cache_decl
                                 ? detail::machines.cache
                                 : detail::machines.directory;
@@ -1114,8 +1121,8 @@ void MurphiCodeGen::_generateStartState() {
 
     auto common_start =
         detail::Designator{detail::mach_prefix_v + machId,
-                          {detail::Indexer{"array", detail::ExprID{mach_idx}},
-                           detail::Indexer{"array", detail::ExprID{adr_idx}}}};
+                           {detail::Indexer{"array", detail::ExprID{mach_idx}},
+                            detail::Indexer{"array", detail::ExprID{adr_idx}}}};
 
     auto lhs = common_start; // copy the start
     lhs.indexes.emplace_back(detail::Indexer{"object", detail::ExprID{decl}});

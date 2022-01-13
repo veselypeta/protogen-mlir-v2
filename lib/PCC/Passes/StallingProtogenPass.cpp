@@ -77,7 +77,8 @@ void StallingProtogenOptimizationPass::runOnOperation() {
               // process resembles the correct state of the FSM
 
               rewriter.setInsertionPointAfter(queryProcess);
-              ProcessOp concurrentHandler = rewriter.create<ProcessOp>(
+
+              ProcessOp concurrentHandler __attribute__((unused)) = rewriter.create<ProcessOp>(
                   queryProcess.getLoc(), raceTransName.str(), raceProcType);
             }
           });

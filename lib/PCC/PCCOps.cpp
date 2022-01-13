@@ -280,7 +280,6 @@ static void print(OpAsmPrinter &p, InlineConstOp &op) {
 
 static ParseResult parseInlineConstOp(OpAsmParser &parser,
                                       OperationState &result) {
-  auto &builder = parser.getBuilder();
   Attribute valueAttr;
   if (parser.parseOptionalAttrDict(result.attributes) ||
       parser.parseAttribute(valueAttr, "value", result.attributes))

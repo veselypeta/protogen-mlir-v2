@@ -18,6 +18,8 @@ fsm.machine @cache(){
 
     fsm.state "S_store" {links=[@S::@store]} {
 
+
+
         // We can easily find racing transactions that can occur by inspecting
         // which messages can arrive in the logical start state
         // Can maybe also be done with links??
@@ -141,5 +143,73 @@ fsm.machine @directory(){
     }
 
 }
+
+}
+
+
+
+message @Resp{
+    %cl = variable "cl" : Data
+}
+
+
+
+
+machine @cache{
+
+    %state = variable -> State<I>
+    %cl = variable -> Data
+
+    state @S {
+
+        transition @store {
+            // send GetM to directory
+            %GetM = message @Request "GetM" @cache @directory
+
+        }
+
+        transition @Inv (%inv : Msg<"Ack">) {
+            // messages have a unique Type and a unique Name
+            // i.e. the message Inv
+            // has type -> Ack & name -> Inv
+
+            // type will almost surely by a symbolic reference
+            // name will almost surely be a string reference
+
+            // All other inputs should be SSA values???
+            // this means that we need a message input into transitions which expect them
+
+            // we can have type checking for what fields are accessible
+
+            %1 = ref @cache -> ID
+            %2 = ref @directory -> ID
+            %2 = access %inv {key="src"} -> ID
+            %msg = message @Resp "Inv_Ack" %1 %2 %cl
+
+        }
+    }
+
+    state @S_store {isTransient=true, prevTransition=@cache::@S::@store} {
+
+        transition @GetM_Ack_D {
+            transition to M
+        }
+
+        transition @GetM_Ack_AD {
+            transition possibility
+
+        }
+
+        transition @Inv_Ack(%msg : struct<ID, ID, ID>) {
+
+        }
+
+    }
+
+    state @S_store_GetM_Ack_AD {isTransient=true, prevState=@cache::@S_store} {
+
+    }
+
+
 
 }

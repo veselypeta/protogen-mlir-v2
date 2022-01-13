@@ -236,3 +236,12 @@ TEST_F(ModuleOpFixture, validate_add_procs) {
   codeGen.generateMethods();
   ASSERT_TRUE(codeGen.is_json_valid());
 }
+
+TEST(DisableUnusedFunction, DirectoyWarnings){
+  detail::e_directory_state_t();
+  detail::e_cache_state_t();
+  detail::r_cache_entry_t();
+  detail::r_directory_entry_t();
+  detail::cache_v();
+  detail::directory_v();
+}
