@@ -103,7 +103,8 @@ void StallingOptimizationPass::runOnOperation() {
           // currently, we do not specify a nextState
           // This we will deduce later
           TransitionOp optTrans = rewriter.create<TransitionOp>(
-              startState.getLoc(), racingTransaction.sym_nameAttr(),
+              startState.getLoc(), racingTransaction.sym_nameAttr().getValue(),
+              racingTransaction.getType(),
               /*nextState*/ nullptr);
           Block *optEntry = optTrans.addEntryBlock();
           rewriter.setInsertionPointToStart(optEntry);

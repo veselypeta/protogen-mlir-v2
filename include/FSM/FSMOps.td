@@ -24,8 +24,6 @@ def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
     >];
 
     let extraClassDeclaration = [{
-    /// Get the starting state of the machine i.e. the default state/ usually I
-
 
     private:
         /// This train needs access to the hooks defined below.
@@ -97,29 +95,57 @@ def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTer
     let builders = [OpBuilder<(ins "StringRef":$state)>];
 }
 
-def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminator]>{
+def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminator, FunctionLike]>{
     let summary = "Define a transition of a state";
     let description = [{
         `fsm.transition` represents a transition of a fsm.
     }];
-    let arguments = (ins SymbolNameAttr:$sym_name, OptionalAttr<SymbolRefAttr>:$nextState);
+    let arguments = (ins    SymbolNameAttr:$sym_name,
+                            TypeAttr:$type,
+                            OptionalAttr<SymbolRefAttr>:$nextState);
 
     let regions = (region SizedRegion<1>:$body);
 
-    let assemblyFormat = [{
-        attr-dict `action` $sym_name $body
-    }];
+    //let assemblyFormat = [{
+    //    attr-dict `action` $sym_name $body
+    //}];
+
+    let builders = [
+        OpBuilder<(ins
+                        "StringRef":$name, "FunctionType":$type, "SymbolRefAttr":$nextState,
+                        CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+                        CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)>
+    ];
 
     let extraClassDeclaration = [{
-        public:
-        Block *addEntryBlock(){
-            assert(this->body().getBlocks().size() == 0 && "already added an entry block");
-            auto block = new Block();
-            this->body().push_back(block);
-            return block;
-        }
+
+    /// This train needs access to the hooks defined below.
+    friend class OpTrait::FunctionLike<MachineOp>;
+
+    /// Returns the number of arguments. This is a hook for
+    /// OpTrait::FunctionLike.
+    unsigned getNumFuncArguments() { return getType().getInputs().size(); }
+
+    /// Return the number of results. This is a hook for OpTrait::FunctionLike.
+    unsigned getNumFuncResults() { return getType().getResults().size(); }
+
+    /// Hook for OpTrait::FunctionLike, called after verifying that the 'type'
+    /// attribute is present and checks if it holds a function type. Ensures
+    /// getType, getNumFuncArguments, and getNumFuncResults can be called
+    /// safely.
+    LogicalResult verifyType(){
+        auto type = getTypeAttr().getValue();
+        if(!type.isa<FunctionType>())
+            return emitOpError("requires '" + getTypeAttrName() +
+                "' attribute of function type");
+        return success();
+    }
 
     }];
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+    let verifier = [{ return ::verify$cppClass(*this); }];
+
 }
 
 def MessageOp : FSMOp<"message", []>{

@@ -49,6 +49,53 @@ static LogicalResult verifyMachineOp(MachineOp op) {
 }
 
 //===----------------------------------------------------------------------===//
+// TransitionOp
+//===----------------------------------------------------------------------===//
+void TransitionOp::build(::mlir::OpBuilder &odsBuilder,
+                         ::mlir::OperationState &odsState, StringRef name,
+                         FunctionType type, SymbolRefAttr nextState,
+                         ArrayRef<NamedAttribute> attrs,
+                         ArrayRef<DictionaryAttr> argAttrs) {
+  odsState.addAttribute(::mlir::SymbolTable::getSymbolAttrName(),
+                        odsBuilder.getStringAttr(name));
+  odsState.addAttribute(getTypeAttrName(), TypeAttr::get(type));
+
+  if (nextState)
+    odsState.addAttribute(TransitionOp::nextStateAttrName(odsState.name),
+                          nextState);
+
+  odsState.attributes.append(std::begin(attrs), std::end(attrs));
+  odsState.addRegion();
+  if (argAttrs.empty())
+    return;
+  assert(type.getNumInputs() == argAttrs.size());
+  function_like_impl::addArgAndResultAttrs(odsBuilder, odsState, argAttrs,
+                                           /*resultAttrs*/ llvm::None);
+}
+
+static ParseResult parseTransitionOp(OpAsmParser &parser,
+                                     OperationState &result) {
+  auto buildFunctionType =
+      [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+         function_like_impl::VariadicFlag, std::string &) -> FunctionType {
+    return builder.getFunctionType(argTypes, results);
+  };
+  return function_like_impl::parseFunctionLikeOp(
+      parser, result, /*allowVariadic*/ false, buildFunctionType);
+}
+
+static void print(TransitionOp op, OpAsmPrinter &p) {
+  FunctionType fnType = op.getType();
+  function_like_impl::printFunctionLikeOp(p, op, fnType.getInputs(), false,
+                                          fnType.getResults());
+}
+
+static LogicalResult verifyTransitionOp(TransitionOp op) {
+  // TODO - implement properly
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // VariableOp
 //===----------------------------------------------------------------------===//
 void VariableOp::getAsmResultNames(

@@ -125,9 +125,10 @@ TEST(OpConstructionTests, PrintTransitionOp) {
   helper.builder.setInsertionPointToStart(sEntry);
 
   // create the transition Op
+  FunctionType transFnType =
+      helper.builder.getFunctionType(llvm::None, llvm::None);
   TransitionOp transOp = helper.builder.create<TransitionOp>(
-      unkLoc, helper.builder.getStringAttr("load"),
-      helper.builder.getSymbolRefAttr("M"));
+      unkLoc, "load", transFnType, helper.builder.getSymbolRefAttr("M"));
   Block *tEntry = transOp.addEntryBlock();
   helper.builder.setInsertionPointToStart(tEntry);
 
@@ -142,7 +143,7 @@ TEST(OpConstructionTests, PrintTransitionOp) {
 
   auto expctStr = "fsm.machine @cache() {\n"
                   "  fsm.state @S transitions  {\n"
-                  "    fsm.transition {nextState = @M} action @load  {\n"
+                  "    fsm.transition @load() attributes {nextState = @M} {\n"
                   "      %c21_i64 = constant 21 : i64\n"
                   "    }\n"
                   "  }\n"
@@ -156,7 +157,7 @@ TEST(OpConstructionTests, ParseTransitionOp) {
   llvm::StringRef opText =
       "fsm.machine @cache() {\n"
       "  fsm.state @S transitions  {\n"
-      "    fsm.transition {nextState = @M} action @load  {\n"
+      "    fsm.transition @load() attributes {nextState = @M} {\n"
       "      %c21_i64 = constant 21 : i64\n"
       "    }\n"
       "  }\n"
@@ -195,9 +196,10 @@ TEST(OpConstructionTests, SymbolTableTest) {
   helper.builder.setInsertionPointToStart(sEntry);
 
   // create a transition
+  FunctionType sLoadFnType =
+      helper.builder.getFunctionType(llvm::None, llvm::None);
   TransitionOp sLoadTran = helper.builder.create<TransitionOp>(
-      unknLoc, helper.builder.getStringAttr("load"),
-      helper.builder.getSymbolRefAttr("M"));
+      unknLoc, "load", sLoadFnType, helper.builder.getSymbolRefAttr("M"));
   Block *sLoadTransBlock = sLoadTran.addEntryBlock();
   helper.builder.setInsertionPointToStart(sLoadTransBlock);
 
@@ -212,9 +214,10 @@ TEST(OpConstructionTests, SymbolTableTest) {
   helper.builder.setInsertionPointToStart(mEntry);
 
   // add a transition to M state
+  FunctionType mLoadFnType =
+      helper.builder.getFunctionType(llvm::None, llvm::None);
   TransitionOp mLoadTran = helper.builder.create<TransitionOp>(
-      unknLoc, helper.builder.getStringAttr("load"),
-      helper.builder.getSymbolRefAttr("S"));
+      unknLoc, "load", mLoadFnType, helper.builder.getSymbolRefAttr("S"));
   Block *mLoadTranEntry = mLoadTran.addEntryBlock();
   helper.builder.setInsertionPointToStart(mLoadTranEntry);
   // add a dummy op
@@ -270,17 +273,17 @@ TEST(OpConstructionTests, MessageOpConstruction) {
 
   ValueRange vr = {c1, c2, c3};
 
-  helper.builder.create<MessageOp>(
-      unknLoc, helper.builder.getI64Type(),
-      helper.builder.getSymbolRefAttr("Resp"),
-      helper.builder.getStringAttr("Inv"), vr);
+  helper.builder.create<MessageOp>(unknLoc, helper.builder.getI64Type(),
+                                   helper.builder.getSymbolRefAttr("Resp"),
+                                   helper.builder.getStringAttr("Inv"), vr);
 
   auto expctText = "module  {\n"
-                              "  %c1_i64 = constant 1 : i64\n"
-                              "  %c2_i64 = constant 2 : i64\n"
-                              "  %c3_i64 = constant 3 : i64\n"
-                              "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 : i64, i64, i64 -> i64\n"
-                              "}\n";
+                   "  %c1_i64 = constant 1 : i64\n"
+                   "  %c2_i64 = constant 2 : i64\n"
+                   "  %c3_i64 = constant 3 : i64\n"
+                   "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 "
+                   ": i64, i64, i64 -> i64\n"
+                   "}\n";
 
   // print operation to string
   std::string str;
@@ -288,24 +291,23 @@ TEST(OpConstructionTests, MessageOpConstruction) {
   helper.module.print(stream);
 
   ASSERT_STREQ(str.c_str(), expctText);
-
 }
 
-TEST(OpConstructionTests, MessageOpParse){
+TEST(OpConstructionTests, MessageOpParse) {
   OpHelper helper;
   llvm::StringRef parseText = "module  {\n"
-                   "  %c1_i64 = constant 1 : i64\n"
-                   "  %c2_i64 = constant 2 : i64\n"
-                   "  %c3_i64 = constant 3 : i64\n"
-                   "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 : i64, i64, i64 -> i64\n"
-                   "}\n";
+                              "  %c1_i64 = constant 1 : i64\n"
+                              "  %c2_i64 = constant 2 : i64\n"
+                              "  %c3_i64 = constant 3 : i64\n"
+                              "  %0 = fsm.message @Resp \"Inv\" %c1_i64, "
+                              "%c2_i64, %c3_i64 : i64, i64, i64 -> i64\n"
+                              "}\n";
 
   auto result = parseSourceString(parseText, &helper.ctx);
 
- result->walk([](MessageOp msgOp){
+  result->walk([](MessageOp msgOp) {
     EXPECT_EQ(msgOp.msgTypeAttr().getLeafReference(), "Resp");
     EXPECT_EQ(msgOp.msgNameAttr().getValue(), "Inv");
     EXPECT_EQ(msgOp.inputs().size(), 3);
   });
-
 }
