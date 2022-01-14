@@ -12,6 +12,10 @@ def FSMDialect : Dialect {
     }];
 
     let cppNamespace = "::mlir::fsm";
+    let extraClassDeclaration = [{
+    // Register all FSM Types
+    void registerTypes();
+    }];
 }
 
 // Base class for the types in this dialect

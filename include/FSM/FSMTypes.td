@@ -2,4 +2,17 @@
 #define PROTOGEN_DIALECT_FSM_FSMTYPES_TD
 
 
+def FSMType : DialectType<FSMDialect, CPred<"$_self.isa<FSMType>()">, "FSMType", "::mlir::fsm::FSMType">;
+
+// Simple Opaque Types
+def IDType : DialectType<FSMDialect, CPred<"$_self.isa<IDType>()">, "id", "::mlir::fsm::IDType">,
+    BuildableType<"IDType::get($_builder.getContext())">;
+
+def DataType : DialectType<FSMDialect, CPred<"$_self.isa<DataType>()">,"data", "::mlir::fsm::DataType">,
+    BuildableType<"DataType::get($_builder.getContext())">;
+
+def MsgType : DialectType<FSMDialect, CPred<"$_self.isa<DataType>()">, "msg", "::mlir::fsm::MsgType">,
+    BuildableType<"MsgType::get($_builder.getContext())">;
+
+
 #endif // PROTOGEN_DIALECT_FSM_FSMTYPES_TD

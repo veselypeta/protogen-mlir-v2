@@ -65,7 +65,7 @@ def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
     initialization value.
   }];
 
-  let arguments = (ins AnyAttr:$initValue, StrAttr:$name);
+  let arguments = (ins OptionalAttr<AnyAttr>:$initValue, StrAttr:$name);
   let results = (outs AnyType:$result);
 
   let assemblyFormat = [{ $name attr-dict `:` type($result) }];
@@ -132,7 +132,18 @@ def MessageOp : FSMOp<"message", []>{
     let assemblyFormat = [{
     attr-dict $msgType $msgName ($inputs^ `:` type($inputs))? `->` type($result)
     }];
+}
 
+def AccessOp : FSMOp<"access", []>{
+    let summary = "Returns a reference to a field within a message";
+    let description = [{}];
+
+    let arguments = (ins AnyType:$msg, StrAttr:$memberId);
+    let results = (outs AnyType:$value);
+
+    let assemblyFormat = [{
+        attr-dict $msg `:` type($msg) `->` type($value)
+    }];
 }
 
 

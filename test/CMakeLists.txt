@@ -20,7 +20,7 @@ add_executable(protogen-mlir-test
         codegen/QuantifierTests.cpp codegen/MachineHandlerTests.cpp codegen/RuleTests.cpp
 
         # fsm dialect tests
-        FSM_Dialect/OpConstructionTests.cpp)
+        FSM_Dialect/OpConstructionTests.cpp FSM_Dialect/OpTypeTests.cpp FSM_Dialect/OpHelper.h)
 
 target_link_libraries(protogen-mlir-test gtest_main MLIRIR antlr4_static mlir-gen trans-murphi ProtogenFSM)
 

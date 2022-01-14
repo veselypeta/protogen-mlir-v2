@@ -2,6 +2,7 @@
 // Created by petr on 10/01/2022.
 //
 #include "FSM/FSMOps.h"
+#include "OpHelper.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Parser.h"
@@ -9,21 +10,6 @@
 
 using namespace mlir;
 using namespace mlir::fsm;
-
-// Helper class to construct ops
-class OpHelper {
-public:
-  OpHelper() : builder{&ctx} {
-    ctx.getOrLoadDialect<FSMDialect>();
-    ctx.getOrLoadDialect<StandardOpsDialect>();
-    module = ModuleOp::create(builder.getUnknownLoc());
-    builder.setInsertionPointToStart(module.getBody());
-  }
-
-  MLIRContext ctx;
-  OpBuilder builder;
-  ModuleOp module;
-};
 
 TEST(OpConstructionTests, PrintMachineOp) {
 
@@ -67,7 +53,7 @@ TEST(OpConstructionTests, ParseMachineOp) {
     ASSERT_STREQ(op.sym_name().str().c_str(), "cache");
   });
   result->walk([&](VariableOp op) {
-    ASSERT_EQ(op.initValue().cast<IntegerAttr>().getInt(), 21);
+    ASSERT_EQ(op.initValue().getValue().cast<IntegerAttr>().getInt(), 21);
   });
 }
 

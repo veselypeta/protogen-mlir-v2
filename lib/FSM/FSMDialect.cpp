@@ -38,10 +38,7 @@ struct FSMInlinerInterface : public DialectInlinerInterface {
 };
 
 void FSMDialect::initialize() {
-  addTypes<
-#define GET_TYPEDEF_LIST
-#include "FSM/FSMTypes.cpp.inc"
-      >();
+  registerTypes();
   addOperations<
 #define GET_OP_LIST
 #include "FSM/FSM.cpp.inc"
