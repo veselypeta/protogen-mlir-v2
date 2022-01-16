@@ -12,6 +12,14 @@ if (NOT CMAKE_BUILD_TYPE EQUAL RELEASE)
     FetchContent_MakeAvailable(googletest)
 endif ()
 
+# enable errors
+if (MSVC)
+    # warning level 4 and all warnings as errors
+    add_compile_options(/W4 /WX)
+else()
+    # lots of warnings and all warnings as errors
+    add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
 
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
