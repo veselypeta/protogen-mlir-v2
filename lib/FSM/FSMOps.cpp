@@ -113,6 +113,24 @@ void StateOp::build(::mlir::OpBuilder &odsBuilder,
 }
 
 //===----------------------------------------------------------------------===//
+// MessageOp
+//===----------------------------------------------------------------------===//
+static LogicalResult verifyMessageOp(MessageOp op) {
+  if (op.getResult().getType().isa<MsgType>())
+    return success();
+  return failure();
+}
+
+//===----------------------------------------------------------------------===//
+// AccessOp
+//===----------------------------------------------------------------------===//
+static LogicalResult verifyAccessOp(AccessOp op) {
+  if (op.msg().getType().isa<MsgType>())
+    return success();
+  return failure();
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//
 

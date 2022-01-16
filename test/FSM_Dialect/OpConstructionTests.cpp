@@ -41,6 +41,7 @@ TEST(OpConstructionTests, PrintMachineOp) {
                      "}";
 
   ASSERT_STREQ(str.c_str(), expectedStr);
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, ParseMachineOp) {
@@ -55,6 +56,7 @@ TEST(OpConstructionTests, ParseMachineOp) {
   result->walk([&](VariableOp op) {
     ASSERT_EQ(op.initValue().getValue().cast<IntegerAttr>().getInt(), 21);
   });
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, StateOp) {
@@ -90,6 +92,7 @@ TEST(OpConstructionTests, StateOp) {
                       "}";
 
   ASSERT_STREQ(expectedText, str.c_str());
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, ParseStateOp) {
@@ -105,6 +108,7 @@ TEST(OpConstructionTests, ParseStateOp) {
   result->walk([](StateOp op) { ASSERT_TRUE(op.sym_name() == "S"); });
 
   ASSERT_TRUE(succeeded(result->verify()));
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, PrintTransitionOp) {
@@ -150,6 +154,7 @@ TEST(OpConstructionTests, PrintTransitionOp) {
                   "}";
 
   ASSERT_STREQ(expctStr, str.c_str());
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, ParseTransitionOp) {
@@ -173,6 +178,7 @@ TEST(OpConstructionTests, ParseTransitionOp) {
 
   auto logRes = result->verify();
   ASSERT_TRUE(succeeded(logRes));
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, SymbolTableTest) {
@@ -256,7 +262,7 @@ TEST(OpConstructionTests, SymbolTableTest) {
   auto dirTrans = cacheOp.lookupSymbol<TransitionOp>(symbolRef);
   ASSERT_NE(dirTrans, nullptr);
 
-  // 6 - works with colons? - NO
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, MessageOpConstruction) {
@@ -273,7 +279,7 @@ TEST(OpConstructionTests, MessageOpConstruction) {
 
   ValueRange vr = {c1, c2, c3};
 
-  helper.builder.create<MessageOp>(unknLoc, helper.builder.getI64Type(),
+  helper.builder.create<MessageOp>(unknLoc, MsgType::get(&helper.ctx),
                                    helper.builder.getSymbolRefAttr("Resp"),
                                    helper.builder.getStringAttr("Inv"), vr);
 
@@ -282,7 +288,7 @@ TEST(OpConstructionTests, MessageOpConstruction) {
                    "  %c2_i64 = constant 2 : i64\n"
                    "  %c3_i64 = constant 3 : i64\n"
                    "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 "
-                   ": i64, i64, i64 -> i64\n"
+                   ": i64, i64, i64 -> !fsm.msg\n"
                    "}\n";
 
   // print operation to string
@@ -291,17 +297,19 @@ TEST(OpConstructionTests, MessageOpConstruction) {
   helper.module.print(stream);
 
   ASSERT_STREQ(str.c_str(), expctText);
+  ASSERT_TRUE(succeeded(helper.module.verify()));
 }
 
 TEST(OpConstructionTests, MessageOpParse) {
   OpHelper helper;
-  llvm::StringRef parseText = "module  {\n"
-                              "  %c1_i64 = constant 1 : i64\n"
-                              "  %c2_i64 = constant 2 : i64\n"
-                              "  %c3_i64 = constant 3 : i64\n"
-                              "  %0 = fsm.message @Resp \"Inv\" %c1_i64, "
-                              "%c2_i64, %c3_i64 : i64, i64, i64 -> i64\n"
-                              "}\n";
+  llvm::StringRef parseText =
+      "module  {\n"
+      "  %c1_i64 = constant 1 : i64\n"
+      "  %c2_i64 = constant 2 : i64\n"
+      "  %c3_i64 = constant 3 : i64\n"
+      "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 "
+      ": i64, i64, i64 -> !fsm.msg\n"
+      "}\n";
 
   auto result = parseSourceString(parseText, &helper.ctx);
 
@@ -309,7 +317,25 @@ TEST(OpConstructionTests, MessageOpParse) {
     EXPECT_EQ(msgOp.msgTypeAttr().getLeafReference(), "Resp");
     EXPECT_EQ(msgOp.msgNameAttr().getValue(), "Inv");
     EXPECT_EQ(msgOp.inputs().size(), 3);
+    EXPECT_TRUE(msgOp.getResult().getType().isa<MsgType>());
   });
+  ASSERT_TRUE(succeeded(helper.module.verify()));
+}
+
+TEST(OpConstructionTests, MessageOpInvResultType) {
+  OpHelper helper;
+  llvm::StringRef parseText =
+      "module  {\n"
+      "  %c1_i64 = constant 1 : i64\n"
+      "  %c2_i64 = constant 2 : i64\n"
+      "  %c3_i64 = constant 3 : i64\n"
+      "  %0 = fsm.message @Resp \"Inv\" %c1_i64, %c2_i64, %c3_i64 "
+      ": i64, i64, i64 -> i64\n"
+      "}\n";
+
+  // parsing should fail and return empty result
+  auto result = parseSourceString(parseText, &helper.ctx);
+  ASSERT_EQ(*result, nullptr);
 }
 
 TEST(OpConstructionTests, TransitionOpWithMessageArgument) {
@@ -353,4 +379,73 @@ TEST(OpConstructionTests, TransitionOpWithMessageArgument) {
       "}";
 
   EXPECT_STREQ(str.c_str(), expectedText);
+  ASSERT_TRUE(succeeded(helper.module.verify()));
+}
+
+TEST(OpConstructionTests, AccessOpCreate) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  FunctionType fnType =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  MachineOp cacheOp =
+      helper.builder.create<MachineOp>(unknLoc, "cache", fnType);
+  Block *cacheEntry = cacheOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create some access Ops
+  helper.builder.create<AccessOp>(
+      unknLoc, DataType::get(&helper.ctx), cacheOp.getArgument(0),
+      helper.builder.getStringAttr("cl"));
+
+  helper.builder.create<AccessOp>(
+      unknLoc, IDType::get(&helper.ctx), cacheOp.getArgument(0),
+      helper.builder.getStringAttr("src"));
+
+  // print the module
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  cacheOp.print(sstream);
+
+  const auto expectedText =
+      "fsm.machine @cache(%arg0: !fsm.msg) {\n"
+      "  %0 = fsm.access {memberId = \"cl\"} %arg0 : !fsm.msg -> !fsm.data\n"
+      "  %1 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.id\n"
+      "}";
+  ASSERT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, AccessOpParse) {
+  OpHelper helper;
+  const llvm::StringRef opText =
+      "fsm.machine @cache(%arg0: !fsm.msg) {\n"
+      "  %0 = fsm.access {memberId = \"cl\"} %arg0 : !fsm.msg -> !fsm.data\n"
+      "  %1 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.id\n"
+      "}";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr); // parsing succeeded
+
+  result->walk([](AccessOp op) {
+    if (op.memberId() == "cl") {
+      ASSERT_TRUE(op.getResult().getType().isa<DataType>());
+      ASSERT_TRUE(op.msg().getType().isa<MsgType>());
+    } else {
+      ASSERT_EQ(op.memberId(), "src");
+      ASSERT_TRUE(op.getResult().getType().isa<IDType>());
+      ASSERT_TRUE(op.msg().getType().isa<MsgType>());
+    }
+  });
+
+  ASSERT_TRUE(succeeded(result->verify()));
+}
+
+TEST(OpConstructionTests, AccessOpWithInvArgumentType){
+  OpHelper helper;
+  const llvm::StringRef opText =
+      "fsm.machine @cache(%arg0: !fsm.data) {\n"
+      "  %0 = fsm.access {memberId = \"cl\"} %arg0 : !fsm.data -> !fsm.data\n"
+      "  %1 = fsm.access {memberId = \"src\"} %arg0 : !fsm.data -> !fsm.id\n"
+      "}";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_EQ(*result, nullptr); // parsing failed
 }

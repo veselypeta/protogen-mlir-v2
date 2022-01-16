@@ -156,8 +156,10 @@ def MessageOp : FSMOp<"message", []>{
     let results = (outs AnyType:$result);
 
     let assemblyFormat = [{
-    attr-dict $msgType $msgName ($inputs^ `:` type($inputs))? `->` type($result)
+    attr-dict $msgType $msgName ($inputs^ `:` type($inputs))? `->` type(results)
     }];
+
+    let verifier = [{ return ::verify$cppClass(*this); }];
 }
 
 def AccessOp : FSMOp<"access", []>{
@@ -168,8 +170,9 @@ def AccessOp : FSMOp<"access", []>{
     let results = (outs AnyType:$value);
 
     let assemblyFormat = [{
-        attr-dict $msg `:` type($msg) `->` type($value)
+        attr-dict $msg`:`type($msg) `->` type($value)
     }];
+    let verifier = [{ return ::verify$cppClass(*this); }];
 }
 
 
