@@ -311,3 +311,46 @@ TEST(OpConstructionTests, MessageOpParse) {
     EXPECT_EQ(msgOp.inputs().size(), 3);
   });
 }
+
+TEST(OpConstructionTests, TransitionOpWithMessageArgument) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // cache op
+  FunctionType cacheFnType =
+      helper.builder.getFunctionType(llvm::None, llvm::None);
+  MachineOp cacheOp =
+      helper.builder.create<MachineOp>(unknLoc, "cache", cacheFnType);
+  Block *cacheEntry = cacheOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // simple state
+  StateOp sState = helper.builder.create<StateOp>(unknLoc, "S");
+  Block *stateEntry = sState.addEntryBlock();
+  helper.builder.setInsertionPointToStart(stateEntry);
+
+  // simple transition with msg argument
+  FunctionType transType =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, llvm::None);
+  TransitionOp transOp = helper.builder.create<TransitionOp>(
+      unknLoc, "store", transType, /*nextStateAttr*/ nullptr);
+  Block *transEntry = transOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(transEntry);
+
+  // access a member of the msg
+  helper.builder.create<AccessOp>(
+      unknLoc, DataType::get(helper.builder.getContext()),
+      transOp.getArgument(0), helper.builder.getStringAttr("cl"));
+
+  // print out the IR
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  transOp.print(sstream);
+
+  const char *expectedText =
+      "fsm.transition @store(%arg0: !fsm.msg) {\n"
+      "  %0 = fsm.access {memberId = \"cl\"} %arg0 : !fsm.msg -> !fsm.data\n"
+      "}";
+
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
