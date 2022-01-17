@@ -20,7 +20,7 @@ detail::SimpleRule getSimpleRule() {
 }
 
 TEST(MachineHandler, BasicTest) {
-  auto mach_handler = detail::MachineHandler{"cache"};
+  auto mach_handler = detail::MachineHandler{"cache", {}};
 
   json data = mach_handler;
   auto &env = InjaEnvSingleton::getInstance();
@@ -39,7 +39,7 @@ TEST(MachineHandler, BasicTest) {
 
 TEST(CPUEventHandler, BasicTest) {
   auto cpu_handle =
-      detail::CPUEventHandler{detail::machines.cache.str() + "_I_load"};
+      detail::CPUEventHandler{detail::machines.cache.str() + "_I_load", {}};
 
   json data = cpu_handle;
   auto &env = InjaEnvSingleton::getInstance();

@@ -10,6 +10,7 @@ def TransientStates : Pass<"pcc-trans-states", "ModuleOp"> {
         TODO
     }];
     let constructor = "mlir::pcc::createTransientStatesPass()";
+    let dependentDialects = ["mlir::pcc::PCCDialect"];
 }
 
 def EndStatesPass : Pass<"pcc-end-states", "ModuleOp"> {
@@ -28,12 +29,14 @@ def EndStatesPass : Pass<"pcc-end-states", "ModuleOp"> {
     }];
 
     let constructor = "mlir::pcc::createEndStatesPass()";
+    let dependentDialects = ["mlir::pcc::PCCDialect"];
 }
 
 def MutexOpsPass : Pass<"mutex-pass", "ModuleOp"> {
     let summary = "for stable compilation we add mutexes to the start and end of each transaction";
     let description = [{}];
     let constructor = "mlir::pcc::createMutexOpsPass()";
+    let dependentDialects = ["mlir::pcc::PCCDialect"];
 }
 
 def StallingProtogenOptimizationPass : Pass<"protogen-stall", "ModuleOp"> {

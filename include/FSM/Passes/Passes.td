@@ -9,6 +9,7 @@ def StallingOptimizationPass: Pass<"fsm-stalling-optimization", "ModuleOp"> {
        TODO
    }];
    let constructor = "mlir::fsm::createStallingOptimizationPass()";
+   let dependentDialects = ["mlir::fsm::FSMDialect"];
 }
 
 #endif // FSM_DIALECT_PASSES

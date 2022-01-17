@@ -44,7 +44,7 @@ void PCCDialect::printAttribute(::mlir::Attribute attr,
 //===----------------------------------------------------------------------===//
 Attribute StateAttr::parse(::mlir::MLIRContext *context,
                            ::mlir::DialectAsmParser &parser,
-                           ::mlir::Type type) {
+                           ::mlir::Type /*type*/) {
 
   llvm::StringRef state;
   if (parser.parseLess() || parser.parseKeyword(&state) ||

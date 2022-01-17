@@ -288,7 +288,7 @@ static ParseResult parseInlineConstOp(OpAsmParser &parser,
   return success();
 }
 
-void InlineConstOp::build(::mlir::OpBuilder &odsBuilder,
+void InlineConstOp::build(::mlir::OpBuilder &/*odsBuilder*/,
                           ::mlir::OperationState &odsState, Attribute value) {
   odsState.addAttribute("value", value);
   odsState.addTypes(value.getType());

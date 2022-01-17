@@ -749,7 +749,7 @@ private:
     std::string rootObject = ctx->ID()->getText();
     std::string index = ctx->object_idres()->getText();
 
-    auto is_obj_mach = [&](llvm::StringRef ident) {
+    auto is_obj_mach = [&](llvm::StringRef /*ident*/) {
       return symbolTable.count(rootObject) > 0;
     };
 

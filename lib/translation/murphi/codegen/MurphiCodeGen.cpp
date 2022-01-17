@@ -183,7 +183,7 @@ void to_json(json &j, const OrderedPopFunction &opf) {
        {"0"},
        {{CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
         {"1"},
-        BinaryOps.minus}}};
+        BinaryOps.minus}}, {}};
 
   // ---- Line 3 if stmt
   // expr = i < cnt_fwd[n]-1
@@ -194,7 +194,7 @@ void to_json(json &j, const OrderedPopFunction &opf) {
        BinaryOps.minus},
       BinaryOps.less_than};
 
-  IfStmt<decltype(l3ifexpr)> l3ifstmt{l3ifexpr};
+  IfStmt<decltype(l3ifexpr)> l3ifstmt{l3ifexpr, {}, {}};
 
   // l4 -> move each element in buffer
   //  fwd[n][i] := fwd[n][i+1];
@@ -320,20 +320,20 @@ void to_json(json &j, const detail::MachineHandler &mh) {
    */
   // alias 1 -> alias adr: inmsg.adr do
   auto adr_alias = detail::AliasStmt<Designator>{
-      adr_a, {c_inmsg, {Indexer{"object", ExprID{c_adr}}}}};
+      adr_a, {c_inmsg, {Indexer{"object", ExprID{c_adr}}}}, {}};
 
   // alias 2 -> cle: i_directory[m][adr]
   auto rhsalias = Designator{
       mach_prefix_v + mh.machId,
       {Indexer{"array", ExprID{c_mach}}, Indexer{"array", ExprID{c_adr}}}};
-  auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias};
+  auto cle_alias = detail::AliasStmt<decltype(rhsalias)>{cle_a, rhsalias, {}};
 
   /*
    * Switch Statement
    */
   // switch directory_entry.State
   auto switch_stmt = detail::SwitchStmt{
-      Designator{cle_a, {Indexer{"object", ExprID{c_state}}}}};
+      Designator{cle_a, {Indexer{"object", ExprID{c_state}}}}, {}, {}};
 
   cle_alias.statements.emplace_back(switch_stmt);
   adr_alias.statements.emplace_back(cle_alias);
@@ -447,7 +447,7 @@ void to_json(json &j, const OrderedRuleset &orderedRuleset) {
       BinaryExpr<Designator, ExprID>{
           {CntKey + orderedRuleset.netId, {Indexer{"array", ExprID{mach_q}}}},
           {"0"},
-          BinaryOps.grtr_than}};
+          BinaryOps.grtr_than}, {}, {}};
 
   auto get_inner = [&](const std::string &mach) -> json {
     return IfStmt<ProcCallExpr>{

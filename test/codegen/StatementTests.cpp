@@ -44,7 +44,7 @@ TEST(StatementTests, AssertStmt) {
 
 TEST(StatementTests, ForStmt) {
   detail::ForStmt<detail::ForEachQuantifier<detail::ID>> forStmt{
-      {"i", {"type"}}};
+      {"i", {"type"}},{}};
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
                                                     "assertion failed!"};
   forStmt.stmts.push_back(assert_stmt);
@@ -62,7 +62,7 @@ TEST(StatementTests, ForStmt) {
 }
 
 TEST(StatementTests, IfStmt) {
-  detail::IfStmt<detail::ExprID> ifstmt{{"true"}};
+  detail::IfStmt<detail::ExprID> ifstmt{{"true"}, {}, {}};
 
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
                                                     "assertion failed!"};
@@ -83,7 +83,7 @@ TEST(StatementTests, IfStmt) {
 }
 
 TEST(StatementTests, IfStmt_withelse) {
-  detail::IfStmt<detail::ExprID> ifstmt{{"true"}};
+  detail::IfStmt<detail::ExprID> ifstmt{{"true"}, {}, {}};
 
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
                                                     "assertion failed!"};
@@ -159,7 +159,7 @@ TEST(StatementTests, ProcCallStmt) {
 
 TEST(StatementTests, AliasStmt) {
   auto aliasStmt =
-      detail::AliasStmt<detail::ExprID>{"my_alias", {"to_be_aliased"}};
+      detail::AliasStmt<detail::ExprID>{"my_alias", {"to_be_aliased"}, {}};
   auto assignmentStmt = detail::Assignment<detail::Designator, detail::ExprID>{
       {"msg", {detail::Indexer{"object", detail::ExprID{"address"}}}}, {"val"}};
   aliasStmt.statements.emplace_back(assignmentStmt);
@@ -198,7 +198,7 @@ TEST(StatementTest, CaseStmt) {
 
 TEST(StatementTest, SwitchStmt) {
 
-  auto switchStmt = detail::SwitchStmt{detail::ExprID{"to_be_switched_over"}};
+  auto switchStmt = detail::SwitchStmt{detail::ExprID{"to_be_switched_over"}, {}, {}};
   json stateAssignment =
       detail::Assignment<detail::Designator, detail::ExprID>{
           {"cache", {detail::Indexer{"object", detail::ExprID{"State"}}}}, {"cache_M"}};

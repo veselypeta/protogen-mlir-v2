@@ -52,7 +52,6 @@ def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
 
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
-    let verifier = [{ return ::verify$cppClass(*this); }];
 }
 
 def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
@@ -144,8 +143,6 @@ def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminat
     }];
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
-    let verifier = [{ return ::verify$cppClass(*this); }];
-
 }
 
 def MessageOp : FSMOp<"message", []>{

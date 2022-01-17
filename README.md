@@ -13,7 +13,13 @@ On Ubuntu you can install all dependencies with the following:
 ```zsh
 sudo apt-get install -y git cmake ninja-build clang lld uuid-dev pkg-config
 ```
+## Platforms and Compilers
+I have tested the project both with clang >= 10.0.0 & gcc >= 9.3.0. You should be able to compile and run the project
+easily on Linux and macOS, but on Windows I have only managed it to work on WSL2. To compile with gcc you will need to
+modify the cmake build script with the correct compiler. 
 
+*Note: The build on GitHub actions only compiles with clang on Ubuntu, so 
+I treat it as the only supported combination.*
 
 ## Build and Run
 

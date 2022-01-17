@@ -26,7 +26,7 @@ bool isCpuEvent(llvm::StringRef val) {
   return val == "load" || val == "store" || val == "evict";
 }
 __attribute__((unused))
-llvm::StringRef getLastMessageSend(TransitionOp op) {
+llvm::StringRef getLastMessageSend(TransitionOp ) {
   // TODO - implement this
   return "";
 }

@@ -43,11 +43,6 @@ static void print(MachineOp op, OpAsmPrinter &p) {
       p, op, fnType.getInputs(), /*isVariadic=*/false, fnType.getResults());
 }
 
-static LogicalResult verifyMachineOp(MachineOp op) {
-  // TODO - implement any necessary logic here
-  return success();
-}
-
 //===----------------------------------------------------------------------===//
 // TransitionOp
 //===----------------------------------------------------------------------===//
@@ -90,10 +85,6 @@ static void print(TransitionOp op, OpAsmPrinter &p) {
                                           fnType.getResults());
 }
 
-static LogicalResult verifyTransitionOp(TransitionOp op) {
-  // TODO - implement properly
-  return success();
-}
 
 //===----------------------------------------------------------------------===//
 // VariableOp
