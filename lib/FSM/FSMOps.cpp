@@ -95,6 +95,19 @@ void VariableOp::getAsmResultNames(
 }
 
 //===----------------------------------------------------------------------===//
+// UpdateOp
+//===----------------------------------------------------------------------===//
+VariableOp UpdateOp::getVariable(){
+  return variable().getDefiningOp<VariableOp>();
+}
+
+static LogicalResult verifyUpdateOp(UpdateOp op){
+  if(!op.getVariable())
+    return op.emitOpError("destination is not a variable operation");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StateOp
 //===----------------------------------------------------------------------===//
 void StateOp::build(::mlir::OpBuilder &odsBuilder,

@@ -394,13 +394,13 @@ TEST(OpConstructionTests, AccessOpCreate) {
   helper.builder.setInsertionPointToStart(cacheEntry);
 
   // create some access Ops
-  helper.builder.create<AccessOp>(
-      unknLoc, DataType::get(&helper.ctx), cacheOp.getArgument(0),
-      helper.builder.getStringAttr("cl"));
+  helper.builder.create<AccessOp>(unknLoc, DataType::get(&helper.ctx),
+                                  cacheOp.getArgument(0),
+                                  helper.builder.getStringAttr("cl"));
 
-  helper.builder.create<AccessOp>(
-      unknLoc, IDType::get(&helper.ctx), cacheOp.getArgument(0),
-      helper.builder.getStringAttr("src"));
+  helper.builder.create<AccessOp>(unknLoc, IDType::get(&helper.ctx),
+                                  cacheOp.getArgument(0),
+                                  helper.builder.getStringAttr("src"));
 
   // print the module
   std::string str;
@@ -439,7 +439,7 @@ TEST(OpConstructionTests, AccessOpParse) {
   ASSERT_TRUE(succeeded(result->verify()));
 }
 
-TEST(OpConstructionTests, AccessOpWithInvArgumentType){
+TEST(OpConstructionTests, AccessOpWithInvArgumentType) {
   OpHelper helper;
   const llvm::StringRef opText =
       "fsm.machine @cache(%arg0: !fsm.data) {\n"
@@ -448,4 +448,51 @@ TEST(OpConstructionTests, AccessOpWithInvArgumentType){
       "}";
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_EQ(*result, nullptr); // parsing failed
+}
+
+TEST(OpConstructionTests, UpdateOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  FunctionType cacheFnType = helper.builder.getFunctionType({}, {});
+  MachineOp cacheOp =
+      helper.builder.create<MachineOp>(unknLoc, "cache", cacheFnType);
+  Block *cacheEntry = cacheOp.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a variable op
+  auto intAttr = helper.builder.getI64IntegerAttr(22);
+  VariableOp varOp = helper.builder.create<VariableOp>(
+      unknLoc, intAttr.getType(), intAttr, "State");
+
+  // create a constant op
+  ConstantOp ssaVal = helper.builder.create<ConstantOp>(
+      unknLoc, helper.builder.getI64IntegerAttr(33));
+
+  // create the update op
+  helper.builder.create<UpdateOp>(unknLoc, varOp, ssaVal );
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  cacheOp.print(sstream);
+
+  auto expectedText = "fsm.machine @cache() {\n"
+                      "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
+                      "  %c33_i64 = constant 33 : i64\n"
+                      "  fsm.update %State, %c33_i64 : i64\n"
+                      "}";
+  ASSERT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, UpdateOpParse){
+  OpHelper helper;
+  llvm::StringRef opText = "fsm.machine @cache() {\n"
+                           "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
+                           "  %c33_i64 = constant 33 : i64\n"
+                           "  fsm.update %State, %c33_i64 : i64\n"
+                           "}";
+
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  ASSERT_TRUE(succeeded(result->verify()));
 }

@@ -41,16 +41,14 @@ TEST(OpTypes, IDTypeParse) {
 
   auto result = parseSourceString(OpText, &helper.ctx);
 
-  result->walk([](VariableOp vOp){
+  result->walk([](VariableOp vOp) {
     EXPECT_TRUE(vOp.getType().isa<IDType>());
     EXPECT_EQ(vOp.name(), "idTypeVar");
     EXPECT_FALSE(vOp.initValue().hasValue());
   });
-
 }
 
-
-TEST(OpTypes, DataTypeConstr){
+TEST(OpTypes, DataTypeConstr) {
   OpHelper helper;
   Location unknLoc = helper.builder.getUnknownLoc();
 
@@ -64,8 +62,8 @@ TEST(OpTypes, DataTypeConstr){
   helper.builder.setInsertionPointToStart(cacheEntry);
 
   // make a variable op which returns this type
-  VariableOp varOp =
-      helper.builder.create<VariableOp>(unknLoc, dataType, nullptr, "idTypeVar");
+  VariableOp varOp = helper.builder.create<VariableOp>(unknLoc, dataType,
+                                                       nullptr, "idTypeVar");
 
   std::string str;
   llvm::raw_string_ostream stream(str);
@@ -85,14 +83,14 @@ TEST(OpTypes, DataTypeParse) {
 
   auto result = parseSourceString(OpText, &helper.ctx);
 
-  result->walk([](VariableOp vOp){
+  result->walk([](VariableOp vOp) {
     EXPECT_TRUE(vOp.getType().isa<DataType>());
     EXPECT_EQ(vOp.name(), "idTypeVar");
     EXPECT_FALSE(vOp.initValue().hasValue());
   });
 }
 
-TEST(OpTypes, MsgTypeConstr){
+TEST(OpTypes, MsgTypeConstr) {
   OpHelper helper;
   Location unknLoc = helper.builder.getUnknownLoc();
 
@@ -127,9 +125,52 @@ TEST(OpTypes, MsgTypeParse) {
 
   auto result = parseSourceString(OpText, &helper.ctx);
 
-  result->walk([](VariableOp vOp){
+  result->walk([](VariableOp vOp) {
     EXPECT_TRUE(vOp.getType().isa<MsgType>());
     EXPECT_EQ(vOp.name(), "idTypeVar");
     EXPECT_FALSE(vOp.initValue().hasValue());
   });
 }
+
+TEST(OpTypes, StateTypeConstr) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  StateType stateType = StateType::get(&helper.ctx);
+
+  // make a machine op
+  FunctionType fType = helper.builder.getFunctionType(llvm::None, llvm::None);
+  MachineOp theCache =
+      helper.builder.create<MachineOp>(unknLoc, "cache", fType);
+  Block *cacheEntry = theCache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // make a variable op which returns this type
+  VariableOp varOp = helper.builder.create<VariableOp>(unknLoc, stateType,
+                                                       nullptr, "idTypeVar");
+
+  std::string str;
+  llvm::raw_string_ostream stream(str);
+  varOp.print(stream);
+
+  auto expctOut = "%idTypeVar = fsm.variable \"idTypeVar\" : !fsm.state";
+
+  EXPECT_STREQ(expctOut, str.c_str());
+}
+
+TEST(OpTypes, StateTypeParse) {
+  OpHelper helper;
+  llvm::StringRef OpText =
+      "fsm.machine @cache (){\n"
+      "  %idTypeVar = fsm.variable \"idTypeVar\" : !fsm.state\n"
+      "}\n";
+
+  auto result = parseSourceString(OpText, &helper.ctx);
+
+  result->walk([](VariableOp vOp) {
+    EXPECT_TRUE(vOp.getType().isa<StateType>());
+    EXPECT_EQ(vOp.name(), "idTypeVar");
+    EXPECT_FALSE(vOp.initValue().hasValue());
+  });
+}
+

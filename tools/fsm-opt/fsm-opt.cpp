@@ -1,4 +1,5 @@
 #include "mlir/IR/Dialect.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Support/MlirOptMain.h"
 #include "FSM/Passes/Passes.h"
 
@@ -9,6 +10,7 @@ int main(int argc, char **argv) {
 
   DialectRegistry registry;
   registry.insert<FSMDialect>();
+  registry.insert<StandardOpsDialect>();
 
   // init all passes/pipelines
   registerAllFSMPasses();

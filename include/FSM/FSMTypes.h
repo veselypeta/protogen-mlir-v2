@@ -12,6 +12,7 @@ namespace detail {
 class IDType;
 class DataType;
 class MsgType;
+class StateType;
 
 //===----------------------------------------------------------------------===//
 // FSM Type
@@ -57,15 +58,21 @@ public:
   static MsgType get(MLIRContext *ctx) { return Base::get(ctx); }
 };
 
-
-
+//===----------------------------------------------------------------------===//
+// State Type
+//===----------------------------------------------------------------------===//
+class StateType
+    : public FSMType::TypeBase<StateType, FSMType, DefaultTypeStorage> {
+public:
+  using Base::Base;
+  static StateType get(MLIRContext *ctx) { return Base::get(ctx); }
+};
 
 } // namespace fsm
 } // namespace mlir
 
 #define GET_TYPEDEF_CLASSES
 #include "FSM/FSMTypes.h.inc"
-
 
 namespace llvm {
 
