@@ -1,6 +1,7 @@
 //
 // Created by petr on 10/01/2022.
 //
+#include "FSM/Passes/Passes.h"
 #include "PassDetail.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/PassManager.h"
