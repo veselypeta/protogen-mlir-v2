@@ -186,6 +186,42 @@ def AccessOp : FSMOp<"access", []>{
     let verifier = [{ return ::verify$cppClass(*this); }];
 }
 
+def NOPOp : FSMOp<"nop", []>{
+    let summary = "An operations the represents a No Op (NOP)";
+    let description = [{}];
+    let assemblyFormat = [{ attr-dict }];
+}
+
+def ReferenceOp : FSMOp<"ref", []>{
+    let summary = "Returns a reference for either cache or directory";
+    let description = [{}];
+
+    let arguments = (ins SymbolRefAttr:$reference);
+    let results = (outs IDType:$result);
+    let assemblyFormat = [{ attr-dict $reference}];
+
+}
+
+def IfOp: FSMOp<"if", [NoTerminator, SingleBlock, NoRegionArguments]>{
+    let summary = "if-then-else operation";
+    let description = [{}];
+
+    let arguments = (ins I1:$condition);
+    let regions = (region SizedRegion<1>:$thenRegion, AnyRegion:$elseRegion);
+
+    let skipDefaultBuilders = 1;
+    let builders = [
+        OpBuilder<(ins "Value":$cond, "bool":$withElseRegion)>
+    ];
+
+    let extraClassDeclaration = [{
+    Block *thenBlock();
+    Block *elseBlock();
+    }];
+
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+}
 
 
 

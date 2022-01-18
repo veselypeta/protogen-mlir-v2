@@ -85,7 +85,6 @@ static void print(TransitionOp op, OpAsmPrinter &p) {
                                           fnType.getResults());
 }
 
-
 //===----------------------------------------------------------------------===//
 // VariableOp
 //===----------------------------------------------------------------------===//
@@ -97,12 +96,12 @@ void VariableOp::getAsmResultNames(
 //===----------------------------------------------------------------------===//
 // UpdateOp
 //===----------------------------------------------------------------------===//
-VariableOp UpdateOp::getVariable(){
+VariableOp UpdateOp::getVariable() {
   return variable().getDefiningOp<VariableOp>();
 }
 
-static LogicalResult verifyUpdateOp(UpdateOp op){
-  if(!op.getVariable())
+static LogicalResult verifyUpdateOp(UpdateOp op) {
+  if (!op.getVariable())
     return op.emitOpError("destination is not a variable operation");
   return success();
 }
@@ -132,6 +131,80 @@ static LogicalResult verifyAccessOp(AccessOp op) {
   if (op.msg().getType().isa<MsgType>())
     return success();
   return failure();
+}
+
+//===----------------------------------------------------------------------===//
+// IfOp
+//===----------------------------------------------------------------------===//
+
+/*
+ * pcc.if %cond {
+ *    ... then operations ...
+ * } else {
+ *    ... else operations ...
+ * }
+ */
+
+static void print(IfOp op, OpAsmPrinter &p) {
+  bool printBlockTerminators = false;
+  bool printEntryBlockArgs = false;
+  p << IfOp::getOperationName() << ' ';
+
+  p.printOperand(op.condition());
+  p.printRegion(op.thenRegion(), printEntryBlockArgs, printBlockTerminators);
+
+  auto &elseRegion = op.elseRegion();
+  if (!elseRegion.empty()) {
+    p << " " << "else";
+    p.printRegion(op.elseRegion(), printEntryBlockArgs, printBlockTerminators);
+  }
+  p.printOptionalAttrDict(op->getAttrs());
+}
+
+static ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
+  result.regions.reserve(2);
+  Region *thenRegion = result.addRegion();
+  Region *elseRegion = result.addRegion();
+
+  auto &builder = parser.getBuilder();
+
+  OpAsmParser::OperandType cond;
+  Type i1Type = builder.getIntegerType(1);
+  if (parser.parseOperand(cond) ||
+      parser.resolveOperand(cond, i1Type, result.operands))
+    return failure();
+  if (parser.parseRegion(*thenRegion, /*arguments=*/{}, /*argTypes=*/{}))
+    return failure();
+
+  if (!parser.parseOptionalKeyword("else"))
+    if (parser.parseRegion(*elseRegion, /*arguments=*/{}, /*argTypes=*/{}))
+      return failure();
+
+  if (parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  return success();
+}
+
+void IfOp::build(::mlir::OpBuilder &odsBuilder,
+                 ::mlir::OperationState &odsState, Value cond,
+                 bool withElseRegion) {
+  odsState.addOperands(cond);
+
+  OpBuilder::InsertionGuard guard(odsBuilder);
+  Region *thenRegion = odsState.addRegion();
+  Region *elseRegion = odsState.addRegion();
+
+  odsBuilder.createBlock(thenRegion);
+  if (withElseRegion)
+    odsBuilder.createBlock(elseRegion);
+}
+
+Block *IfOp::thenBlock() { return &thenRegion().back(); }
+Block *IfOp::elseBlock() {
+  Region &r = elseRegion();
+  if (r.empty())
+    return nullptr;
+  return &r.back();
 }
 
 //===----------------------------------------------------------------------===//

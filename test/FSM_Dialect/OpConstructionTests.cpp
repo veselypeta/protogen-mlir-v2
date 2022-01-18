@@ -470,29 +470,172 @@ TEST(OpConstructionTests, UpdateOp) {
       unknLoc, helper.builder.getI64IntegerAttr(33));
 
   // create the update op
-  helper.builder.create<UpdateOp>(unknLoc, varOp, ssaVal );
+  helper.builder.create<UpdateOp>(unknLoc, varOp, ssaVal);
 
   std::string str;
   llvm::raw_string_ostream sstream(str);
   cacheOp.print(sstream);
 
-  auto expectedText = "fsm.machine @cache() {\n"
-                      "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
-                      "  %c33_i64 = constant 33 : i64\n"
-                      "  fsm.update %State, %c33_i64 : i64\n"
-                      "}";
+  auto expectedText =
+      "fsm.machine @cache() {\n"
+      "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
+      "  %c33_i64 = constant 33 : i64\n"
+      "  fsm.update %State, %c33_i64 : i64\n"
+      "}";
   ASSERT_STREQ(str.c_str(), expectedText);
 }
 
-TEST(OpConstructionTests, UpdateOpParse){
+TEST(OpConstructionTests, UpdateOpParse) {
   OpHelper helper;
-  llvm::StringRef opText = "fsm.machine @cache() {\n"
-                           "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
-                           "  %c33_i64 = constant 33 : i64\n"
-                           "  fsm.update %State, %c33_i64 : i64\n"
-                           "}";
+  llvm::StringRef opText =
+      "fsm.machine @cache() {\n"
+      "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
+      "  %c33_i64 = constant 33 : i64\n"
+      "  fsm.update %State, %c33_i64 : i64\n"
+      "}";
 
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
   ASSERT_TRUE(succeeded(result->verify()));
+}
+
+TEST(OpConstructionTests, NoOpPrint) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  helper.builder.create<NOPOp>(unknLoc);
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedOpText = "module  {\n"
+                        "  fsm.nop\n"
+                        "}\n";
+  ASSERT_STREQ(str.c_str(), expectedOpText);
+}
+
+TEST(OpConstructionTests, NoOpParse) {
+  OpHelper helper;
+  llvm::StringRef opText = "module  {\n"
+                           "  fsm.nop\n"
+                           "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+}
+
+TEST(OpConstructionTests, ReferenceOpPrint) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  helper.builder.create<ReferenceOp>(unknLoc, IDType::get(&helper.ctx),
+                                     helper.builder.getSymbolRefAttr("cache"));
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  %0 = fsm.ref @cache\n"
+                      "}\n";
+  ASSERT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, ReferenceOpParse) {
+  OpHelper helper;
+  llvm::StringRef opText = "module  {\n"
+                           "  %0 = fsm.ref @cache\n"
+                           "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](ReferenceOp refOp) {
+    EXPECT_EQ(refOp.reference().getLeafReference(), "cache");
+    EXPECT_TRUE(refOp.result().getType().isa<IDType>());
+  });
+}
+
+TEST(OpConstructionTests, IfOpPrintWithoutElse) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  ConstantOp trueValue = helper.builder.create<ConstantOp>(
+      unknLoc, helper.builder.getBoolAttr(true));
+  IfOp ifOp = helper.builder.create<IfOp>(unknLoc, trueValue, false);
+  helper.builder.setInsertionPointToStart(ifOp.thenBlock());
+  helper.builder.create<NOPOp>(unknLoc);
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  %true = constant true\n"
+                      "  fsm.if %true {\n"
+                      "    fsm.nop\n"
+                      "  }\n"
+                      "}\n";
+  ASSERT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, IfOpParseWithoutElse) {
+  OpHelper helper;
+  llvm::StringRef opText = "module  {\n"
+                           "  %true = constant true\n"
+                           "  fsm.if %true {\n"
+                           "    fsm.nop\n"
+                           "  }\n"
+                           "}\n";
+
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](IfOp ifOp){
+    EXPECT_FALSE(ifOp.thenBlock()->empty());
+    EXPECT_EQ(ifOp.elseBlock(), nullptr);
+  });
+}
+
+TEST(OpConstructionTests, IfOpPrintWithElseRegion){
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  ConstantOp trueValue = helper.builder.create<ConstantOp>(
+      unknLoc, helper.builder.getBoolAttr(true));
+  IfOp ifOp = helper.builder.create<IfOp>(unknLoc, trueValue, true);
+  helper.builder.setInsertionPointToStart(ifOp.thenBlock());
+  helper.builder.create<NOPOp>(unknLoc);
+  helper.builder.setInsertionPointToStart(ifOp.elseBlock());
+  helper.builder.create<NOPOp>(unknLoc);
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  %true = constant true\n"
+                      "  fsm.if %true {\n"
+                      "    fsm.nop\n"
+                      "  } else {\n"
+                      "    fsm.nop\n"
+                      "  }\n"
+                      "}\n";
+  ASSERT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, IfOpParseWithElse) {
+  OpHelper helper;
+  llvm::StringRef opText  = "module  {\n"
+                           "  %true = constant true\n"
+                           "  fsm.if %true {\n"
+                           "    fsm.nop\n"
+                           "  } else {\n"
+                           "    fsm.nop\n"
+                           "  }\n"
+                           "}\n";
+
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](IfOp ifOp){
+    EXPECT_FALSE(ifOp.thenBlock()->empty());
+    EXPECT_FALSE(ifOp.elseBlock()->empty());
+  });
 }
