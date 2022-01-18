@@ -588,13 +588,13 @@ TEST(OpConstructionTests, IfOpParseWithoutElse) {
 
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
-  result->walk([](IfOp ifOp){
+  result->walk([](IfOp ifOp) {
     EXPECT_FALSE(ifOp.thenBlock()->empty());
     EXPECT_EQ(ifOp.elseBlock(), nullptr);
   });
 }
 
-TEST(OpConstructionTests, IfOpPrintWithElseRegion){
+TEST(OpConstructionTests, IfOpPrintWithElseRegion) {
   OpHelper helper;
   Location unknLoc = helper.builder.getUnknownLoc();
 
@@ -623,7 +623,7 @@ TEST(OpConstructionTests, IfOpPrintWithElseRegion){
 
 TEST(OpConstructionTests, IfOpParseWithElse) {
   OpHelper helper;
-  llvm::StringRef opText  = "module  {\n"
+  llvm::StringRef opText = "module  {\n"
                            "  %true = constant true\n"
                            "  fsm.if %true {\n"
                            "    fsm.nop\n"
@@ -634,8 +634,32 @@ TEST(OpConstructionTests, IfOpParseWithElse) {
 
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
-  result->walk([](IfOp ifOp){
+  result->walk([](IfOp ifOp) {
     EXPECT_FALSE(ifOp.thenBlock()->empty());
     EXPECT_FALSE(ifOp.elseBlock()->empty());
   });
 }
+
+TEST(OpConstructionTests, BreakOpPrint) {
+  OpHelper helper;
+  helper.builder.create<BreakOp>(helper.builder.getUnknownLoc());
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  fsm.break\n"
+                      "}\n";
+  ASSERT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, BreakOpParse) {
+  OpHelper helper;
+  llvm::StringRef opText = "module  {\n"
+                           "  fsm.break\n"
+                           "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+}
+

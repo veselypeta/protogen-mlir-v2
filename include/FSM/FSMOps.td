@@ -108,6 +108,10 @@ def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTer
     let builders = [OpBuilder<(ins "StringRef":$state)>];
 }
 
+def BreakOp : FSMOp<"break", [Terminator]>{
+    let assemblyFormat = [{ attr-dict }];
+}
+
 def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminator, FunctionLike]>{
     let summary = "Define a transition of a state";
     let description = [{

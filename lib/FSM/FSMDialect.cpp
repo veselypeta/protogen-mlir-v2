@@ -3,7 +3,6 @@
 #include "Support/LLVM.h"
 #include "mlir/Transforms/InliningUtils.h"
 
-
 using namespace mlir;
 using namespace fsm;
 
@@ -17,20 +16,23 @@ struct FSMInlinerInterface : public DialectInlinerInterface {
   using DialectInlinerInterface::DialectInlinerInterface;
 
   // All ops of FSM can legally be inlined
-  bool isLegalToInline(Operation */*call*/, Operation */*callable*/,
+  bool isLegalToInline(Operation * /*call*/, Operation * /*callable*/,
                        bool /*wouldBeCloned*/) const override {
     return true;
   }
-  bool isLegalToInline(Region */*dest*/, Region */*src*/, bool /*wouldBeCloned*/,
-                       BlockAndValueMapping &/*valueMapping*/) const override {
+  bool isLegalToInline(Region * /*dest*/, Region * /*src*/,
+                       bool /*wouldBeCloned*/,
+                       BlockAndValueMapping & /*valueMapping*/) const override {
     return true;
   }
 
-  bool isLegalToInline(Operation */*op*/, Region */*dest*/, bool /*wouldBeCloned*/, BlockAndValueMapping & /*valueMapping*/) const override{
+  bool isLegalToInline(Operation * /*op*/, Region * /*dest*/,
+                       bool /*wouldBeCloned*/,
+                       BlockAndValueMapping & /*valueMapping*/) const override {
     return true;
   }
 
-  void handleTerminator(Operation */*op*/,
+  void handleTerminator(Operation * /*op*/,
                         ArrayRef<Value> /*valuesToReplace*/) const override {
     // Do nothing for now;
     // the only terminator is break; and it returns to values
@@ -43,4 +45,6 @@ void FSMDialect::initialize() {
 #define GET_OP_LIST
 #include "FSM/FSM.cpp.inc"
       >();
+
+  addInterfaces<FSMInlinerInterface>();
 }

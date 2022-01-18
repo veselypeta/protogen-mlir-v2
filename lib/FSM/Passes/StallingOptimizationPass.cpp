@@ -16,23 +16,28 @@ using namespace mlir::fsm;
 namespace {
 
 bool isTransientState(StateOp stateOp) {
-  return stateOp.isTransient().hasValue() && stateOp.isTransient().getValue();
+  // a state is a transient state if the following rules (in order of
+  // importance)
+  // 1. state is labeled with isTransient and is set to true
+  // 2. does not have a previous transition attr
+  // 3. if state is not a single letter -> transient state
+
+  bool rule1 =
+      stateOp.isTransient().hasValue() && stateOp.isTransient().getValue();
+  bool rule2 = stateOp.prevTransition().hasValue();
+  bool rule3 = stateOp.sym_name().size() != 1;
+  return rule1 || rule2 || rule3;
 }
-__attribute__((unused))
-bool isTransientState(TransitionOp transitionOp) {
+__attribute__((unused)) bool isTransientState(TransitionOp transitionOp) {
   return isTransientState(transitionOp->getParentOfType<StateOp>());
 }
-__attribute__((unused))
-bool isCpuEvent(llvm::StringRef val) {
+__attribute__((unused)) bool isCpuEvent(llvm::StringRef val) {
   return val == "load" || val == "store" || val == "evict";
 }
-__attribute__((unused))
-llvm::StringRef getLastMessageSend(TransitionOp ) {
+__attribute__((unused)) llvm::StringRef getLastMessageSend(TransitionOp) {
   // TODO - implement this
   return "";
 }
-
-
 
 StateOp getStableStartState(StateOp stateOp) {
   MachineOp parentMach = stateOp->getParentOfType<MachineOp>();
@@ -47,8 +52,7 @@ StateOp getStableStartState(StateOp stateOp) {
          "could not lookup the correct link from prevTransition");
   return getStableStartState(prevTransition->getParentOfType<StateOp>());
 }
-__attribute__((unused))
-StateOp getStableStartState(TransitionOp transitionOp) {
+__attribute__((unused)) StateOp getStableStartState(TransitionOp transitionOp) {
   return getStableStartState(transitionOp->getParentOfType<StateOp>());
 }
 
@@ -71,10 +75,10 @@ public:
 void StallingOptimizationPass::runOnOperation() {
   /// grab the module/cache/directory
   ModuleOp theModule = OperationPass<ModuleOp>::getOperation();
-  __attribute__((unused))
-  MachineOp theCache = theModule.lookupSymbol<MachineOp>("cache");
-  __attribute__((unused))
-  MachineOp theDirectory = theModule.lookupSymbol<MachineOp>("directory");
+  __attribute__((unused)) MachineOp theCache =
+      theModule.lookupSymbol<MachineOp>("cache");
+  __attribute__((unused)) MachineOp theDirectory =
+      theModule.lookupSymbol<MachineOp>("directory");
 
   ProtoGenRewriter rewriter(&getContext());
 
@@ -91,9 +95,19 @@ void StallingOptimizationPass::runOnOperation() {
     auto racingResult =
         logicalStartState.walk([&](TransitionOp racingTransaction) {
           // skip if we can already handle this message in the current state
-          if (!startState.lookupSymbol<TransitionOp>(
-                  racingTransaction.sym_name()))
+          // or is a cpu event
+          llvm::StringRef racingEvent = racingTransaction.sym_name();
+          if (startState.lookupSymbol<TransitionOp>(racingEvent) ||
+              isCpuEvent(racingEvent)) {
+            emitRemark(startState.getLoc(), "Skipping: (" +
+                                                startState.sym_name() + ", " +
+                                                racingEvent + ")");
             return WalkResult::advance();
+          }
+
+          emitRemark(startState.getLoc(), "Optimizing: (" +
+                                              startState.sym_name() + ", " +
+                                              racingEvent);
 
           // set the rewriter to create a new transition at the end of the
           // current state
@@ -113,14 +127,23 @@ void StallingOptimizationPass::runOnOperation() {
           auto inlinerOp = rewriter.create<ConstantOp>(
               optTrans.getLoc(), rewriter.getI64IntegerAttr(1));
 
+          // clone the racing transition so that we can manually add a
+          // terminator which is needed for successful inlining
+          TransitionOp clonedRacingTransition = racingTransaction.clone();
+          rewriter.setInsertionPointToEnd(
+              &clonedRacingTransition.body().back());
+          rewriter.create<BreakOp>(rewriter.getUnknownLoc());
+
           // we have to inline the contents of the racing transaction into this
           // new transaction i.e. copy the actions
           InlinerInterface inliner(&getContext());
           BlockAndValueMapping mapping;
+          mapping.map(clonedRacingTransition.getArgument(0),
+                      optTrans.getArgument(0));
 
           LogicalResult wasInlined = inlineRegion(
               /*inliner interface*/ inliner,
-              /* src region */ &racingTransaction.body(),
+              /* src region */ &clonedRacingTransition.getRegion(),
               /* inline point */ inlinerOp,
               /* mapper */ mapping,
               /* results to replace */ {},
@@ -128,17 +151,12 @@ void StallingOptimizationPass::runOnOperation() {
 
           assert(succeeded(wasInlined) && "failed to inline Transition");
 
+          optTrans->getParentOfType<StateOp>().dump();
+
           // remove the unused inline const op
           rewriter.eraseOp(inlinerOp);
 
-
-
           ///// Now we need to find out which state to transition to /////
-//          if(racingTransaction.nextState().hasValue())
-//            ;
-
-
-
 
           // advance to next transition
           return WalkResult::advance();
