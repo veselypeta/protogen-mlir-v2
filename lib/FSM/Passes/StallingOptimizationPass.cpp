@@ -1,6 +1,7 @@
 //
 // Created by petr on 10/01/2022.
 //
+#include "FSM/FSMUtils.h"
 #include "FSM/Passes/Passes.h"
 #include "PassDetail.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
@@ -11,50 +12,10 @@
 
 using namespace mlir;
 using namespace mlir::fsm;
+using namespace mlir::fsm::utils;
 
 // Private Namespace for Implementation
 namespace {
-
-bool isTransientState(StateOp stateOp) {
-  // a state is a transient state if the following rules (in order of
-  // importance)
-  // 1. state is labeled with isTransient and is set to true
-  // 2. does not have a previous transition attr
-  // 3. if state is not a single letter -> transient state
-
-  bool rule1 =
-      stateOp.isTransient().hasValue() && stateOp.isTransient().getValue();
-  bool rule2 = stateOp.prevTransition().hasValue();
-  bool rule3 = stateOp.sym_name().size() != 1;
-  return rule1 || rule2 || rule3;
-}
-__attribute__((unused)) bool isTransientState(TransitionOp transitionOp) {
-  return isTransientState(transitionOp->getParentOfType<StateOp>());
-}
-__attribute__((unused)) bool isCpuEvent(llvm::StringRef val) {
-  return val == "load" || val == "store" || val == "evict";
-}
-__attribute__((unused)) llvm::StringRef getLastMessageSend(TransitionOp) {
-  // TODO - implement this
-  return "";
-}
-
-StateOp getStableStartState(StateOp stateOp) {
-  MachineOp parentMach = stateOp->getParentOfType<MachineOp>();
-  // if a stable state -> return self
-  if (!isTransientState(stateOp))
-    return stateOp;
-
-  assert(stateOp.prevTransition().hasValue() && "no linked previous state!");
-  TransitionOp prevTransition =
-      parentMach.lookupSymbol<TransitionOp>(stateOp.prevTransitionAttr());
-  assert(prevTransition != nullptr &&
-         "could not lookup the correct link from prevTransition");
-  return getStableStartState(prevTransition->getParentOfType<StateOp>());
-}
-__attribute__((unused)) StateOp getStableStartState(TransitionOp transitionOp) {
-  return getStableStartState(transitionOp->getParentOfType<StateOp>());
-}
 
 // We need a custom rewriter to be able to construct it
 class ProtoGenRewriter : public PatternRewriter {
@@ -75,10 +36,6 @@ public:
 void StallingOptimizationPass::runOnOperation() {
   /// grab the module/cache/directory
   ModuleOp theModule = OperationPass<ModuleOp>::getOperation();
-  __attribute__((unused)) MachineOp theCache =
-      theModule.lookupSymbol<MachineOp>("cache");
-  __attribute__((unused)) MachineOp theDirectory =
-      theModule.lookupSymbol<MachineOp>("directory");
 
   ProtoGenRewriter rewriter(&getContext());
 
@@ -91,7 +48,6 @@ void StallingOptimizationPass::runOnOperation() {
     // Now we need to find the stable start state
     StateOp logicalStartState = getStableStartState(startState);
 
-    // find out which message we have sent to the directory
     auto racingResult =
         logicalStartState.walk([&](TransitionOp racingTransaction) {
           // skip if we can already handle this message in the current state
@@ -118,8 +74,7 @@ void StallingOptimizationPass::runOnOperation() {
           // currently, we do not specify a nextState
           // This we will deduce later
           TransitionOp optTrans = rewriter.create<TransitionOp>(
-              startState.getLoc(), racingTransaction.sym_nameAttr().getValue(),
-              racingTransaction.getType(),
+              startState.getLoc(), racingEvent, racingTransaction.getType(),
               /*nextState*/ nullptr);
           Block *optEntry = optTrans.addEntryBlock();
           rewriter.setInsertionPointToStart(optEntry);
@@ -127,23 +82,21 @@ void StallingOptimizationPass::runOnOperation() {
           auto inlinerOp = rewriter.create<ConstantOp>(
               optTrans.getLoc(), rewriter.getI64IntegerAttr(1));
 
-          // clone the racing transition so that we can manually add a
-          // terminator which is needed for successful inlining
-          TransitionOp clonedRacingTransition = racingTransaction.clone();
-          rewriter.setInsertionPointToEnd(
-              &clonedRacingTransition.body().back());
-          rewriter.create<BreakOp>(rewriter.getUnknownLoc());
+          // pre-emptively add a break operation to the end of the racing
+          // transaction we are wanting to inline
+          rewriter.setInsertionPointToEnd(&racingTransaction.body().front());
+          BreakOp preemptiveBreak = rewriter.create<BreakOp>(rewriter.getUnknownLoc());
 
           // we have to inline the contents of the racing transaction into this
           // new transaction i.e. copy the actions
           InlinerInterface inliner(&getContext());
           BlockAndValueMapping mapping;
-          mapping.map(clonedRacingTransition.getArgument(0),
+          mapping.map(racingTransaction.getArgument(0),
                       optTrans.getArgument(0));
 
           LogicalResult wasInlined = inlineRegion(
               /*inliner interface*/ inliner,
-              /* src region */ &clonedRacingTransition.getRegion(),
+              /* src region */ &racingTransaction.getRegion(),
               /* inline point */ inlinerOp,
               /* mapper */ mapping,
               /* results to replace */ {},
@@ -151,12 +104,20 @@ void StallingOptimizationPass::runOnOperation() {
 
           assert(succeeded(wasInlined) && "failed to inline Transition");
 
-          optTrans->getParentOfType<StateOp>().dump();
-
-          // remove the unused inline const op
+          // remove the unused inline const op and break
           rewriter.eraseOp(inlinerOp);
+          rewriter.eraseOp(preemptiveBreak);
 
           ///// Now we need to find out which state to transition to /////
+
+          // What message have we originally sent to the directory???
+          /*MessageOp lastMsgSent = */ getLastMessageSent(startState);
+
+          // Which message did the directory respond to??
+          // by sending us a message we can deduce in what state the directory
+          // will be when it receives our message
+
+          // What state is the directory in when it receives this message???
 
           // advance to next transition
           return WalkResult::advance();

@@ -46,7 +46,7 @@ fsm.machine @cache(){
         fsm.transition @Fwd_GetM(%Fwd_GetM : !fsm.msg) attributes {nextState = @I}{
             %src = fsm.ref @cache
             %dst = fsm.access {memberId = "src"} %Fwd_GetM : !fsm.msg -> !fsm.id
-            %sent_msg = fsm.message @Resp "PutM" %src, %dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
+            %sent_msg = fsm.message @Resp "GetM_Ack_D" %src, %dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
         }
 
         fsm.transition @evict() attributes {nextState = @M_evict}{

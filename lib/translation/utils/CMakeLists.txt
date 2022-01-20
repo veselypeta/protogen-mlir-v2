@@ -1,5 +1,5 @@
 add_library(translation-utils
-        utils.cpp
+        Utils.cpp
         ModuleInterpreter.cpp
         JSONValidation.cpp)
 

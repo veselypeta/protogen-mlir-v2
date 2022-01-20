@@ -5,4 +5,5 @@ add_mlir_dialect_library(FSMPasses
         mlir-headers
         LINK_LIBS PUBLIC
         MLIRIR
+        ProtogenFSM
         )

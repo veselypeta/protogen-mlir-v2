@@ -9,8 +9,6 @@ target_link_libraries(fsm-opt
         ${translation_libs}
         ${LIBS}
 
-        ProtogenFSM
-
         MLIRParser
         MLIRSupport
         MLIRIR
@@ -19,4 +17,6 @@ target_link_libraries(fsm-opt
         MLIRTransforms
         MLIRLLVMIR
         FSMPasses
+
+        ProtogenFSM
         )
