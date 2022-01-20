@@ -1,4 +1,5 @@
 #pragma once
 namespace mlir {
-void registerToMurphiTranslation();
+void registerPccToMurphiTranslation();
+void registerFsmToMurphiTranslation();
 } // namespace mlir

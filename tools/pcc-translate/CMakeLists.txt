@@ -5,13 +5,13 @@ set(LLVM_LINK_COMPONENTS
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 
-add_llvm_executable(pcc-translate
+add_llvm_executable(protogen-translate
         pcc-translate.cpp
-        TranslatePCCToMLIR.cpp
+        RegisterPCCTranslations.cpp
         )
 
-llvm_update_compile_flags(pcc-translate)
-target_link_libraries(pcc-translate
+llvm_update_compile_flags(protogen-translate)
+target_link_libraries(protogen-translate
         PRIVATE
         ${dialect_libs}
         ${translation_libs}
@@ -25,4 +25,4 @@ target_link_libraries(pcc-translate
         antlr4_static
         protocc-antlr4
         )
-mlir_check_link_libraries(pcc-translate)
+mlir_check_link_libraries(protogen-translate)

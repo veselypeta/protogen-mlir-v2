@@ -1,11 +1,13 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Translation.h"
-#include "TranslatePCCToMLIR.h"
+#include "RegisterPCCTranslations.h"
 
-int main(int argc, char **argv)
-{
-    mlir::registerPCCToMLIRTranslation();
+int main(int argc, char **argv) {
+  // from PCC translation
+  mlir::registerPCCToPCCDialectTranslation();
 
-    return failed(
-        mlir::mlirTranslateMain(argc, argv, "PCC Translation tool"));
+  // from FSM translation
+  mlir::registerPCCToFSMDialectTranslation();
+
+  return failed(mlir::mlirTranslateMain(argc, argv, "PCC Translation tool"));
 }

@@ -1052,6 +1052,7 @@ private:
   }
 };
 } // namespace mlirGenImpl
+namespace mlir{
 
 namespace pcc {
 mlir::ModuleOp mlirGen(mlir::MLIRContext &mlirCtx,
@@ -1060,3 +1061,4 @@ mlir::ModuleOp mlirGen(mlir::MLIRContext &mlirCtx,
   return mlirGenImpl::MLIRGenImpl(mlirCtx).mlirGen(docCtx, std::move(filename));
 }
 } // namespace pcc
+}

@@ -1,5 +1,6 @@
 add_mlir_dialect_library(trans-murphi STATIC
-        Translate.cpp
+        PCCTranslate.cpp
+        FSMTranslate.cpp
         codegen/InjaEnvSingleton.cpp
         codegen/MurphiCodeGen.cpp
 

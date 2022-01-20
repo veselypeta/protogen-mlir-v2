@@ -2,12 +2,12 @@ set(LLVM_LINK_COMPONENTS
         Support
         )
 
-add_llvm_executable(pcc-opt
-        pcc-opt.cpp
+add_llvm_executable(protogen-opt
+        protogen-opt.cpp
         )
-llvm_update_compile_flags(pcc-opt)
+llvm_update_compile_flags(protogen-opt)
 
-target_link_libraries(pcc-opt
+target_link_libraries(protogen-opt
         PRIVATE
         ${dialect_libs}
         ${translation_libs}
@@ -23,4 +23,5 @@ target_link_libraries(pcc-opt
         MLIRTransforms
         MLIRLLVMIR
         PCCPasses
+        FSMPasses
         )
