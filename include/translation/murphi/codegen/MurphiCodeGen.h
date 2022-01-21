@@ -1,6 +1,7 @@
 #pragma once
 #include "inja/inja.hpp"
 #include "mlir/IR/BuiltinDialect.h"
+#include "translation/murphi/codegen/Boilerplate.h"
 #include "translation/murphi/codegen/InjaEnvSingleton.h"
 #include "translation/utils/ModuleInterpreter.h"
 #include <type_traits>
@@ -626,7 +627,7 @@ bool validateMurphiJSON(const json &j);
  */
 class MurphiCodeGen {
 public:
-  MurphiCodeGen(mlir::ModuleOp op, mlir::raw_ostream &output)
+  MurphiCodeGen(mlir::ModuleOp op, llvm::raw_ostream &output)
       : moduleInterpreter{ModuleInterpreter{op}}, output{output} {
     // initialize decls
     data["decls"] = json::object();
@@ -695,10 +696,62 @@ private:
   void _generateStartState();
 
   ModuleInterpreter moduleInterpreter;
-  mlir::raw_ostream &output;
+  llvm::raw_ostream &output;
   json data;
 };
 
 // Free Functions
 std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t, llvm::StringRef mach);
+
+mlir::LogicalResult renderMurphi(const json &data, llvm::raw_ostream &output);
+
+template <class InterpreterT> class MurphiAssembler {
+public:
+  explicit MurphiAssembler(InterpreterT interpreter)
+      : interpreter{std::move(interpreter)} {};
+
+  nlohmann::json assemble() {
+    nlohmann::json data = {{"decls",
+                            {{"const_decls", nlohmann::json::array()},
+                             {"type_decls", nlohmann::json::array()},
+                             {"var_decls", nlohmann::json::array()}}},
+                           {"proc_decls", nlohmann::json::array()},
+                           {"rules", nlohmann::json::array()}};
+    assembleDecls(data);
+    return data;
+  }
+
+private:
+  void assembleConstants(nlohmann::json &data) {
+    murphi::boilerplate::setBoilerplateConstants(data);
+  }
+
+  void assembleEnums(json &data) {
+    // Access Type
+    murphi::boilerplate::setBoilerplateAccessType(data);
+
+    // Message Type
+    data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
+        detail::e_message_type_t, {interpreter.getMessageNames()}});
+
+    // Cache State
+    data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
+        detail::e_cache_state_t(), {interpreter.getCacheStateNames()}});
+
+    // Directory State
+    data["decls"]["type_decls"].push_back(
+        detail::TypeDecl<detail::Enum>{detail::e_directory_state_t(),
+                                       {interpreter.getDirectoryStateNames()}});
+  }
+
+  void assembleTypes(nlohmann::json &data) {
+      assembleEnums(data); }
+  void assembleDecls(nlohmann::json &data) {
+      assembleConstants(data);
+      assembleTypes(data);
+  }
+
+  InterpreterT interpreter;
+  };
+
 } // namespace murphi

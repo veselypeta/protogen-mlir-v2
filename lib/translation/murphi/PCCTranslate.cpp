@@ -11,7 +11,7 @@ namespace mlir {
 void registerPccToMurphiTranslation() {
   mlir::TranslateFromMLIRRegistration registration(
       "mlir-to-murphi",
-      [](mlir::ModuleOp op, mlir::raw_ostream &output) {
+      [](mlir::ModuleOp op, llvm::raw_ostream &output) {
         murphi::MurphiCodeGen murphiTranslate(op, output);
         return murphiTranslate.translate();
       },

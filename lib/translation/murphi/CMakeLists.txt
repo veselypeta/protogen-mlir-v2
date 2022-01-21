@@ -4,6 +4,9 @@ add_mlir_dialect_library(trans-murphi STATIC
         codegen/InjaEnvSingleton.cpp
         codegen/MurphiCodeGen.cpp
 
+        codegen/FSMDialectInterpreter.cpp
+        codegen/Boilerplate.cpp
+
         ADDITIONAL_HEADER_DIRS
         ${PROJECT_SOURCE_DIR}/include/translation/murphi
 

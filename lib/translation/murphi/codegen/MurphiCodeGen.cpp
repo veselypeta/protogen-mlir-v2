@@ -646,14 +646,7 @@ void MurphiCodeGen::generateTypes() {
 }
 
 mlir::LogicalResult MurphiCodeGen::render() {
-  // validate json
-  assert(detail::validateMurphiJSON(data) &&
-         "JSON from codegen does not validate with the json schema");
-  auto &env = InjaEnvSingleton::getInstance();
-  auto tmpl = env.parse_template("murphi_base.tmpl");
-  auto result = env.render(tmpl, data);
-  output << result;
-  return mlir::success();
+  return renderMurphi(data, output);
 }
 
 void MurphiCodeGen::_typeEnums() {
@@ -1180,4 +1173,15 @@ void MurphiCodeGen::_generateStartState() {
   data["rules"].push_back(ss);
 }
 
+
+mlir::LogicalResult renderMurphi(const json &data, llvm::raw_ostream &output){
+  // validate json
+  assert(detail::validateMurphiJSON(data) &&
+         "JSON from codegen does not validate with the json schema");
+  auto &env = InjaEnvSingleton::getInstance();
+  auto tmpl = env.parse_template("murphi_base.tmpl");
+  auto result = env.render(tmpl, data);
+  output << result;
+  return mlir::success();
+}
 } // namespace murphi

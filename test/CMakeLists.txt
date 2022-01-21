@@ -15,6 +15,8 @@ add_executable(protogen-mlir-test
         codegen/SubRangeTests.cpp
         murphi-translate/ModuleInterpreterTests.cpp
         murphi-translate/MurphiCodeGenTests.cpp
+        murphi-translate/FSMDialectInterpreterTests.cpp
+        murphi-translate/MurphiAssemblerTests.cpp
         codegen/FunctionDeclTests.cpp
         codegen/FormalParamsTests.cpp codegen/ExpressionTests.cpp codegen/StatementTests.cpp
         codegen/QuantifierTests.cpp codegen/MachineHandlerTests.cpp codegen/RuleTests.cpp
