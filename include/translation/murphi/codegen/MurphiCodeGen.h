@@ -485,7 +485,6 @@ struct SwitchStmt {
 
 void to_json(json &j, const SwitchStmt &sw);
 
-
 struct ReturnStmt {
   json value;
 };
@@ -542,7 +541,7 @@ void to_json(json &j, const ProcCallExpr &fn);
 
 struct MachineHandler {
   std::string machId;
-  std::vector<json> statements;
+  std::vector<json> cases;
 };
 
 void to_json(json &j, const MachineHandler &mh);
@@ -760,14 +759,35 @@ private:
   void assembleCacheController(nlohmann::json &data) {
     auto boilerplateCacheController =
         detail::MachineHandler{detail::machines.cache.str(), {}};
-//    for (auto &possibleState : interpreter.getCacheStateNames()) {
-//      auto messageSwitch = detail::SwitchStmt{detail::ExprI+};
-//      for (auto &possibleMessageName : interpreter.getMessageNames()) {
-//        boilerplateCacheController.statements.emplace_back(
-//            interpreter.getCacheStateHandler(possibleState,
-//                                             possibleMessageName));
-//      }
-//    }
+
+    // for every possible state in the cache
+    for (const std::string &state : interpreter.getCacheStateNames()) {
+      // create a case i.e. case I_load:
+      auto stateCaseStmt = detail::CaseStmt{detail::ExprID{state}, {}};
+
+      // each state case has then a switch on the message type
+      // switch inmsg.mtype:
+      auto messageSwitchStmt = boilerplate::getMessageHandlerSwitch();
+
+      // for each msg type
+      for (const std::string &action : interpreter.getMessageNames()) {
+
+        // get the statements to execute for the current state/action pair
+        json stateActionStatements = interpreter.getMurphiCacheStatements(state, action);
+        if(stateActionStatements == nullptr)
+          continue;
+
+
+        // create a case for the message i.e. case Fwd_GetM...
+        auto msgCase = detail::CaseStmt{detail::ExprID{action}, {}};
+        messageSwitchStmt["statement"]["cases"].emplace_back(
+            std::move(msgCase));
+      }
+      // add the message switch to the state case
+      stateCaseStmt.statements.emplace_back(std::move(messageSwitchStmt));
+      // add the state case to the overall state handler
+      boilerplateCacheController.cases.emplace_back(std::move(stateCaseStmt));
+    }
 
     data["proc_decls"].emplace_back(std::move(boilerplateCacheController));
   }

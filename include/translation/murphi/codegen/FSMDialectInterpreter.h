@@ -1,5 +1,6 @@
 #pragma once
 #include "mlir/IR/BuiltinOps.h"
+#include "nlohmann/json.hpp"
 #include <vector>
 
 namespace murphi {
@@ -24,6 +25,10 @@ public:
 
   /// get the number of caches in the simulation
   constexpr size_t getCacheSetSize() { return 3; };
+
+  /// returns a valid json murphi statments
+  /// which do the operations for the current state and message combo;
+  nlohmann::json getMurphiCacheStatements(llvm::StringRef state, llvm::StringRef action);
 
 private:
   mlir::ModuleOp theModule;

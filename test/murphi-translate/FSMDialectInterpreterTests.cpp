@@ -37,7 +37,7 @@ TEST(FSMDialectInterpreter, getMessageNames){
 
   auto messageNames = interpreter.getMessageNames();
 
-  EXPECT_EQ(messageNames.size(), 7);
+  EXPECT_EQ(messageNames.size(), 5);
 
   EXPECT_NE(
       std::find(std::begin(messageNames), std::end(messageNames), "Fwd_GetM"),

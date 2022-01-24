@@ -30,16 +30,29 @@ void setBoilerplateAccessType(json &data) {
 }
 
 json getMessageHandlerSwitch() {
-  return {};
-//  auto returnFalseStmt =
-//      murphi::detail::ReturnStmt{murphi::detail::ExprID{"false"}};
-//  // switch inmsg.mtype
-//  auto switchStmt = murphi::detail::SwitchStmt{
-//      murphi::detail::Designator{
-//          murphi::detail::c_inmsg,
-//          {murphi::detail::Indexer{"object", murphi::detail::ExprID{""}}}},
-//      {},
-//      {}};
+  auto returnFalseStmt =
+      murphi::detail::ReturnStmt{murphi::detail::ExprID{"false"}};
+  // switch inmsg.mtype
+  auto switchStmt = murphi::detail::SwitchStmt{
+      murphi::detail::Designator{
+          murphi::detail::c_inmsg,
+          {murphi::detail::Indexer{
+              "object", murphi::detail::ExprID{murphi::detail::c_mtype}}}},
+      {},
+      {std::move(returnFalseStmt)}};
+  return switchStmt;
+}
+
+json getStateHandlerSwitch() {
+  // switch cle.State
+  auto switchStmt = murphi::detail::SwitchStmt{
+      murphi::detail::Designator{
+          murphi::detail::cle_a,
+          {murphi::detail::Indexer{
+              "object", murphi::detail::ExprID{murphi::detail::c_state}}}},
+      {},
+      {}};
+  return switchStmt;
 }
 
 } // namespace boilerplate

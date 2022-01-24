@@ -8,12 +8,12 @@ using namespace murphi;
 
 namespace murphi {
 
-nlohmann::json FSMOperationConverter::convert(mlir::fsm::TransitionOp op) {
-  setupSymbolTable(op);
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::TransitionOp /*op*/) {
+//  setupSymbolTable(op);
   json data = json::array();
-  for (auto &nestedOp : op.getBody().getOps()) {
-    data.push_back(convert(&nestedOp));
-  }
+//  for (auto &nestedOp : op.getBody().getOps()) {
+//    data.push_back(convert(&nestedOp));
+//  }
   return data;
 }
 
@@ -48,7 +48,7 @@ json FSMOperationConverter::convert(MessageOp op) {
   // now we add the remainder of the parameters
   for (auto operand : op->getOperands()) {
     auto val = symbolTable.lookup(operand);
-    msgConstr.actuals.push_back(murphi::detail::ExprID{std::move(val)});
+    msgConstr.actuals.emplace_back(murphi::detail::ExprID{std::move(val)});
   }
 
   // create the assignment to msg;

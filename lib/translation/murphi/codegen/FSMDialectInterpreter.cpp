@@ -1,15 +1,30 @@
 #include "translation/murphi/codegen/FSMDialectInterpreter.h"
 #include "FSM/FSMOps.h"
 #include "FSM/FSMUtils.h"
+#include "translation/murphi/codegen/FSMOperationConverter.h"
+#include <set>
 
 using namespace mlir;
 using namespace mlir::fsm;
+using namespace nlohmann;
 constexpr size_t default_reserve_amount = 10;
 namespace murphi {
 
+json FSMDialectInterpreter::getMurphiCacheStatements(llvm::StringRef state,
+                                                     llvm::StringRef action) {
+  auto transOp = theModule.lookupSymbol<MachineOp>("cache")
+                     .lookupSymbol<StateOp>(state)
+                     .lookupSymbol<TransitionOp>(action);
+  if (!transOp)
+    return nullptr;
+
+  FSMOperationConverter opConverter{};
+
+  return opConverter.convert(transOp);
+}
+
 std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
-  std::vector<std::string> messageNames;
-  messageNames.reserve(default_reserve_amount);
+  std::set<std::string> messageNames;
 
   std::vector<MessageOp> allSentMessages;
   allSentMessages.reserve(default_reserve_amount);
@@ -17,9 +32,9 @@ std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
   utils::searchFor<MessageOp>(theModule.getOperation(), allSentMessages);
 
   for (auto msgOp : allSentMessages) {
-    messageNames.push_back(msgOp.msgName().str());
+    messageNames.insert(msgOp.msgName().str());
   }
-  return messageNames;
+  return {std::begin(messageNames), std::end(messageNames)};
 }
 
 std::vector<std::string> FSMDialectInterpreter::getCacheStateNames() {

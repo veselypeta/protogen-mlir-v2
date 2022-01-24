@@ -338,11 +338,13 @@ void to_json(json &j, const detail::MachineHandler &mh) {
    * Switch Statement
    */
   // switch directory_entry.State
-  auto switch_stmt = detail::SwitchStmt{
-      Designator{cle_a, {Indexer{"object", ExprID{c_state}}}}, {}, {}};
+  auto switch_stmt = boilerplate::getStateHandlerSwitch();
+  switch_stmt["statement"]["cases"] = mh.cases;
 
   cle_alias.statements.emplace_back(switch_stmt);
   adr_alias.statements.emplace_back(cle_alias);
+
+  auto returnTrueStmt = ReturnStmt{ExprID{"true"}};
 
   j = {{"procType", "function"},
        {"def",
@@ -350,7 +352,7 @@ void to_json(json &j, const detail::MachineHandler &mh) {
          {"params", {msg_param, mach_param}},
          {"returnType", detail::ID{detail::bool_t}},
          {"forwardDecls", {msg_fwd_decl}},
-         {"statements", {adr_alias}}}}};
+         {"statements", {adr_alias, std::move(returnTrueStmt)}}}}};
 }
 
 /*** CPU Event Handler ***/

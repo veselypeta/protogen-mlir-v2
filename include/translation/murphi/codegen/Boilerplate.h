@@ -9,6 +9,7 @@ void setBoilerplateConstants(nlohmann::json &data);
 void setBoilerplateAccessType(nlohmann::json &data);
 
 nlohmann::json getMessageHandlerSwitch();
+nlohmann::json getStateHandlerSwitch() ;
 
 } // namespace boilerplate
 } // namespace murphi
