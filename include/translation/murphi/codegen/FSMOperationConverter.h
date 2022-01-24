@@ -8,10 +8,7 @@ namespace murphi {
 /// To Murphi json representations
 class FSMOperationConverter {
 public:
-  FSMOperationConverter() {
-    // setup the symbol table to correctly
-    SymbolTableScopeT global_scope(symbolTable);
-  }
+  FSMOperationConverter()=default;
   FSMOperationConverter(const FSMOperationConverter &) = delete;
   FSMOperationConverter &operator=(const FSMOperationConverter &) = delete;
   FSMOperationConverter(FSMOperationConverter &&) = delete;
@@ -21,6 +18,8 @@ public:
 
 private:
   nlohmann::json convert(mlir::fsm::MessageOp msgOp);
+  void convert(mlir::fsm::ReferenceOp op);
+  void convert(mlir::fsm::AccessOp op);
   nlohmann::json convert(mlir::Operation *op);
   void setupSymbolTable(mlir::fsm::TransitionOp op);
 

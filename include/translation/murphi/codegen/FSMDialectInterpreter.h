@@ -26,8 +26,7 @@ public:
   /// get the number of caches in the simulation
   constexpr size_t getCacheSetSize() { return 3; };
 
-  /// returns a valid json murphi statments
-  /// which do the operations for the current state and message combo;
+  /// returns a JSON array of MurphiStatement
   nlohmann::json getMurphiCacheStatements(llvm::StringRef state, llvm::StringRef action);
 
 private:

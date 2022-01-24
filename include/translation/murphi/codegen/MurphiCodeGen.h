@@ -773,13 +773,14 @@ private:
       for (const std::string &action : interpreter.getMessageNames()) {
 
         // get the statements to execute for the current state/action pair
-        json stateActionStatements = interpreter.getMurphiCacheStatements(state, action);
-        if(stateActionStatements == nullptr)
+        json stateActionStatements =
+            interpreter.getMurphiCacheStatements(state, action);
+        if (stateActionStatements == nullptr)
           continue;
 
-
         // create a case for the message i.e. case Fwd_GetM...
-        auto msgCase = detail::CaseStmt{detail::ExprID{action}, {}};
+        auto msgCase = detail::CaseStmt{detail::ExprID{action},
+                                        std::move(stateActionStatements)};
         messageSwitchStmt["statement"]["cases"].emplace_back(
             std::move(msgCase));
       }

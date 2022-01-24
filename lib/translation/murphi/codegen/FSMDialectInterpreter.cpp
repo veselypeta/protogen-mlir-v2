@@ -18,7 +18,7 @@ json FSMDialectInterpreter::getMurphiCacheStatements(llvm::StringRef state,
   if (!transOp)
     return nullptr;
 
-  FSMOperationConverter opConverter{};
+  FSMOperationConverter opConverter;
 
   return opConverter.convert(transOp);
 }
