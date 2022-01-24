@@ -18,6 +18,7 @@ public:
 
 private:
   nlohmann::json convert(mlir::fsm::MessageOp msgOp);
+  nlohmann::json convert(mlir::fsm::UpdateOp op);
   void convert(mlir::fsm::ReferenceOp op);
   void convert(mlir::fsm::AccessOp op);
   nlohmann::json convert(mlir::Operation *op);
