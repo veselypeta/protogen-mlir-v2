@@ -797,6 +797,19 @@
             "title": "Quantifier",
             "type": "object"
         },
+        "ReturnStmt": {
+            "properties": {
+                "value": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "value"
+                }
+            },
+            "required": [
+                "value"
+            ],
+            "title": "ReturnStmt",
+            "type": "object"
+        },
         "RuleDescription": {
             "properties": {
                 "rule": {
@@ -971,6 +984,9 @@
                         },
                         {
                             "$ref": "#/definitions/SwitchStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/ReturnStmt"
                         }
                     ],
                     "title": "statement"
@@ -995,6 +1011,7 @@
                 "for",
                 "if",
                 "proc_call",
+                "return",
                 "switch",
                 "undefine"
             ],

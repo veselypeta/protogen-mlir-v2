@@ -24,9 +24,22 @@ void setBoilerplateConstants(json &data) {
       detail::ConstDecl{detail::c_unordered_t, detail::c_unordered_size});
 }
 
-void setBoilerplateAccessType(json &data){
+void setBoilerplateAccessType(json &data) {
   data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
       detail::e_access_t, detail::Enum{{"none", "load", "store"}}});
+}
+
+json getMessageHandlerSwitch() {
+  return {};
+//  auto returnFalseStmt =
+//      murphi::detail::ReturnStmt{murphi::detail::ExprID{"false"}};
+//  // switch inmsg.mtype
+//  auto switchStmt = murphi::detail::SwitchStmt{
+//      murphi::detail::Designator{
+//          murphi::detail::c_inmsg,
+//          {murphi::detail::Indexer{"object", murphi::detail::ExprID{""}}}},
+//      {},
+//      {}};
 }
 
 } // namespace boilerplate

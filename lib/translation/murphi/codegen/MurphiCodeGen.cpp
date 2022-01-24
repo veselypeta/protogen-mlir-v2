@@ -183,7 +183,8 @@ void to_json(json &j, const OrderedPopFunction &opf) {
        {"0"},
        {{CntKey + opf.netId, {Indexer{"array", ExprID{msg_p}}}},
         {"1"},
-        BinaryOps.minus}}, {}};
+        BinaryOps.minus}},
+      {}};
 
   // ---- Line 3 if stmt
   // expr = i < cnt_fwd[n]-1
@@ -297,6 +298,11 @@ void to_json(json &j, const SwitchStmt &sw) {
          {"cases", sw.cases},
          {"elseStatements", sw.elseStatements}}}};
 }
+
+void to_json(json &j, const ReturnStmt &rs) {
+  j = {{"typeId", "return"}, {"statement", {{"value", rs.value}}}};
+}
+
 ///*** Machine Handler ***///
 void to_json(json &j, const detail::MachineHandler &mh) {
   /*
@@ -447,7 +453,9 @@ void to_json(json &j, const OrderedRuleset &orderedRuleset) {
       BinaryExpr<Designator, ExprID>{
           {CntKey + orderedRuleset.netId, {Indexer{"array", ExprID{mach_q}}}},
           {"0"},
-          BinaryOps.grtr_than}, {}, {}};
+          BinaryOps.grtr_than},
+      {},
+      {}};
 
   auto get_inner = [&](const std::string &mach) -> json {
     return IfStmt<ProcCallExpr>{
@@ -589,9 +597,7 @@ bool validateMurphiJSON(const json &j) {
 std::string e_directory_state_t() {
   return machines.directory.str() + state_suffix;
 }
-std::string e_cache_state_t() {
-  return machines.cache.str() + state_suffix;
-}
+std::string e_cache_state_t() { return machines.cache.str() + state_suffix; }
 std::string r_cache_entry_t() {
   return std::string(EntryKey) + machines.cache.str();
 }
@@ -600,9 +606,7 @@ std::string r_directory_entry_t() {
 }
 
 std::string cache_v() { return mach_prefix_v + machines.cache.str(); }
-std::string directory_v() {
-  return mach_prefix_v + machines.directory.str();
-}
+std::string directory_v() { return mach_prefix_v + machines.directory.str(); }
 
 } // namespace detail
 
@@ -1173,8 +1177,7 @@ void MurphiCodeGen::_generateStartState() {
   data["rules"].push_back(ss);
 }
 
-
-mlir::LogicalResult renderMurphi(const json &data, llvm::raw_ostream &output){
+mlir::LogicalResult renderMurphi(const json &data, llvm::raw_ostream &output) {
   // validate json
   assert(detail::validateMurphiJSON(data) &&
          "JSON from codegen does not validate with the json schema");

@@ -7,9 +7,8 @@
 using namespace inja;
 using namespace murphi;
 TEST(StatementTests, AssignmentStatement) {
-  json data =
-      detail::Assignment<detail::Designator, detail::ExprID>{
-          {"msg", {detail::Indexer{"object", detail::ExprID{"address"}}}}, {"val"}};
+  json data = detail::Assignment<detail::Designator, detail::ExprID>{
+      {"msg", {detail::Indexer{"object", detail::ExprID{"address"}}}}, {"val"}};
 
   auto &env = InjaEnvSingleton::getInstance();
   const auto tmpl = env.parse_template("statement.tmpl");
@@ -44,7 +43,7 @@ TEST(StatementTests, AssertStmt) {
 
 TEST(StatementTests, ForStmt) {
   detail::ForStmt<detail::ForEachQuantifier<detail::ID>> forStmt{
-      {"i", {"type"}},{}};
+      {"i", {"type"}}, {}};
   json assert_stmt = detail::Assert<detail::ExprID>{{"value_to_be_tested"},
                                                     "assertion failed!"};
   forStmt.stmts.push_back(assert_stmt);
@@ -105,7 +104,8 @@ TEST(StatementTests, IfStmt_withelse) {
 }
 
 TEST(StatementTests, UndefineStmt) {
-  detail::Designator des{"obj", {detail::Indexer{"array", detail::ExprID{"index"}}}};
+  detail::Designator des{"obj",
+                         {detail::Indexer{"array", detail::ExprID{"index"}}}};
   detail::UndefineStmt<decltype(des)> undefineStmt{des};
   json data = undefineStmt;
 
@@ -179,9 +179,9 @@ TEST(StatementTests, AliasStmt) {
 }
 
 TEST(StatementTest, CaseStmt) {
-  json stateAssignment =
-      detail::Assignment<detail::Designator, detail::ExprID>{
-          {"cache", {detail::Indexer{"object", detail::ExprID{"State"}}}}, {"cache_M"}};
+  json stateAssignment = detail::Assignment<detail::Designator, detail::ExprID>{
+      {"cache", {detail::Indexer{"object", detail::ExprID{"State"}}}},
+      {"cache_M"}};
   auto case1 = detail::CaseStmt{detail::ExprID{"theState"}, {stateAssignment}};
   json data = case1;
   auto &env = InjaEnvSingleton::getInstance();
@@ -198,10 +198,11 @@ TEST(StatementTest, CaseStmt) {
 
 TEST(StatementTest, SwitchStmt) {
 
-  auto switchStmt = detail::SwitchStmt{detail::ExprID{"to_be_switched_over"}, {}, {}};
-  json stateAssignment =
-      detail::Assignment<detail::Designator, detail::ExprID>{
-          {"cache", {detail::Indexer{"object", detail::ExprID{"State"}}}}, {"cache_M"}};
+  auto switchStmt =
+      detail::SwitchStmt{detail::ExprID{"to_be_switched_over"}, {}, {}};
+  json stateAssignment = detail::Assignment<detail::Designator, detail::ExprID>{
+      {"cache", {detail::Indexer{"object", detail::ExprID{"State"}}}},
+      {"cache_M"}};
   auto case1 = detail::CaseStmt{detail::ExprID{"theState"}, {stateAssignment}};
   switchStmt.cases.emplace_back(case1);
   switchStmt.cases.emplace_back(case1);
@@ -219,4 +220,21 @@ TEST(StatementTest, SwitchStmt) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
   EXPECT_FALSE(result.empty());
+}
+
+TEST(StatementTest, ReturnStmt) {
+  auto returnStmt = detail::ReturnStmt{detail::ExprID{"true"}};
+
+  json data = returnStmt;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+  EXPECT_FALSE(result.empty());
+  EXPECT_STREQ(result.c_str(), "return true;\n");
 }

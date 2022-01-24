@@ -569,6 +569,19 @@
             "title": "Quantifier",
             "type": "object"
         },
+        "ReturnStmt": {
+            "properties": {
+                "value": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "value"
+                }
+            },
+            "required": [
+                "value"
+            ],
+            "title": "ReturnStmt",
+            "type": "object"
+        },
         "ScalarsetType": {
             "properties": {
                 "type": {
@@ -612,6 +625,9 @@
                         },
                         {
                             "$ref": "#/definitions/SwitchStmt"
+                        },
+                        {
+                            "$ref": "#/definitions/ReturnStmt"
                         }
                     ],
                     "title": "statement"
@@ -636,6 +652,7 @@
                 "for",
                 "if",
                 "proc_call",
+                "return",
                 "switch",
                 "undefine"
             ],

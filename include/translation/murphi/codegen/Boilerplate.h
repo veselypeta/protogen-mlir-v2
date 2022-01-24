@@ -7,6 +7,8 @@ namespace murphi {
 namespace boilerplate {
 void setBoilerplateConstants(nlohmann::json &data);
 void setBoilerplateAccessType(nlohmann::json &data);
-}
 
+nlohmann::json getMessageHandlerSwitch();
+
+} // namespace boilerplate
 } // namespace murphi

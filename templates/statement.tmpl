@@ -33,3 +33,6 @@ end;
 {% if typeId == "switch" %}
 {{ render_template("switch.tmpl", statement) }}
 {% endif %}
+{% if typeId == "return" %}
+return {{ render_template("expression.tmpl", statement.value) }};
+{% endif %}

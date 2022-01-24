@@ -485,6 +485,13 @@ struct SwitchStmt {
 
 void to_json(json &j, const SwitchStmt &sw);
 
+
+struct ReturnStmt {
+  json value;
+};
+
+void to_json(json &j, const ReturnStmt &rs);
+
 // *** specific cases
 
 struct MessageFactory {
@@ -718,6 +725,7 @@ public:
                            {"proc_decls", nlohmann::json::array()},
                            {"rules", nlohmann::json::array()}};
     assembleDecls(data);
+    assembleProcedures(data);
     return data;
   }
 
@@ -739,19 +747,36 @@ private:
         detail::e_cache_state_t(), {interpreter.getCacheStateNames()}});
 
     // Directory State
-    data["decls"]["type_decls"].push_back(
-        detail::TypeDecl<detail::Enum>{detail::e_directory_state_t(),
-                                       {interpreter.getDirectoryStateNames()}});
+    data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
+        detail::e_directory_state_t(), {interpreter.getDirectoryStateNames()}});
   }
 
-  void assembleTypes(nlohmann::json &data) {
-      assembleEnums(data); }
+  void assembleTypes(nlohmann::json &data) { assembleEnums(data); }
   void assembleDecls(nlohmann::json &data) {
-      assembleConstants(data);
-      assembleTypes(data);
+    assembleConstants(data);
+    assembleTypes(data);
+  }
+
+  void assembleCacheController(nlohmann::json &data) {
+    auto boilerplateCacheController =
+        detail::MachineHandler{detail::machines.cache.str(), {}};
+//    for (auto &possibleState : interpreter.getCacheStateNames()) {
+//      auto messageSwitch = detail::SwitchStmt{detail::ExprI+};
+//      for (auto &possibleMessageName : interpreter.getMessageNames()) {
+//        boilerplateCacheController.statements.emplace_back(
+//            interpreter.getCacheStateHandler(possibleState,
+//                                             possibleMessageName));
+//      }
+//    }
+
+    data["proc_decls"].emplace_back(std::move(boilerplateCacheController));
+  }
+
+  void assembleProcedures(nlohmann::json &data) {
+    assembleCacheController(data);
   }
 
   InterpreterT interpreter;
-  };
+};
 
 } // namespace murphi
