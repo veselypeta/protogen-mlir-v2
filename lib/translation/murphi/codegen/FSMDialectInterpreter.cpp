@@ -8,19 +8,32 @@ using namespace mlir;
 using namespace mlir::fsm;
 using namespace nlohmann;
 constexpr size_t default_reserve_amount = 10;
-namespace murphi {
 
-json FSMDialectInterpreter::getMurphiCacheStatements(llvm::StringRef state,
-                                                     llvm::StringRef action) {
-  auto transOp = theModule.lookupSymbol<MachineOp>("cache")
+namespace {
+
+json getMurphiMachineStatements(llvm::StringRef state, llvm::StringRef action,
+                                llvm::StringRef machId, ModuleOp theModule) {
+  auto transOp = theModule.lookupSymbol<MachineOp>(machId)
                      .lookupSymbol<StateOp>(state)
                      .lookupSymbol<TransitionOp>(action);
   if (!transOp)
     return nullptr;
 
-  FSMOperationConverter opConverter;
+  murphi::FSMOperationConverter opConverter;
 
   return opConverter.convert(transOp);
+}
+} // namespace
+namespace murphi {
+
+json FSMDialectInterpreter::getMurphiCacheStatements(llvm::StringRef state,
+                                                     llvm::StringRef action) {
+  return getMurphiMachineStatements(state, action, "cache", theModule);
+}
+
+json FSMDialectInterpreter::getMurphiDirectoryStatements(
+    llvm::StringRef state, llvm::StringRef action) {
+  return getMurphiMachineStatements(state, action, "directory", theModule);
 }
 
 std::vector<std::string> FSMDialectInterpreter::getMessageNames() {

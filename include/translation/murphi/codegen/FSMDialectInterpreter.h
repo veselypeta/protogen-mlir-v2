@@ -28,6 +28,7 @@ public:
 
   /// returns a JSON array of MurphiStatement
   nlohmann::json getMurphiCacheStatements(llvm::StringRef state, llvm::StringRef action);
+  nlohmann::json getMurphiDirectoryStatements(llvm::StringRef state, llvm::StringRef action);
 
 private:
   mlir::ModuleOp theModule;

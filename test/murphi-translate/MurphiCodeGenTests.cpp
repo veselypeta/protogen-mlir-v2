@@ -5,6 +5,7 @@
 
 using namespace murphi;
 using namespace JSONValidation;
+using namespace inja;
 TEST(MurphiCodeGen, ConstDecl_to_json) {
   detail::ConstDecl decl{"NrCaches", 3};
   json j = decl; // implicitly calls to_json function
@@ -149,7 +150,7 @@ TEST(MurphiCodeGen, TypeDecl_Multiset) {
 }
 
 TEST(MurphiCodeGen, emitNetworkDefinitionJson) {
-  json j = detail::emitNetworkDefinitionJson();
+  json j = boilerplate::emitNetworkDefinitionJson();
   // for each decl - validate that it is a valid type_decl
   std::string schema_path =
       std::string(schema_base_directory) + "gen_TypeDecl.json";
