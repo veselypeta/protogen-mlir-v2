@@ -1,6 +1,7 @@
 #pragma once
 #include "FSM/FSMOps.h"
 #include <algorithm>
+#include <mlir/IR/PatternMatch.h>
 
 namespace mlir {
 namespace fsm {
@@ -46,6 +47,13 @@ MessageOp getLastMessageSent(StateOp op);
 /// Recursively looks back through linked previous transition
 /// to find the original start state
 StateOp getStableStartState(StateOp stateOp);
+
+/// returns the transition that 'won' the race, before our message is received
+TransitionOp findDirectoryWinningTransition(TransitionOp racingTransition);
+
+LogicalResult inlineTransition(TransitionOp from, TransitionOp to, PatternRewriter &rewriter);
+
+LogicalResult optimizeStateTransition(StateOp startState, TransitionOp racingTransition, PatternRewriter &rewriter);
 
 } // namespace utils
 } // namespace fsm
