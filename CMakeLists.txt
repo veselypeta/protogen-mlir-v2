@@ -12,6 +12,9 @@ if (NOT CMAKE_BUILD_TYPE EQUAL RELEASE)
     FetchContent_MakeAvailable(googletest)
 endif ()
 
+# compile cmurphi before enabling warnings as errors
+add_subdirectory(externals/CMurphi)
+
 # enable errors
 if (MSVC)
     # warning level 4 and all warnings as errors
@@ -105,7 +108,6 @@ include_directories(SYSTEM third-party)
 add_custom_target(protogen-headers)
 set_target_properties(protogen-headers PROPERTIES FOLDER "Misc")
 
-add_subdirectory(externals/CMurphi)
 add_subdirectory(include)
 add_subdirectory(lib)
 # don't include tests in release build
