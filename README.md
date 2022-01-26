@@ -8,10 +8,14 @@
 - `lld`
 - `uuid-dev`
 - `pkg-config`
+- `byacc`
+- `bison`
+- `flex`
+- `libfl-dev`
 
 On Ubuntu you can install all dependencies with the following:
 ```zsh
-sudo apt-get install -y git cmake ninja-build clang lld uuid-dev pkg-config
+sudo apt-get install -y git cmake ninja-build clang lld uuid-dev pkg-config byacc bison flex libfl-dev
 ```
 ## Platforms and Compilers
 I have tested the project both with clang >= 10.0.0 & gcc >= 9.3.0. You should be able to compile and run the project
