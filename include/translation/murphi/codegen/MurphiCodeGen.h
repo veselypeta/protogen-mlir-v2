@@ -206,9 +206,27 @@ private:
         });
   }
 
+  void assembleStartStateFunctions(nlohmann::json &data) {
+    constexpr std::array<llvm::StringRef, 3> cpuEvents = {"load", "store", "evict"};
+    std::vector<std::string> stableStates = interpreter.getCacheStableStateNames();
+
+    for (auto stableState : stableStates) {
+      for (auto event : cpuEvents) {
+
+        nlohmann::json eventStatements =
+            interpreter.getMurphiCacheStatements(stableState, event);
+        if (eventStatements == nullptr)
+          continue;
+
+        data["proc_decls"].template emplace_back(detail::CPUEventHandler{
+            stableState + "_" + event.str(), std::move(eventStatements)});
+      }
+    }
+  }
   void assembleProcedures(nlohmann::json &data) {
     assembleCacheController(data);
     assembleDirectoryController(data);
+    assembleStartStateFunctions(data);
   }
 
   InterpreterT interpreter;

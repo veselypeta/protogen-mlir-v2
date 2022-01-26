@@ -82,4 +82,16 @@ std::vector<std::string> FSMDialectInterpreter::getDirectoryStateNames() {
   return stateNames;
 }
 
+std::vector<std::string> FSMDialectInterpreter::getCacheStableStateNames() {
+  std::vector<StateOp> stableStates;
+  utils::searchForIf(theModule, stableStates, [](StateOp stateOp) {
+    return !utils::isTransientState(stateOp);
+  });
+
+  std::set<std::string> outs;
+  std::for_each(std::begin(stableStates), std::end(stableStates),
+                [&outs](StateOp op) { outs.insert(op.sym_name().str()); });
+  return {outs.begin(), outs.end()};
+}
+
 } // namespace murphi

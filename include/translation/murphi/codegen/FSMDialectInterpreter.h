@@ -30,6 +30,8 @@ public:
   nlohmann::json getMurphiCacheStatements(llvm::StringRef state, llvm::StringRef action);
   nlohmann::json getMurphiDirectoryStatements(llvm::StringRef state, llvm::StringRef action);
 
+  std::vector<std::string> getCacheStableStateNames();
+
 private:
   mlir::ModuleOp theModule;
 };
