@@ -91,7 +91,7 @@ LogicalResult inlineTransition(TransitionOp from, TransitionOp to,
   BlockAndValueMapping mapping;
 
   // if from has arguments map them correctly
-  for(size_t arg = 0; arg < from.getNumArguments(); arg++)
+  for (size_t arg = 0; arg < from.getNumArguments(); arg++)
     mapping.map(from.getArgument(arg), to.getArgument(arg));
 
   LogicalResult result = inlineRegion(
@@ -109,24 +109,93 @@ LogicalResult inlineTransition(TransitionOp from, TransitionOp to,
   return result;
 }
 
+std::string getNextStateName(llvm::StringRef destinationState,
+                             llvm::StringRef actionPerformed) {
+  std::string newState = destinationState.str() + "_" + actionPerformed.str();
+  return newState;
+}
+
+StateOp getDirectoryStateHavingSent(llvm::StringRef msgName,
+                                    MachineOp theDirectory) {
+  std::vector<MessageOp> allSentMessages;
+  searchForIf(theDirectory, allSentMessages, [msgName](MessageOp test_msg) {
+    return test_msg.msgName() == msgName;
+  });
+  assert(allSentMessages.size() == 1 &&
+         "directory message sending should map to a unique value");
+  TransitionOp executedTransition =
+      allSentMessages.at(0)->getParentOfType<TransitionOp>();
+  assert(executedTransition.nextState().hasValue() &&
+         "undecidable unless directory has known end state");
+  return theDirectory.lookupSymbol<StateOp>(executedTransition.nextStateAttr());
+}
+
 LogicalResult optimizeStateTransition(StateOp startState,
                                       TransitionOp racingTransition,
                                       PatternRewriter &rewriter) {
+  MachineOp theCache = startState->getParentOfType<MachineOp>();
+  MachineOp theDirectory =
+      startState->getParentOfType<ModuleOp>().lookupSymbol<MachineOp>(
+          "directory");
+
   // set insertion point
   rewriter.setInsertionPointToEnd(startState.getBody());
+
+  // we can compute what the next state will be called
+  auto prev_msg_sent = getLastMessageSent(startState);
+  auto next_state_name =
+      getNextStateName(racingTransition.nextState()->getLeafReference(),
+                       prev_msg_sent.msgName());
 
   // we need to create the race handling transition
   TransitionOp handleRaceTrans = rewriter.create<TransitionOp>(
       startState.getLoc(), racingTransition.sym_name(),
-      racingTransition.getType(), /*nextState*/ nullptr);
+      racingTransition.getType(),
+      /*nextState*/ rewriter.getSymbolRefAttr(next_state_name));
 
   // inline ops from the racing transition
   if (failed(inlineTransition(racingTransition, handleRaceTrans, rewriter)))
     return mlir::failure();
 
+  // if the new state already exists we are done
+  // else we need to deduce how the directory will respond to us
+  if (theCache.lookupSymbol<StateOp>(next_state_name))
+    return success();
 
+  // what message did we last send?
+  MessageOp last_msg_sent = getLastMessageSent(startState);
 
-  return success();
+  // what state will the directory be when it's received?
+  StateOp dir_state_when_received =
+      getDirectoryStateHavingSent(racingTransition.sym_name(), theDirectory);
+
+  // can the directory handle the message we sent in this state?
+  TransitionOp dir_handling_trans =
+      dir_state_when_received.lookupSymbol<TransitionOp>(
+          last_msg_sent.msgName());
+  if (dir_handling_trans == nullptr)
+    assert(0 && "currently we do not handle this case!");
+
+  // what message will the directory respond with?
+  std::vector<MessageOp> dir_resps;
+  searchFor(dir_handling_trans, dir_resps);
+  assert(dir_resps.size() == 1 && "accept only a single response from the dir");
+
+  // in the new state we now create the new transition to accept this message
+  rewriter.setInsertionPointToStart(racingTransition->getBlock());
+  TransitionOp handle_dir_resp = rewriter.create<TransitionOp>(
+      racingTransition->getLoc(),
+      /*action*/ dir_resps.at(0).msgName(),
+      /*type*/
+      rewriter.getFunctionType({MsgType::get(rewriter.getContext())}, {}),
+      /*nextState*/ racingTransition.nextStateAttr());
+
+  TransitionOp dir_resp_src_ops =
+      startState.lookupSymbol<TransitionOp>(dir_resps.at(0).msgName());
+
+  // inline the ops
+  return inlineTransition(dir_resp_src_ops, handle_dir_resp, rewriter);
+
 }
 
 //// set the rewriter to create a new transition at the end of the
