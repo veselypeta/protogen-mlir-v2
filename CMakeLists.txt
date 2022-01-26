@@ -105,7 +105,7 @@ include_directories(SYSTEM third-party)
 add_custom_target(protogen-headers)
 set_target_properties(protogen-headers PROPERTIES FOLDER "Misc")
 
-
+add_subdirectory(externals/CMurphi)
 add_subdirectory(include)
 add_subdirectory(lib)
 # don't include tests in release build
