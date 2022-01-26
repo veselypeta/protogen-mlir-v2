@@ -8,6 +8,9 @@ namespace fsm {
 
 #define GEN_PASS_CLASSES
 #include "FSM/Passes/Passes.h.inc"
+
+void registerFullOptimizationPipeline();
+
 } // namespace pcc
 } // namespace mlir
 

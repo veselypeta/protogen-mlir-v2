@@ -12,4 +12,14 @@ def StallingOptimizationPass: Pass<"fsm-stalling-optimization", "ModuleOp"> {
    let dependentDialects = ["mlir::fsm::FSMDialect"];
 }
 
+def NonStallingOptimizationPass : Pass<"fsm-non-stalling-optimization", "ModuleOp"> {
+
+    let summary = "Optimizes protocol for allowing buffering of incoming messages";
+    let description = [{
+        TODO
+    }];
+    let constructor = "mlir::fsm::createNonStallingOptimizationPass()";
+    let dependentDialects = ["mlir::fsm::FSMDialect"];
+}
+
 #endif // FSM_DIALECT_PASSES

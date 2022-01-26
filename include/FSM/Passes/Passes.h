@@ -6,8 +6,10 @@ namespace mlir {
 namespace fsm {
 
 std::unique_ptr<OperationPass<ModuleOp>> createStallingOptimizationPass();
+std::unique_ptr<OperationPass<ModuleOp>> createNonStallingOptimizationPass();
 
 void registerAllFSMPasses();
+void registerAllFSMPipelines();
 
 } // namespace fsm
 } // namespace mlir

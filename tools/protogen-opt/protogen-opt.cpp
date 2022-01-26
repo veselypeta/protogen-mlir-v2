@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
 
   // initialise FSM passes
   mlir::fsm::registerAllFSMPasses();
+  mlir::fsm::registerAllFSMPipelines();
 
   return mlir::failed(
       mlir::MlirOptMain(argc, argv, "PCC modular optimizer driver", registry,

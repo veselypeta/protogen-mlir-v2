@@ -51,9 +51,23 @@ StateOp getStableStartState(StateOp stateOp);
 /// returns the transition that 'won' the race, before our message is received
 TransitionOp findDirectoryWinningTransition(TransitionOp racingTransition);
 
-LogicalResult inlineTransition(TransitionOp from, TransitionOp to, PatternRewriter &rewriter);
+LogicalResult inlineTransition(TransitionOp from, TransitionOp to,
+                               PatternRewriter &rewriter);
 
-LogicalResult optimizeStateTransition(StateOp startState, TransitionOp racingTransition, PatternRewriter &rewriter);
+LogicalResult optimizeStateTransition(StateOp startState,
+                                      TransitionOp racingTransition,
+                                      PatternRewriter &rewriter);
+
+template <class CallableT>
+WalkResult runOnEachTransientState(MachineOp machine, PatternRewriter &rewriter,
+                                   CallableT callable) {
+  return machine.walk([&](StateOp state) {
+    if (!isTransientState(state)) {
+      return WalkResult::advance();
+    }
+    return callable(state, rewriter);
+  });
+}
 
 } // namespace utils
 } // namespace fsm

@@ -6,8 +6,8 @@
 #include "PassDetail.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include <mlir/IR/BlockAndValueMapping.h>
+#include "ProtoGenRewriter.h"
 
 using namespace mlir;
 using namespace mlir::fsm;
@@ -15,14 +15,6 @@ using namespace mlir::fsm::utils;
 
 // Private Namespace for Implementation
 namespace {
-
-// We need a custom rewriter to be able to construct it
-class ProtoGenRewriter : public PatternRewriter {
-public:
-  explicit ProtoGenRewriter(MLIRContext *ctx) : PatternRewriter{ctx} {
-    // TODO - overwrite necessary methods here
-  }
-};
 
 // Create the Optimization Pass
 class StallingOptimizationPass
@@ -35,11 +27,11 @@ public:
 void StallingOptimizationPass::runOnOperation() {
   /// grab the module/cache/directory
   ModuleOp theModule = OperationPass<ModuleOp>::getOperation();
-
+  MachineOp theCache = theModule.lookupSymbol<MachineOp>("cache");
   ProtoGenRewriter rewriter(&getContext());
 
-  // walk each transient state
-  auto result = theModule.walk([&](StateOp startState) {
+  // walk each transient state in the cache
+  auto result = theCache.walk([&](StateOp startState) {
     // Skip non-transient states
     if (!isTransientState(startState))
       return WalkResult::advance();
