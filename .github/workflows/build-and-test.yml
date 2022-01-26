@@ -17,7 +17,9 @@ jobs:
         with:
           submodules: recursive
       - name: Install Dependencies
-        run: sudo apt-get install apt-get install -y git cmake ninja-build clang lld uuid-dev pkg-config byacc bison flex libfl-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install apt-get install -y git cmake ninja-build clang lld uuid-dev pkg-config byacc bison flex libfl-dev
       - name: Cache LLVM
         id: cache-llvm
         uses: actions/cache@v2
