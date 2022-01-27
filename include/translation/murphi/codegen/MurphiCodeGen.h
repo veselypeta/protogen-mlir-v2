@@ -145,7 +145,15 @@ private:
                                        {interpreter.getDirectoryStateNames()}});
   }
 
-  void assembleTypes(nlohmann::json &data) { assembleEnums(data); }
+  void assembleMachineEntryTypes(nlohmann::json &data) {
+    data["decls"]["type_decls"].emplace_back(interpreter.getCacheType());
+    data["decls"]["type_decls"].emplace_back(interpreter.getDirectoryType());
+  }
+
+  void assembleTypes(nlohmann::json &data) {
+    assembleEnums(data);
+    assembleMachineEntryTypes(data);
+  }
   void assembleDecls(nlohmann::json &data) {
     assembleConstants(data);
     assembleTypes(data);
@@ -207,8 +215,10 @@ private:
   }
 
   void assembleStartStateFunctions(nlohmann::json &data) {
-    constexpr std::array<llvm::StringRef, 3> cpuEvents = {"load", "store", "evict"};
-    std::vector<std::string> stableStates = interpreter.getCacheStableStateNames();
+    constexpr std::array<llvm::StringRef, 3> cpuEvents = {"load", "store",
+                                                          "evict"};
+    std::vector<std::string> stableStates =
+        interpreter.getCacheStableStateNames();
 
     for (auto stableState : stableStates) {
       for (auto event : cpuEvents) {

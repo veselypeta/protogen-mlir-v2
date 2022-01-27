@@ -58,7 +58,7 @@ constexpr char unordered[] = "Unordered";
 constexpr char e_access_t[] = "Access";
 constexpr char e_message_type_t[] = "MessageType";
 constexpr char ss_address_t[] = "Address";
-constexpr char sr_cache_val_t[] = "ClValue";
+constexpr char ss_cache_val_t[] = "ClValue";
 
 // *** Alias Terms *** //
 constexpr char adr_a[] = "adr";

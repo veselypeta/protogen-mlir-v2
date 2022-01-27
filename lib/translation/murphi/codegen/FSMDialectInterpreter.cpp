@@ -1,6 +1,8 @@
 #include "translation/murphi/codegen/FSMDialectInterpreter.h"
 #include "FSM/FSMOps.h"
 #include "FSM/FSMUtils.h"
+#include "translation/murphi/codegen/MurphiConstants.h"
+#include "translation/murphi/codegen/MurphiStructs.h"
 #include "translation/murphi/codegen/FSMOperationConverter.h"
 #include <set>
 
@@ -23,6 +25,36 @@ json getMurphiMachineStatements(llvm::StringRef state, llvm::StringRef action,
 
   return opConverter.convert(transOp);
 }
+
+std::string mapFSMTypeToMurphiType(VariableOp var) {
+  auto t = var.getType();
+  if (t.isa<StateType>())
+    return var->getParentOfType<MachineOp>().sym_name().str() +
+           murphi::detail::state_suffix;
+
+  if (t.isa<IDType>())
+    return murphi::detail::e_machines_t;
+
+  if (t.isa<DataType>())
+    return murphi::detail::ss_cache_val_t;
+
+  if (t.isa<MsgType>())
+    return murphi::detail::r_message_t;
+
+  assert(0 && "variable op has invalid type");
+}
+
+json convertMachineType(MachineOp mach) {
+  std::vector<std::pair<std::string, std::string>> rec;
+  for (auto varOp : mach.getOps<VariableOp>()) {
+    auto entry =
+        std::make_pair(varOp.name().str(), mapFSMTypeToMurphiType(varOp));
+    rec.emplace_back(std::move(entry));
+  }
+  return murphi::detail::TypeDecl<murphi::detail::Record>{
+      murphi::detail::EntryKey + mach.sym_name().str(), {std::move(rec)}};
+}
+
 } // namespace
 namespace murphi {
 
@@ -92,6 +124,16 @@ std::vector<std::string> FSMDialectInterpreter::getCacheStableStateNames() {
   std::for_each(std::begin(stableStates), std::end(stableStates),
                 [&outs](StateOp op) { outs.insert(op.sym_name().str()); });
   return {outs.begin(), outs.end()};
+}
+
+json FSMDialectInterpreter::getCacheType() {
+  auto theCache = theModule.lookupSymbol<MachineOp>("cache");
+  return convertMachineType(theCache);
+}
+
+json FSMDialectInterpreter::getDirectoryType() {
+  auto dir = theModule.lookupSymbol<MachineOp>("directory");
+  return convertMachineType(dir);
 }
 
 } // namespace murphi

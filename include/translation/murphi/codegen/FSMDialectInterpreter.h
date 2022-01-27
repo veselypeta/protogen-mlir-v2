@@ -26,6 +26,9 @@ public:
   /// get the number of caches in the simulation
   constexpr size_t getCacheSetSize() { return 3; };
 
+  nlohmann::json getCacheType();
+  nlohmann::json getDirectoryType();
+
   /// returns a JSON array of MurphiStatement
   nlohmann::json getMurphiCacheStatements(llvm::StringRef state, llvm::StringRef action);
   nlohmann::json getMurphiDirectoryStatements(llvm::StringRef state, llvm::StringRef action);

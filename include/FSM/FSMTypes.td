@@ -2,7 +2,8 @@
 #define PROTOGEN_DIALECT_FSM_FSMTYPES_TD
 
 
-def FSMType : DialectType<FSMDialect, CPred<"$_self.isa<FSMType>()">, "FSMType", "::mlir::fsm::FSMType">;
+def FSMType : DialectType<FSMDialect, CPred<"$_self.isa<FSMType>()">,
+    "FSMType", "::mlir::fsm::FSMType">;
 
 // Simple Opaque Types
 def IDType : DialectType<FSMDialect, CPred<"$_self.isa<IDType>()">, "id", "::mlir::fsm::IDType">,

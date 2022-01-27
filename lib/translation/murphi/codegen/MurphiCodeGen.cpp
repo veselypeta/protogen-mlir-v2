@@ -88,7 +88,7 @@ void MurphiCodeGen::_typeStatics() {
   // ClValue type
   data["decls"]["type_decls"].push_back(
       detail::TypeDecl<detail::SubRange<size_t, std::string>>{
-          detail::sr_cache_val_t, {0, detail::c_val_cnt_t}});
+          detail::ss_cache_val_t, {0, detail::c_val_cnt_t}});
 }
 
 void MurphiCodeGen::_typeMachineSets() {
@@ -263,7 +263,7 @@ MurphiCodeGen::get_glob_msg_type() {
 std::string MLIRTypeToMurphiTypeRef(const mlir::Type &t,
                                     const llvm::StringRef mach) {
   if (t.isa<mlir::pcc::DataType>()) {
-    return detail::sr_cache_val_t;
+    return detail::ss_cache_val_t;
   }
   if (t.isa<mlir::pcc::StateType>()) {
     return mach == detail::machines.cache ? detail::e_cache_state_t()
