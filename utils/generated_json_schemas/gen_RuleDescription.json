@@ -274,6 +274,12 @@
                             "$ref": "#/definitions/MultisetCount"
                         },
                         {
+                            "$ref": "#/definitions/ForAll"
+                        },
+                        {
+                            "$ref": "#/definitions/ParensExpr"
+                        },
+                        {
                             "type": "string"
                         }
                     ],
@@ -296,12 +302,32 @@
                 "ID",
                 "binary",
                 "designator",
+                "forall",
                 "ms_count",
                 "neg_expr",
+                "parens_expr",
                 "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"
+        },
+        "ForAll": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "quantifier": {
+                    "$ref": "#/definitions/Quantifier",
+                    "title": "quantifier"
+                }
+            },
+            "required": [
+                "expr",
+                "quantifier"
+            ],
+            "title": "ForAll",
+            "type": "object"
         },
         "ForEachQuantifier": {
             "properties": {
@@ -472,6 +498,24 @@
             "title": "IntegerSubRange",
             "type": "object"
         },
+        "Invariant": {
+            "properties": {
+                "desc": {
+                    "title": "desc",
+                    "type": "string"
+                },
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "desc",
+                "expr"
+            ],
+            "title": "Invariant",
+            "type": "object"
+        },
         "MultisetCount": {
             "properties": {
                 "predicate": {
@@ -622,6 +666,19 @@
             "title": "NegExpr",
             "type": "object"
         },
+        "ParensExpr": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "expr"
+            ],
+            "title": "ParensExpr",
+            "type": "object"
+        },
         "ProcCall": {
             "properties": {
                 "actuals": {
@@ -701,6 +758,9 @@
                 },
                 {
                     "$ref": "#/definitions/StartState"
+                },
+                {
+                    "$ref": "#/definitions/Invariant"
                 }
             ],
             "title": "Rule"
@@ -751,6 +811,7 @@
             "enum": [
                 "alias_rule",
                 "choose_rule",
+                "invariant",
                 "ruleset",
                 "simple_rule",
                 "start_state"

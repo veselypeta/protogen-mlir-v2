@@ -6,9 +6,8 @@
 // TODO - remove this header
 #include "PCC/PCCOps.h"
 
-namespace murphi{
-namespace detail{
-
+namespace murphi {
+namespace detail {
 
 /*
  * Helper Structs to generate JSON
@@ -28,7 +27,8 @@ template <class TypeT> struct TypeDecl {
   TypeT type;
 };
 
-template <class TypeT> void to_json(nlohmann::json &j, const TypeDecl<TypeT> &typeDecl) {
+template <class TypeT>
+void to_json(nlohmann::json &j, const TypeDecl<TypeT> &typeDecl) {
   j = typeDecl.type;
   j["id"] = typeDecl.id;
 }
@@ -132,7 +132,8 @@ template <class TypeT> struct Formal {
   TypeT type;
 };
 
-template <class TypeT> void to_json(nlohmann::json &j, const Formal<TypeT> &formal) {
+template <class TypeT>
+void to_json(nlohmann::json &j, const Formal<TypeT> &formal) {
   j = {{"id", formal.id}, {"type", formal.type}};
 }
 
@@ -142,7 +143,8 @@ template <class TypeT> struct ForwardDecl {
   TypeT decl;
 };
 
-template <class TypeT> void to_json(nlohmann::json &j, const ForwardDecl<TypeT> &fd) {
+template <class TypeT>
+void to_json(nlohmann::json &j, const ForwardDecl<TypeT> &fd) {
   j = {{"typeId", fd.typeId}, {"decl", fd.decl}};
 }
 
@@ -206,7 +208,8 @@ template <class T, class U> struct Assignment {
   U rhs;
 };
 
-template <class T, class U> void to_json(nlohmann::json &j, const Assignment<T, U> &a) {
+template <class T, class U>
+void to_json(nlohmann::json &j, const Assignment<T, U> &a) {
   j = {{"typeId", "assignment"},
        {"statement", {{"lhs", a.lhs}, {"rhs", a.rhs}}}};
 }
@@ -225,7 +228,8 @@ template <class T> struct ForEachQuantifier {
   T type;
 };
 
-template <class T> void to_json(nlohmann::json &j, const ForEachQuantifier<T> &fe) {
+template <class T>
+void to_json(nlohmann::json &j, const ForEachQuantifier<T> &fe) {
   j = {{"typeId", "for_each"},
        {"quantifier", {{"id", fe.id}, {"type", fe.type}}}};
 }
@@ -237,7 +241,8 @@ template <class StartIdx, class EndIdx> struct ForRangeQuantifier {
 };
 
 template <class StartIdx, class EndIdx>
-void to_json(nlohmann::json &j, const ForRangeQuantifier<StartIdx, EndIdx> &frq) {
+void to_json(nlohmann::json &j,
+             const ForRangeQuantifier<StartIdx, EndIdx> &frq) {
   j = {
       {"typeId", "for_range"},
       {"quantifier", {{"id", frq.id}, {"start", frq.start}, {"end", frq.end}}}};
@@ -313,30 +318,6 @@ struct ReturnStmt {
 
 void to_json(nlohmann::json &j, const ReturnStmt &rs);
 
-// *** specific cases
-
-struct MessageFactory {
-  mlir::pcc::MsgDeclOp msgOp;
-};
-
-void to_json(nlohmann::json &j, const MessageFactory &mc);
-
-struct OrderedSendFunction {
-  std::string netId;
-};
-void to_json(nlohmann::json &j, const OrderedSendFunction &sf);
-
-struct OrderedPopFunction {
-  std::string netId;
-};
-
-void to_json(nlohmann::json &j, const OrderedPopFunction &opf);
-
-struct UnorderedSendFunction {
-  std::string netId;
-};
-void to_json(nlohmann::json &j, const UnorderedSendFunction &usf);
-
 struct MultisetCount {
   std::string varId;
   nlohmann::json varValue;
@@ -357,48 +338,29 @@ struct ProcCallExpr {
 };
 
 void to_json(nlohmann::json &j, const ProcCallExpr &fn);
-/*
- * Machine Handler
- */
 
-struct MachineHandler {
-  std::string machId;
-  std::vector<nlohmann::json> cases;
+template<class QuantifierT>
+struct ForAll {
+  QuantifierT quantifier;
+  nlohmann::json expr;
 };
 
-void to_json(nlohmann::json &j, const MachineHandler &mh);
-
-struct CPUEventHandler {
-  std::string start_state;
-  std::vector<nlohmann::json> statements;
+struct ParensExpr {
+  nlohmann::json expr;
 };
+void to_json(nlohmann::json &j, const ParensExpr &pExpr);
 
-void to_json(nlohmann::json &j, const CPUEventHandler &cpuEventHandler);
+template <class QuantifierT>
+void to_json(nlohmann::json &j, const ForAll<QuantifierT> &fa){
+  j = {
+    {"typeId", "forall"},
+    {"expression", {
+                         {"quantifier", fa.quantifier},
+                         {"expr", fa.expr}
+                   }}
+  };
+}
 
-struct CacheRuleHandler {
-  std::vector<nlohmann::json> rules;
-};
-
-void to_json(nlohmann::json &j, const CacheRuleHandler &crh);
-
-struct CPUEventRule {
-  std::string state;
-  std::string event;
-};
-
-void to_json(nlohmann::json &j, const CPUEventRule &er);
-
-struct OrderedRuleset {
-  std::string netId;
-};
-
-void to_json(nlohmann::json &j, const OrderedRuleset &orderedRuleset);
-
-struct UnorderedRuleset {
-  std::string netId;
-};
-
-void to_json(nlohmann::json &j, const UnorderedRuleset &urs);
 /*
  * Rule States
  */
@@ -443,5 +405,83 @@ struct StartState {
 
 void to_json(nlohmann::json &j, const StartState &ss);
 
-}
-}
+struct Invariant {
+  std::string desc;
+  nlohmann::json expr;
+};
+
+void to_json(nlohmann::json &j, const Invariant &inv);
+
+/// ------------------------------------------------------------------------ ///
+/// ***** SPECIFIC CASES *************************************************** ///
+/// ------------------------------------------------------------------------ ///
+
+/// -- Message Factory -- ///
+struct MessageFactory {
+  mlir::pcc::MsgDeclOp msgOp;
+};
+void to_json(nlohmann::json &j, const MessageFactory &mc);
+
+/// -- Ordered Send Function -- ///
+struct OrderedSendFunction {
+  std::string netId;
+};
+void to_json(nlohmann::json &j, const OrderedSendFunction &sf);
+
+/// -- Ordered Pop Function -- ///
+struct OrderedPopFunction {
+  std::string netId;
+};
+void to_json(nlohmann::json &j, const OrderedPopFunction &opf);
+
+/// -- Unordered Send Function -- ///
+struct UnorderedSendFunction {
+  std::string netId;
+};
+void to_json(nlohmann::json &j, const UnorderedSendFunction &usf);
+
+/// -- Machine Handler -- ///
+struct MachineHandler {
+  std::string machId;
+  std::vector<nlohmann::json> cases;
+};
+void to_json(nlohmann::json &j, const MachineHandler &mh);
+
+/// -- CPU Event Handler -- ///
+struct CPUEventHandler {
+  std::string start_state;
+  std::vector<nlohmann::json> statements;
+};
+void to_json(nlohmann::json &j, const CPUEventHandler &cpuEventHandler);
+
+/// -- CacheRuleHandler -- ///
+struct CacheRuleHandler {
+  std::vector<nlohmann::json> rules;
+};
+void to_json(nlohmann::json &j, const CacheRuleHandler &crh);
+
+/// -- CPU Event Rule -- ///
+struct CPUEventRule {
+  std::string state;
+  std::string event;
+};
+void to_json(nlohmann::json &j, const CPUEventRule &er);
+
+/// -- Ordered Ruleset -- ///
+struct OrderedRuleset {
+  std::string netId;
+};
+void to_json(nlohmann::json &j, const OrderedRuleset &orderedRuleset);
+
+/// -- UnorderedRuleset -- ///
+struct UnorderedRuleset {
+  std::string netId;
+};
+void to_json(nlohmann::json &j, const UnorderedRuleset &urs);
+
+/// -- SWMR Invariant -- ///
+struct SWMRInvariant {};
+void to_json(nlohmann::json &j, const SWMRInvariant &swmrInv);
+
+} // namespace detail
+} // namespace murphi

@@ -277,8 +277,7 @@ TEST(OpConstructionTests, MessageOpConstruction) {
   auto c3 = helper.builder.create<ConstantOp>(
       unknLoc, helper.builder.getI64IntegerAttr(3));
 
-  ValueRange vr = {c1, c2, c3};
-
+  std::vector<Value> vr = {c1, c2, c3};
   helper.builder.create<MessageOp>(unknLoc, MsgType::get(&helper.ctx),
                                    helper.builder.getSymbolRefAttr("Resp"),
                                    helper.builder.getStringAttr("Inv"), vr);

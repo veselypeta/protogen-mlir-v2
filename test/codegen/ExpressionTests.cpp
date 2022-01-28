@@ -169,3 +169,42 @@ TEST(ExpressionTests, NegExpr) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
+
+TEST(ExpressionTests, ForAll){
+  auto forall = detail::ForAll<detail::ForEachQuantifier<detail::ID>>{
+    {"i", detail::ID{"range"}},
+        detail::ExprID{"myExpr"}
+  };
+  json data = forall;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expected_str = "forall i : range do\n"
+                      "    myExpr\n"
+                      "endforall\n";
+  ASSERT_STREQ(result.c_str(), expected_str);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+}
+
+TEST(ExpressionTests, ParensExpr){
+  auto pExtr = detail::ParensExpr{detail::ExprID{"in the parens"}};
+  json data = pExtr;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("expression.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expected_str = "( in the parens )";
+  ASSERT_STREQ(result.c_str(), expected_str);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_ExpressionDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+}

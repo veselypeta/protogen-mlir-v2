@@ -14,3 +14,6 @@
 {% if typeId == "start_state"%}
 {{ render_template("start_state.tmpl", rule) }}
 {% endif %}
+{% if typeId == "invariant" %}
+{{ render_template("invariant.tmpl", rule) }}
+{% endif %}

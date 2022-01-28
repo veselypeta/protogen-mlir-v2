@@ -64,6 +64,22 @@
             "title": "Designator",
             "type": "object"
         },
+        "Enum": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls"
+            ],
+            "title": "Enum",
+            "type": "object"
+        },
         "Expression": {
             "anyOf": [
                 {
@@ -80,6 +96,12 @@
                 },
                 {
                     "$ref": "#/definitions/MultisetCount"
+                },
+                {
+                    "$ref": "#/definitions/ForAll"
+                },
+                {
+                    "$ref": "#/definitions/ParensExpr"
                 },
                 {
                     "type": "string"
@@ -110,12 +132,73 @@
                 "ID",
                 "binary",
                 "designator",
+                "forall",
                 "ms_count",
                 "neg_expr",
+                "parens_expr",
                 "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"
+        },
+        "ForAll": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "quantifier": {
+                    "$ref": "#/definitions/Quantifier",
+                    "title": "quantifier"
+                }
+            },
+            "required": [
+                "expr",
+                "quantifier"
+            ],
+            "title": "ForAll",
+            "type": "object"
+        },
+        "ForEachQuantifier": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "id",
+                "type"
+            ],
+            "title": "ForEachQuantifier",
+            "type": "object"
+        },
+        "ForRangeQuantifier": {
+            "properties": {
+                "end": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "end"
+                },
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "start": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "start"
+                }
+            },
+            "required": [
+                "end",
+                "id",
+                "start"
+            ],
+            "title": "ForRangeQuantifier",
+            "type": "object"
         },
         "Indexer": {
             "properties": {
@@ -137,6 +220,30 @@
                 "typeId"
             ],
             "title": "Indexer",
+            "type": "object"
+        },
+        "IntegerSubRange": {
+            "properties": {
+                "start": {
+                    "title": "start",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                },
+                "stop": {
+                    "title": "stop",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                }
+            },
+            "required": [
+                "start",
+                "stop"
+            ],
+            "title": "IntegerSubRange",
             "type": "object"
         },
         "MultisetCount": {
@@ -162,6 +269,120 @@
             "title": "MultisetCount",
             "type": "object"
         },
+        "MultisetType": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "index"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "index",
+                "type"
+            ],
+            "title": "MultisetType",
+            "type": "object"
+        },
+        "MurphiArray": {
+            "properties": {
+                "index": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "index"
+                },
+                "type": {
+                    "$ref": "#/definitions/TypeDescription",
+                    "title": "type"
+                }
+            },
+            "required": [
+                "index",
+                "type"
+            ],
+            "title": "MurphiArray",
+            "type": "object"
+        },
+        "MurphiRecord": {
+            "properties": {
+                "decls": {
+                    "items": {
+                        "properties": {
+                            "id": {
+                                "title": "id",
+                                "type": "string"
+                            },
+                            "type": {
+                                "$ref": "#/definitions/MurphiType",
+                                "title": "type"
+                            },
+                            "typeId": {
+                                "$ref": "#/definitions/MurphiTypeId",
+                                "title": "typeId"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "type",
+                            "typeId"
+                        ],
+                        "type": "object"
+                    },
+                    "title": "decls",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "decls"
+            ],
+            "title": "MurphiRecord",
+            "type": "object"
+        },
+        "MurphiType": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/MurphiRecord"
+                },
+                {
+                    "$ref": "#/definitions/Enum"
+                },
+                {
+                    "$ref": "#/definitions/IntegerSubRange"
+                },
+                {
+                    "$ref": "#/definitions/MurphiArray"
+                },
+                {
+                    "$ref": "#/definitions/MultisetType"
+                },
+                {
+                    "$ref": "#/definitions/ScalarsetType"
+                },
+                {
+                    "$ref": "#/definitions/UnionType"
+                },
+                {
+                    "type": "string"
+                }
+            ],
+            "title": "MurphiType"
+        },
+        "MurphiTypeId": {
+            "enum": [
+                "ID",
+                "array",
+                "enum",
+                "multiset",
+                "record",
+                "scalarset",
+                "sub_range",
+                "union"
+            ],
+            "title": "MurphiTypeId",
+            "type": "string"
+        },
         "NegExpr": {
             "properties": {
                 "expr": {
@@ -173,6 +394,19 @@
                 "expr"
             ],
             "title": "NegExpr",
+            "type": "object"
+        },
+        "ParensExpr": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "expr"
+            ],
+            "title": "ParensExpr",
             "type": "object"
         },
         "ProcCall": {
@@ -194,6 +428,94 @@
                 "funId"
             ],
             "title": "ProcCall",
+            "type": "object"
+        },
+        "Quantifier": {
+            "properties": {
+                "quantifier": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ForEachQuantifier"
+                        },
+                        {
+                            "$ref": "#/definitions/ForRangeQuantifier"
+                        }
+                    ],
+                    "title": "quantifier"
+                },
+                "typeId": {
+                    "enum": [
+                        "for_each",
+                        "for_range"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "quantifier",
+                "typeId"
+            ],
+            "title": "Quantifier",
+            "type": "object"
+        },
+        "ScalarsetType": {
+            "properties": {
+                "type": {
+                    "title": "type",
+                    "type": [
+                        "string",
+                        "number"
+                    ]
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "title": "ScalarsetType",
+            "type": "object"
+        },
+        "TypeDescription": {
+            "properties": {
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "type",
+                "typeId"
+            ],
+            "title": "TypeDescription",
+            "type": "object"
+        },
+        "UnionType": {
+            "properties": {
+                "listElems": {
+                    "additionalItems": {
+                        "type": "string"
+                    },
+                    "items": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "minItems": 2,
+                    "title": "listElems",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "listElems"
+            ],
+            "title": "UnionType",
             "type": "object"
         }
     }

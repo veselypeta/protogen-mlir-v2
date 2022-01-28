@@ -13,11 +13,11 @@ using namespace murphi;
 TEST(RuleTests, SimpleRule) {
   auto start_state = "cache_I_load";
   auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
-  auto equal_expr =
-      detail::BinaryExpr<detail::Designator, detail::ExprID>{
-          {detail::cle_a, {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
-          {"cache_I"},
-          detail::BinaryOps.eq};
+  auto equal_expr = detail::BinaryExpr<detail::Designator, detail::ExprID>{
+      {detail::cle_a,
+       {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
+      {"cache_I"},
+      detail::BinaryOps.eq};
   auto proc_call = detail::ProcCall{
       std::string(detail::send_pref_f) + start_state,
       {detail::ExprID{detail::c_adr}, detail::ExprID{detail::c_mach}}};
@@ -49,11 +49,11 @@ TEST(RuleTests, RuleSet) {
   // basic simple rule
   auto start_state = "cache_I_load";
   auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
-  auto equal_expr =
-      detail::BinaryExpr<detail::Designator, detail::ExprID>{
-          {detail::cle_a, {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
-          {"cache_I"},
-          detail::BinaryOps.eq};
+  auto equal_expr = detail::BinaryExpr<detail::Designator, detail::ExprID>{
+      {detail::cle_a,
+       {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
+      {"cache_I"},
+      detail::BinaryOps.eq};
   auto proc_call = detail::ProcCall{
       std::string(detail::send_pref_f) + start_state,
       {detail::ExprID{detail::c_adr}, detail::ExprID{detail::c_mach}}};
@@ -84,11 +84,11 @@ TEST(RuleTests, AliasRule) {
   // basic simple rule
   auto start_state = "cache_I_load";
   auto simpleRule = detail::SimpleRule{start_state, {}, {}, {}};
-  auto equal_expr =
-      detail::BinaryExpr<detail::Designator, detail::ExprID>{
-          {detail::cle_a, {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
-          {"cache_I"},
-          detail::BinaryOps.eq};
+  auto equal_expr = detail::BinaryExpr<detail::Designator, detail::ExprID>{
+      {detail::cle_a,
+       {detail::Indexer{"object", detail::ExprID{detail::c_state}}}},
+      {"cache_I"},
+      detail::BinaryOps.eq};
   auto proc_call = detail::ProcCall{
       std::string(detail::send_pref_f) + start_state,
       {detail::ExprID{detail::c_adr}, detail::ExprID{detail::c_mach}}};
@@ -156,6 +156,29 @@ TEST(RuleTests, StartState) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
 
-//  EXPECT_STREQ("", result.c_str());
+  //  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(RuleTests, Invariant) {
+  auto invariant = detail::Invariant{
+      "My Inv",
+      detail::ProcCallExpr{
+          "myFunc", {detail::ExprID{"param1"}, detail::ExprID{"param2"}}}};
+
+  json data = invariant;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+  auto expected_str = "invariant \"My Inv\"\n"
+                      "    myFunc(param1, param2);\n";
+  EXPECT_STREQ(expected_str, result.c_str());
   EXPECT_FALSE(result.empty());
 }

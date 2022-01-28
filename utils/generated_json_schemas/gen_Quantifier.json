@@ -1,4 +1,5 @@
 {
+    "$ref": "#/definitions/Quantifier",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "definitions": {
         "BinaryExpr": {
@@ -99,6 +100,12 @@
                             "$ref": "#/definitions/MultisetCount"
                         },
                         {
+                            "$ref": "#/definitions/ForAll"
+                        },
+                        {
+                            "$ref": "#/definitions/ParensExpr"
+                        },
+                        {
                             "type": "string"
                         }
                     ],
@@ -121,12 +128,32 @@
                 "ID",
                 "binary",
                 "designator",
+                "forall",
                 "ms_count",
                 "neg_expr",
+                "parens_expr",
                 "proc_call"
             ],
             "title": "ExpressionType",
             "type": "string"
+        },
+        "ForAll": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                },
+                "quantifier": {
+                    "$ref": "#/definitions/Quantifier",
+                    "title": "quantifier"
+                }
+            },
+            "required": [
+                "expr",
+                "quantifier"
+            ],
+            "title": "ForAll",
+            "type": "object"
         },
         "ForEachQuantifier": {
             "properties": {
@@ -365,6 +392,19 @@
             "title": "NegExpr",
             "type": "object"
         },
+        "ParensExpr": {
+            "properties": {
+                "expr": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "expr"
+                }
+            },
+            "required": [
+                "expr"
+            ],
+            "title": "ParensExpr",
+            "type": "object"
+        },
         "ProcCall": {
             "properties": {
                 "actuals": {
@@ -384,6 +424,35 @@
                 "funId"
             ],
             "title": "ProcCall",
+            "type": "object"
+        },
+        "Quantifier": {
+            "properties": {
+                "quantifier": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ForEachQuantifier"
+                        },
+                        {
+                            "$ref": "#/definitions/ForRangeQuantifier"
+                        }
+                    ],
+                    "title": "quantifier"
+                },
+                "typeId": {
+                    "enum": [
+                        "for_each",
+                        "for_range"
+                    ],
+                    "title": "typeId",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "quantifier",
+                "typeId"
+            ],
+            "title": "Quantifier",
             "type": "object"
         },
         "ScalarsetType": {
@@ -445,32 +514,6 @@
             "title": "UnionType",
             "type": "object"
         }
-    },
-    "properties": {
-        "quantifier": {
-            "anyOf": [
-                {
-                    "$ref": "#/definitions/ForEachQuantifier"
-                },
-                {
-                    "$ref": "#/definitions/ForRangeQuantifier"
-                }
-            ],
-            "title": "quantifier"
-        },
-        "typeId": {
-            "enum": [
-                "for_each",
-                "for_range"
-            ],
-            "title": "typeId",
-            "type": "string"
-        }
-    },
-    "required": [
-        "quantifier",
-        "typeId"
-    ],
-    "type": "object"
+    }
 }
 

@@ -286,6 +286,10 @@ void to_json(json &j, const ProcCallExpr &fn) {
        {"expression", {{"funId", fn.funId}, {"actuals", fn.actuals}}}};
 }
 
+void to_json(nlohmann::json &j, const ParensExpr &pExpr) {
+  j = {{"typeId", "parens_expr"}, {"expression", {{"expr", pExpr.expr}}}};
+}
+
 void to_json(json &j, const CaseStmt &caseStmt) {
   j = {{"expr", caseStmt.expr}, {"statements", caseStmt.statements}};
 }
@@ -522,6 +526,48 @@ void to_json(json &j, const UnorderedRuleset &urs) {
 
   j = ruleset;
 }
+
+void to_json(json &j, const SWMRInvariant &) {
+  constexpr auto cache1 = "c1";
+  constexpr auto cache2 = "c2";
+  constexpr auto addressRef = "a";
+  constexpr auto modifiedState = "M";
+
+  // c1 != c2
+  auto c1neq2 = BinaryExpr<ExprID, ExprID>{{cache1}, {cache2}, BinaryOps.n_eq};
+
+  // i_cache[c1][a].State
+  auto cache1Des = Designator{cache_v(),
+                             {Indexer{"array", ExprID{cache1}},
+                              Indexer{"array", ExprID{addressRef}},
+                              Indexer{"object", ExprID{c_state}}}};
+
+  auto eq_m = BinaryExpr<decltype(cache1Des), ExprID>{
+      cache1Des, {modifiedState}, BinaryOps.eq};
+
+  auto lhs = ParensExpr{BinaryExpr<decltype(c1neq2), decltype(eq_m)>{
+      c1neq2, eq_m, BinaryOps.logic_and}};
+
+  // i_cache[c2][a].State
+  auto cache2Des = Designator{cache_v(),
+                              {Indexer{"array", ExprID{cache2}},
+                               Indexer{"array", ExprID{addressRef}},
+                               Indexer{"object", ExprID{c_state}}}};
+  auto rhs = ParensExpr{BinaryExpr<decltype(cache2Des), ExprID>{
+      cache2Des, {modifiedState}, BinaryOps.n_eq}};
+  auto innerExpr =
+      BinaryExpr<decltype(lhs), decltype(rhs)>{lhs, rhs, BinaryOps.logic_impl};
+  auto theInvariant = Invariant{
+      "SWMR Invariant", ForAll<ForEachQuantifier<ID>>{
+                            {cache1, {cache_set_t()}},
+                            ForAll<ForEachQuantifier<ID>>{
+                                {cache2, {cache_set_t()}},
+                                ForAll<ForEachQuantifier<ID>>{
+                                    {addressRef, {ss_address_t}}, innerExpr}}}};
+  // optimize for move assignment
+  j = std::move(theInvariant);
+}
+
 /*
  * Rules
  */
@@ -562,6 +608,12 @@ void to_json(json &j, const StartState &ss) {
         {{"desc", ss.desc},
          {"decls", ss.decls},
          {"statements", ss.statements}}}};
+}
+
+///*** Invariant ***///
+void to_json(json &j, const Invariant &inv) {
+  j = {{"typeId", "invariant"},
+       {"rule", {{"desc", inv.desc}, {"expr", inv.expr}}}};
 }
 
 } // namespace detail

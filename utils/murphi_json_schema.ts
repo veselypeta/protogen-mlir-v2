@@ -213,10 +213,19 @@ interface ProcCall{
     actuals: ExpressionDescription[]
 }
 
+interface ForAll {
+    quantifier: Quantifier;
+    expr: ExpressionDescription;
+}
+
 type BinaryOp = '+' | '-' | '*' | '/' | '&' | '->' | '<' | '<=' | '>' | '>=' | '=' | '!=';
 
-type Expression = Designator | ID | MultisetCount | BinaryExpr | ProcCall | NegExpr;
-type ExpressionType = "designator" | "ID" | "binary" | "ms_count" | "proc_call" | "neg_expr";
+interface ParensExpr {
+    expr: ExpressionDescription;
+}
+
+type Expression = Designator | ID | MultisetCount | BinaryExpr | ProcCall | NegExpr | ForAll | ParensExpr;
+type ExpressionType = "designator" | "ID" | "binary" | "ms_count" | "proc_call" | "neg_expr" | "forall" | "parens_expr";
 
 interface ExpressionDescription {
     typeId: ExpressionType;
@@ -233,8 +242,8 @@ interface StatementDescription {
 Rules
  */
 
-type Rule = SimpleRule | RuleSet | AliasRule | ChooseRule | StartState;
-type RuleType = "simple_rule" | "ruleset" | "alias_rule" | "choose_rule" | "start_state";
+type Rule = SimpleRule | RuleSet | AliasRule | ChooseRule | StartState | Invariant;
+type RuleType = "simple_rule" | "ruleset" | "alias_rule" | "choose_rule" | "start_state" | "invariant";
 
 interface RuleDescription{
     typeId: RuleType;
@@ -269,6 +278,11 @@ interface StartState {
     desc: string;
     decls: FwdDecl[];
     statements: StatementDescription[];
+}
+
+interface Invariant {
+    desc: string;
+    expr: ExpressionDescription;
 }
 
 

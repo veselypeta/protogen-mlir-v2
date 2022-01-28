@@ -119,6 +119,7 @@ public:
                            {"rules", nlohmann::json::array()}};
     assembleDecls(data);
     assembleProcedures(data);
+    assembleRules(data);
     return data;
   }
 
@@ -215,13 +216,11 @@ private:
   }
 
   void assembleStartStateFunctions(nlohmann::json &data) {
-    constexpr std::array<llvm::StringRef, 3> cpuEvents = {"load", "store",
-                                                          "evict"};
     std::vector<std::string> stableStates =
         interpreter.getCacheStableStateNames();
 
     for (auto stableState : stableStates) {
-      for (auto event : cpuEvents) {
+      for (auto event : murphi::detail::cpu_events) {
 
         nlohmann::json eventStatements =
             interpreter.getMurphiCacheStatements(stableState, event);
@@ -237,6 +236,30 @@ private:
     assembleCacheController(data);
     assembleDirectoryController(data);
     assembleStartStateFunctions(data);
+  }
+
+  void assembleRules(nlohmann::json &data) {
+    assembleCacheRuleset(data);
+    assembleInvariant(data);
+  }
+
+  void assembleCacheRuleset(nlohmann::json &data) {
+    murphi::detail::CacheRuleHandler cacheRuleset;
+    for (std::string &stableState : interpreter.getCacheStableStateNames()) {
+      for (llvm::StringRef cpu_event : murphi::detail::cpu_events) {
+        nlohmann::json stmts =
+            interpreter.getMurphiCacheStatements(stableState, cpu_event);
+        if (stmts == nullptr)
+          continue;
+        cacheRuleset.rules.emplace_back(
+            murphi::detail::CPUEventRule{stableState, cpu_event.str()});
+      }
+    }
+    data["rules"].emplace_back(std::move(cacheRuleset));
+  }
+
+  void assembleInvariant(nlohmann::json &data) {
+    data["rules"].emplace_back(murphi::detail::SWMRInvariant{});
   }
 
   InterpreterT interpreter;

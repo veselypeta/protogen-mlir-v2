@@ -17,3 +17,9 @@ MultisetCount({{ expression.varId }}:{{ render_template("expression.tmpl", expre
 {% if typeId == "neg_expr" %}
 !{{ render_template("expression.tmpl", expression.expr) }}{# -#}
 {% endif %}
+{% if typeId == "forall" %}
+{{ render_template("forall.tmpl", expression)}}{# -#}
+{% endif %}
+{% if typeId == "parens_expr" %}
+( {{ render_template("expression.tmpl", expression.expr) }} ){# -#}
+{% endif %}

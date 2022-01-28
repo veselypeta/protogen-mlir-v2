@@ -15,7 +15,8 @@ detail::SimpleRule getSimpleRule() {
       {detail::ForwardDecl<detail::VarDecl<detail::ID>>{
           "var", {"new_var", {"var_type"}}}},
       {detail::Assignment<detail::Designator, detail::ExprID>{
-          {"cle",{detail::Indexer{"object", detail::ExprID{"State"}}}}, {"cache_M"}}}};
+          {"cle", {detail::Indexer{"object", detail::ExprID{"State"}}}},
+          {"cache_M"}}}};
   return sr;
 }
 
@@ -127,6 +128,30 @@ TEST(UnorderedRuleset, BasicTest) {
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   EXPECT_TRUE(is_valid);
 
-//  EXPECT_STREQ("", result.c_str());
+  //  EXPECT_STREQ("", result.c_str());
+  EXPECT_FALSE(result.empty());
+}
+
+TEST(RuleTest, SWMRInvariantTest) {
+  auto inv = detail::SWMRInvariant{};
+  json data = inv;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("rule.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_RuleDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+  auto expectedStr = "invariant \"SWMR Invariant\"\n"
+                     "    forall c1 : OBJSET_cache do\n"
+                     "        forall c2 : OBJSET_cache do\n"
+                     "            forall a : Address do\n"
+                     "                ( c1 != c2 & i_cache[c1][a].State = M ) -> ( i_cache[c2][a].State != M )\n"
+                     "            endforall\n"
+                     "        endforall\n"
+                     "    endforall;\n";
+  EXPECT_STREQ(expectedStr, result.c_str());
   EXPECT_FALSE(result.empty());
 }
