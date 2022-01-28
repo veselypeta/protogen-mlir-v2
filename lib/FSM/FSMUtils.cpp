@@ -162,6 +162,14 @@ LogicalResult optimizeStateTransition(StateOp startState,
   if (theCache.lookupSymbol<StateOp>(next_state_name))
     return success();
 
+  // create the needed new state
+  rewriter.setInsertionPointAfter(startState);
+  StateOp nextState = rewriter.create<StateOp>(
+      startState.getLoc(), /*sym_name*/ next_state_name,
+      /*isTransient*/ nullptr,
+      /*prev_transition*/
+      rewriter.getSymbolRefAttr(handleRaceTrans.sym_name()));
+
   // what message did we last send?
   MessageOp last_msg_sent = getLastMessageSent(startState);
 
@@ -182,7 +190,8 @@ LogicalResult optimizeStateTransition(StateOp startState,
   assert(dir_resps.size() == 1 && "accept only a single response from the dir");
 
   // in the new state we now create the new transition to accept this message
-  rewriter.setInsertionPointToStart(racingTransition->getBlock());
+  auto nsEntry = nextState.addEntryBlock();
+  rewriter.setInsertionPointToStart(nsEntry);
   TransitionOp handle_dir_resp = rewriter.create<TransitionOp>(
       racingTransition->getLoc(),
       /*action*/ dir_resps.at(0).msgName(),
@@ -195,94 +204,41 @@ LogicalResult optimizeStateTransition(StateOp startState,
 
   // inline the ops
   return inlineTransition(dir_resp_src_ops, handle_dir_resp, rewriter);
-
 }
 
-//// set the rewriter to create a new transition at the end of the
-//// current state
-// rewriter.setInsertionPointToEnd(startState.getBody());
-//
-//// this new transition will be
-//// (startState, racingTransition.action, ???)
-//// currently, we do not specify a nextState
-//// This we will deduce later
-// TransitionOp optTrans = rewriter.create<TransitionOp>(
-//     startState.getLoc(), racingEvent, racingTransaction.getType(),
-//     /*nextState*/ nullptr);
-//
-// LogicalResult wasInlined =
-//     inlineTransition(racingTransaction, optTrans, rewriter);
-// assert(succeeded(wasInlined) && "failed to inline Transition");
-//
-/////// Now we need to find out which state to transition to /////
-//
-//// if we can we should transition to a state that represents
-//// starting from racingTransaction.nextState and sending the message
-// MessageOp lastMsgSend = getLastMessageSent(startState);
-//
-//// does such a state exist???
-//// if so go there and stop
-// std::string nextStateName =
-//     racingTransaction.nextStateAttr().getLeafReference().str() + "_" +
-//     startState.sym_name().str();
-// if (theCache.lookupSymbol<StateOp>(nextStateName)) {
-//   // update the optimised trans to go to this new state
-//   optTrans.nextStateAttr(rewriter.getSymbolRefAttr(nextStateName));
-//   return WalkResult::advance();
-// }
-//
-//// next we need to find the transition in the directory that originally
-//// sent us the message
-// TransitionOp directoryWinningTransition =
-//     findDirectoryWinningTransition(racingTransaction);
-//
-// assert(directoryWinningTransition.nextState().hasValue() &&
-//        "cannot optimize without knowing the next state of the directory");
-//
-// StateOp transitionedToStateDir = theDirectory.lookupSymbol<StateOp>(
-//     directoryWinningTransition.nextStateAttr());
-//
-//// how will our message be handled
-// TransitionOp dirRaceHandle =
-//     transitionedToStateDir.lookupSymbol<TransitionOp>(
-//         lastMsgSend.msgName());
-//
-//// if this handler does not exist - skip for now // TODO - implement this
-//// case
-// assert(dirRaceHandle != nullptr && "unable to find correct transaction");
-//
-//// how does the directory respond ??
-//// find if there is a top level msg -> this will always be sent
-// auto dirRespMsg = dirRaceHandle.getOps<MessageOp>();
-// std::vector<MessageOp> dirRespMsgs{dirRespMsg.begin(), dirRespMsg.end()};
-// assert(dirRespMsgs.size() <= 1 && "sends more than one message");
-// llvm::StringRef dirRespMsgName = dirRespMsgs.at(0).msgName();
-//
-//// we now need a new state
-//// set the rewriter correctly
-// rewriter.setInsertionPointToEnd(&theCache.body().front());
-// StateOp nextStateOp = rewriter.create<StateOp>(
-//     startState.getLoc(), nextStateName, /*isTransient*/ nullptr,
-//     /*prevTransition*/
-//     rewriter.getSymbolRefAttr(
-//         startState.sym_name(),
-//         {rewriter.getSymbolRefAttr(optTrans.sym_name())}));
-// Block *nsoEntry = nextStateOp.addEntryBlock();
-// rewriter.setInsertionPointToStart(nsoEntry);
-//
-//// optTrans will now go to this new state
-// optTrans.nextStateAttr(rewriter.getSymbolRefAttr(nextStateName));
-//
-//// create the new transition
-// TransitionOp swallowMsgTransition = rewriter.create<TransitionOp>(
-//     nextStateOp.getLoc(), dirRespMsgName, racingTransaction.getType(),
-//     racingTransaction.nextStateAttr());
-//
-// LogicalResult inlineResult = inlineTransition(
-//     startState.lookupSymbol<TransitionOp>(dirRespMsgName),
-//     swallowMsgTransition, rewriter);
-// assert(succeeded(inlineResult) && "transaction was inlined successfully");
+llvm::Optional<StateOp> getNextStateIfPossible(StateOp s) {
+  auto iTransitions = s.getOps<TransitionOp>();
+  // we use adjacent find -> return false wherever they do match
+  auto find = std::adjacent_find(
+      std::begin(iTransitions), std::end(iTransitions),
+      [](TransitionOp lhs, TransitionOp rhs) {
+        if (lhs.nextState().hasValue() && rhs.nextState().hasValue())
+          return lhs.nextStateAttr().getLeafReference() !=
+                 lhs.nextStateAttr().getLeafReference();
+        return true;
+      });
+  // if it got to the end -> all are equal;
+  bool allEqual = find == std::end(iTransitions);
+  if (allEqual) {
+    MachineOp theCache = s->getParentOfType<MachineOp>();
 
+    return {theCache.lookupSymbol<StateOp>(
+        (*std::begin(iTransitions)).nextStateAttr())};
+  }
+  return {};
+}
+
+llvm::Optional<StateOp> getNonStallingEndStateIfPossible(StateOp tState) {
+  StateOp nextState;
+  do {
+    auto possibleNextState = getNextStateIfPossible(tState);
+    if (possibleNextState.hasValue())
+      nextState = possibleNextState.getValue();
+    else
+      return {};
+  } while (isTransientState(nextState));
+  return {nextState};
+}
 } // namespace utils
 } // namespace fsm
 } // namespace mlir

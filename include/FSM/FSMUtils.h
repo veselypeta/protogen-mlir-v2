@@ -69,6 +69,8 @@ WalkResult runOnEachTransientState(MachineOp machine, PatternRewriter &rewriter,
   });
 }
 
+llvm::Optional<StateOp> getNonStallingEndStateIfPossible(StateOp tState);
+
 } // namespace utils
 } // namespace fsm
 } // namespace mlir

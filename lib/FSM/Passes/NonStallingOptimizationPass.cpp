@@ -16,7 +16,28 @@ public:
 
 WalkResult handleTransientState(StateOp transientState,
                                 PatternRewriter & /*rewriter*/) {
-  emitRemark(transientState->getLoc(), transientState.sym_name().str());
+  //  auto theCache = transientState->getParentOfType<MachineOp>();
+  // find out what racing msgs can arrive ???
+  auto logicalEndStateOpt =
+      utils::getNonStallingEndStateIfPossible(transientState);
+  if (!logicalEndStateOpt.hasValue())
+    return WalkResult::advance();
+  auto logicalEndState = logicalEndStateOpt.getValue();
+  emitRemark(transientState->getLoc(),
+             "Non-Stalling: Found end state for transient state " +
+                 transientState.sym_name() + " = " +
+                 logicalEndState.sym_name());
+  auto iRacingTransitions = logicalEndState.getOps<TransitionOp>();
+  for (auto racingTransition : iRacingTransitions) {
+    if (utils::isCpuEvent(racingTransition) ||
+        transientState.lookupSymbol<TransitionOp>(
+            racingTransition.sym_name()) != nullptr)
+      continue;
+    emitRemark(transientState.getLoc(),
+               "Can optimize racing transition " + racingTransition.sym_name() +
+                   " in state " + transientState.sym_name());
+  }
+
   return WalkResult::advance();
 }
 
