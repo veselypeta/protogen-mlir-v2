@@ -34,8 +34,7 @@
 # folders
 .vscode
 build
-cmake-build-debug
-cmake-build-debug-wsl
+cmake-*
 .antlr
 .idea
 gen

@@ -6,6 +6,7 @@ namespace mlir {
 namespace fsm {
 namespace detail {
 // FWD Declare Type Storage instances here
+struct RangeTypeStorage;
 }
 
 // FWD Declares Types here
@@ -13,6 +14,7 @@ class IDType;
 class DataType;
 class MsgType;
 class StateType;
+class RangeType;
 
 //===----------------------------------------------------------------------===//
 // FSM Type
@@ -68,6 +70,17 @@ public:
   static StateType get(MLIRContext *ctx) { return Base::get(ctx); }
 };
 
+//===----------------------------------------------------------------------===//
+// Range Type
+//===----------------------------------------------------------------------===//
+
+class RangeType : public FSMType::TypeBase<RangeType, FSMType,detail::RangeTypeStorage>{
+public:
+  using Base::Base;
+  static RangeType get(MLIRContext *ctx, size_t start, size_t end);
+  size_t getStart();
+  size_t getEnd();
+};
 } // namespace fsm
 } // namespace mlir
 
