@@ -174,3 +174,48 @@ TEST(OpTypes, StateTypeParse) {
   });
 }
 
+TEST(OpTypes, RangeType){
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  RangeType rangeType = RangeType::get(&helper.ctx, 0, 3);
+
+  // make a machine op
+  FunctionType fType = helper.builder.getFunctionType(llvm::None, llvm::None);
+  MachineOp theCache =
+      helper.builder.create<MachineOp>(unknLoc, "cache", fType);
+  Block *cacheEntry = theCache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // make a variable op which returns this type
+  VariableOp varOp = helper.builder.create<VariableOp>(unknLoc, rangeType,
+                                                       nullptr, "idTypeVar");
+
+  std::string str;
+  llvm::raw_string_ostream stream(str);
+  varOp.print(stream);
+
+  auto expctOut = "%idTypeVar = fsm.variable \"idTypeVar\" : !fsm.range<0, 3>";
+
+  EXPECT_STREQ(expctOut, str.c_str());
+}
+
+TEST(OpTypes, RangeTypeParse) {
+  OpHelper helper;
+  llvm::StringRef OpText =
+      "fsm.machine @cache (){\n"
+      "  %idTypeVar = fsm.variable \"idTypeVar\" : !fsm.range<0, 3>\n"
+      "}\n";
+
+  auto result = parseSourceString(OpText, &helper.ctx);
+
+  result->walk([](VariableOp vOp) {
+    EXPECT_TRUE(vOp.getType().isa<RangeType>());
+    EXPECT_EQ(vOp.name(), "idTypeVar");
+    EXPECT_FALSE(vOp.initValue().hasValue());
+    RangeType r = vOp.getType().cast<RangeType>();
+    EXPECT_EQ(r.getStart(), 0);
+    EXPECT_EQ(r.getEnd(), 3);
+  });
+}
+

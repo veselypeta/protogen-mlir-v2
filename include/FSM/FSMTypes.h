@@ -81,6 +81,10 @@ public:
   size_t getStart();
   size_t getEnd();
 };
+
+
+/// used for verification
+LogicalResult areTypesCompatible(Type t1, Type t2);
 } // namespace fsm
 } // namespace mlir
 

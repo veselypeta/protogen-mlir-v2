@@ -104,3 +104,12 @@ RangeType RangeType::get(MLIRContext *context, size_t startRange,
 
 size_t RangeType::getStart() { return getImpl()->value.first; }
 size_t RangeType::getEnd() { return getImpl()->value.second; }
+
+
+// verification
+LogicalResult mlir::fsm::areTypesCompatible(Type t1, Type t2){
+  // Range is compatible with Integer Types
+  if((t1.isa<RangeType>() && t2.isa<IntegerType>()) || (t1.isa<IntegerType>() && t2.isa<RangeType>()))
+    return success();
+  return failure();
+}

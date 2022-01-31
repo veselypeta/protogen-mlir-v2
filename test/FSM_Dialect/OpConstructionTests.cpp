@@ -479,7 +479,7 @@ TEST(OpConstructionTests, UpdateOp) {
       "fsm.machine @cache() {\n"
       "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
       "  %c33_i64 = constant 33 : i64\n"
-      "  fsm.update %State, %c33_i64 : i64\n"
+      "  fsm.update %State, %c33_i64 : i64, i64\n"
       "}";
   ASSERT_STREQ(str.c_str(), expectedText);
 }
@@ -490,9 +490,22 @@ TEST(OpConstructionTests, UpdateOpParse) {
       "fsm.machine @cache() {\n"
       "  %State = fsm.variable \"State\" {initValue = 22 : i64} : i64\n"
       "  %c33_i64 = constant 33 : i64\n"
-      "  fsm.update %State, %c33_i64 : i64\n"
+      "  fsm.update %State, %c33_i64 : i64, i64\n"
       "}";
 
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  ASSERT_TRUE(succeeded(result->verify()));
+}
+
+TEST(OpConstrutionTests, UpdateOpRangeVarWithInt){
+  OpHelper helper;
+  llvm::StringRef opText =
+      "fsm.machine @cache() {\n"
+      "  %my_range = fsm.variable \"range\" {initValue = 0 : i64} : !fsm.range<0,3>\n"
+      "  %c2_i64 = constant 2 : i64\n"
+      "  fsm.update %my_range, %c2_i64 : !fsm.range<0,3>, i64\n"
+      "}";
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
   ASSERT_TRUE(succeeded(result->verify()));

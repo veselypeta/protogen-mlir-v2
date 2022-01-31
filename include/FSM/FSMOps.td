@@ -68,14 +68,14 @@ def VariableOp : FSMOp<"variable", [HasParent<"MachineOp">, HasCustomSSAName,
   let assemblyFormat = [{ $name attr-dict `:` type($result) }];
 }
 
-def UpdateOp : FSMOp<"update", [SameTypeOperands]>{
+def UpdateOp : FSMOp<"update", [/*SameTypeOperands = implemented in verifier*/]>{
     let summary = "Update a variable in the state machine";
     let description = [{}];
 
     let arguments = (ins AnyType:$variable, AnyType:$value);
 
 
-    let assemblyFormat = [{ attr-dict $variable `,` $value `:` type($value) }];
+    let assemblyFormat = [{ attr-dict $variable `,` $value `:` type($variable) `,` type($value) }];
     let extraClassDeclaration = [{
         VariableOp getVariable();
     }];

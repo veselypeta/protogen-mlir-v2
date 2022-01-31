@@ -22,7 +22,7 @@ fsm.machine @cache(){
 
         fsm.transition @GetM_Ack_D(%msg : !fsm.msg) attributes {nextState = @M}{
             %msg_cl = fsm.access {memberId = "cl"} %msg : !fsm.msg -> !fsm.data
-            fsm.update %cl, %msg_cl : !fsm.data
+            fsm.update %cl, %msg_cl : !fsm.data, !fsm.data
         }
 
     }
@@ -30,7 +30,7 @@ fsm.machine @cache(){
     fsm.state @I_load {prevTransition=@I::@load} transitions {
         fsm.transition @GetM_Ack_D(%msg : !fsm.msg) attributes {nextState = @M}{
             %msg_cl = fsm.access {memberId = "cl"} %msg : !fsm.msg -> !fsm.data
-            fsm.update %cl, %msg_cl : !fsm.data
+            fsm.update %cl, %msg_cl : !fsm.data, !fsm.data
         }
     }
 
@@ -74,7 +74,7 @@ fsm.machine @directory(){
             %src = fsm.ref @directory
             %dst = fsm.access {memberId = "src"} %GetM : !fsm.msg -> !fsm.id
             %msg = fsm.message @Resp "GetM_Ack_D" %src, %dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
-            fsm.update %owner, %dst : !fsm.id
+            fsm.update %owner, %dst : !fsm.id, !fsm.id
         }
     }
 
@@ -91,7 +91,7 @@ fsm.machine @directory(){
             %true = constant true
             fsm.if %true {
                 %n_cl = fsm.access {memberId = "cl"} %PutM : !fsm.msg -> !fsm.data
-                fsm.update %cl, %n_cl : !fsm.data
+                fsm.update %cl, %n_cl : !fsm.data, !fsm.data
                 // TODO - figure out how to update state
             }
 
