@@ -21,6 +21,7 @@ void FSMType::print(llvm::raw_ostream &os) const {
       .Case<DataType>([&](DataType) { os << "data"; })
       .Case<MsgType>([&](MsgType) { os << "msg"; })
       .Case<StateType>([&](StateType) { os << "state"; })
+      .Case<NetworkType>([&](NetworkType) { os << "network"; })
       .Case<RangeType>([&](RangeType t) {
         os << "range<" << t.getStart() << ", " << t.getEnd() << ">";
       })
@@ -50,6 +51,8 @@ ParseResult parseType(FSMType &result, DialectAsmParser &parser) {
     return result = MsgType::get(ctx), success();
   if (name.equals("state"))
     return result = StateType::get(ctx), success();
+  if (name.equals("network"))
+    return result = NetworkType::get(ctx), success();
   if (name.equals("range")) {
     size_t start, end;
     if (parser.parseLess() || parser.parseInteger(start) ||
@@ -80,7 +83,7 @@ Type FSMDialect::parseType(::mlir::DialectAsmParser &parser) const {
 }
 
 void FSMDialect::registerTypes() {
-  addTypes<IDType, DataType, MsgType, StateType, RangeType, SetType>();
+  addTypes<IDType, DataType, MsgType, StateType, RangeType, SetType, NetworkType>();
 }
 
 //===----------------------------------------------------------------------===//

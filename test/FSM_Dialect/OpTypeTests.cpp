@@ -174,6 +174,48 @@ TEST(OpTypes, StateTypeParse) {
   });
 }
 
+TEST(OpTypes, NetworkTypeConstr) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  NetworkType netType = NetworkType::get(&helper.ctx);
+
+  // make a machine op
+  FunctionType fType = helper.builder.getFunctionType(llvm::None, llvm::None);
+  MachineOp theCache =
+      helper.builder.create<MachineOp>(unknLoc, "cache", fType);
+  Block *cacheEntry = theCache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // make a variable op which returns this type
+  VariableOp varOp = helper.builder.create<VariableOp>(unknLoc, netType,
+                                                       nullptr, "idTypeVar");
+
+  std::string str;
+  llvm::raw_string_ostream stream(str);
+  varOp.print(stream);
+
+  auto expctOut = "%idTypeVar = fsm.variable \"idTypeVar\" : !fsm.network";
+
+  EXPECT_STREQ(expctOut, str.c_str());
+}
+
+TEST(OpTypes, NetworkTypeParse) {
+  OpHelper helper;
+  llvm::StringRef OpText =
+      "fsm.machine @cache (){\n"
+      "  %idTypeVar = fsm.variable \"idTypeVar\" : !fsm.network\n"
+      "}\n";
+
+  auto result = parseSourceString(OpText, &helper.ctx);
+
+  result->walk([](VariableOp vOp) {
+    EXPECT_TRUE(vOp.getType().isa<NetworkType>());
+    EXPECT_EQ(vOp.name(), "idTypeVar");
+    EXPECT_FALSE(vOp.initValue().hasValue());
+  });
+}
+
 TEST(OpTypes, RangeType){
   OpHelper helper;
   Location unknLoc = helper.builder.getUnknownLoc();

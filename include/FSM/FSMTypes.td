@@ -15,6 +15,9 @@ def DataType : DialectType<FSMDialect, CPred<"$_self.isa<DataType>()">,"data", "
 def MsgType : DialectType<FSMDialect, CPred<"$_self.isa<MsgType>()">, "msg", "::mlir::fsm::MsgType">,
     BuildableType<"MsgType::get($_builder.getContext())">;
 
+def NetworkType : DialectType<FSMDialect, CPred<"$_self.isa<NetworkType>()">, "network", "::mlir::fsm::NetworkType">,
+        BuildableType<"NetworkType::get($_builder.getContext())">;
+
 def StateType : DialectType<FSMDialect, CPred<"$_self.isa<StateType>()">, "msg", "::mlir::fsm::StateType">,
     BuildableType<"StateType::get($_builder.getContext())">;
 

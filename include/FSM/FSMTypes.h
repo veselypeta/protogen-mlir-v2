@@ -8,12 +8,13 @@ namespace detail {
 // FWD Declare Type Storage instances here
 struct RangeTypeStorage;
 struct SetTypeStorage;
-}
+} // namespace detail
 
 // FWD Declares Types here
 class IDType;
 class DataType;
 class MsgType;
+class NetworkType;
 class StateType;
 class RangeType;
 class SetType;
@@ -73,10 +74,21 @@ public:
 };
 
 //===----------------------------------------------------------------------===//
+// Network Type
+//===----------------------------------------------------------------------===//
+class NetworkType
+    : public FSMType::TypeBase<NetworkType, FSMType, DefaultTypeStorage> {
+public:
+  using Base::Base;
+  static NetworkType get(MLIRContext *ctx) { return Base::get(ctx); }
+};
+
+//===----------------------------------------------------------------------===//
 // Range Type
 //===----------------------------------------------------------------------===//
 
-class RangeType : public FSMType::TypeBase<RangeType, FSMType,detail::RangeTypeStorage>{
+class RangeType
+    : public FSMType::TypeBase<RangeType, FSMType, detail::RangeTypeStorage> {
 public:
   using Base::Base;
   static RangeType get(MLIRContext *ctx, size_t start, size_t end);

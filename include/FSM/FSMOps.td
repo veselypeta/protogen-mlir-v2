@@ -9,7 +9,7 @@ def HasCustomSSAName : DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResul
 
 
 def MachineOp: FSMOp<"machine", [HasParent<"mlir::ModuleOp">,
-        Symbol, SymbolTable, IsolatedFromAbove, NoTerminator, FunctionLike]>{
+        Symbol, SymbolTable, NoTerminator, FunctionLike]>{
     let summary = "Define an FSM (typically a cache or directory controller)";
     let description = [{
     `fsm.machine` represents a finite-state machine
@@ -225,6 +225,14 @@ def IfOp: FSMOp<"if", [NoTerminator, SingleBlock, NoRegionArguments]>{
 
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
+}
+
+def NetworkOp : FSMOp<"network", [HasParent<"mlir::ModuleOp">]>{
+    let summary = "Defines a global network onto which messages can be sent";
+    let description = [{ TODO -- }];
+    let arguments = (ins StrAttr:$ordering, StrAttr:$name);
+    let results = (outs NetworkType:$net);
+    let verifier = [{ return ::verify$cppClass(*this); }];
 }
 
 
