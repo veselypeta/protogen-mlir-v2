@@ -675,3 +675,44 @@ TEST(OpConstructionTests, BreakOpParse) {
   ASSERT_NE(*result, nullptr);
 }
 
+TEST(OpConstructionTests, NetworkOpPrint){
+  OpHelper helper;
+  helper.builder.create<NetworkOp>(helper.builder.getUnknownLoc(),
+                                   NetworkType::get(&helper.ctx),
+                                   "ordered",
+                                   "fwd"
+                                   );
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+  auto expectedText = "module  {\n"
+                      "  %0 = \"fsm.network\"() {name = \"fwd\", ordering = \"ordered\"} : () -> !fsm.network\n"
+                      "}\n";
+  EXPECT_STREQ(expectedText, str.c_str());
+}
+
+TEST(OpConstructionTests, NetworkOpParse){
+  OpHelper helper;
+  auto sourceText = "module  {\n"
+                    "  %0 = \"fsm.network\"() {name = \"fwd\", ordering = \"ordered\"} : () -> !fsm.network\n"
+                    "}\n";
+  auto result = parseSourceString(sourceText, &helper.ctx);
+  EXPECT_NE(*result, nullptr);
+  result->walk([](NetworkOp op){
+    EXPECT_EQ(op.name(), "fwd");
+    EXPECT_EQ(op.ordering(), "ordered");
+    EXPECT_TRUE(op.getType().isa<NetworkType>());
+  });
+}
+
+TEST(OpConstructionTests, NetworkOpInvalidOrdering){
+  OpHelper helper;
+  auto netop = helper.builder.create<NetworkOp>(helper.builder.getUnknownLoc(),
+                                   NetworkType::get(&helper.ctx),
+                                   "blah",
+                                   "fwd"
+  );
+
+  EXPECT_TRUE(failed(netop.verify()));
+}
+

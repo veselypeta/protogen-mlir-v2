@@ -215,6 +215,18 @@ Block *IfOp::elseBlock() {
 }
 
 //===----------------------------------------------------------------------===//
+// Network Op
+//===----------------------------------------------------------------------===//
+
+static LogicalResult verifyNetworkOp(NetworkOp netOp) {
+  if (netOp.ordering() != "ordered" && netOp.ordering() != "unordered")
+    return netOp.emitOpError(
+        "network op must have ordering either : 'ordered' or 'unordered' not " +
+        netOp.ordering());
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//
 
