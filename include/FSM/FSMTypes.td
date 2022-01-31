@@ -20,4 +20,7 @@ def StateType : DialectType<FSMDialect, CPred<"$_self.isa<StateType>()">, "msg",
 
 def RangeType : DialectType<FSMDialect, CPred<"$_self.isa<RangeType>()">, "range", "::mlir::fsm::RangeType">,
         BuildableType<"RangeType::get($_builder.getContext())">;
+
+def SetType : DialectType<FSMDialect, CPred<"$_self.isa<SetType>()">,
+    "set", "::mlir::fsm::SetType">, BuildableType<"SetType::get($_builder.getContext())">;
 #endif // PROTOGEN_DIALECT_FSM_FSMTYPES_TD

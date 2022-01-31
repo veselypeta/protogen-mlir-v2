@@ -219,3 +219,47 @@ TEST(OpTypes, RangeTypeParse) {
   });
 }
 
+TEST(OpTypes, SetType){
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  SetType setType = SetType::get(IDType::get(&helper.ctx), 3);
+
+  // make a machine op
+  FunctionType fType = helper.builder.getFunctionType(llvm::None, llvm::None);
+  MachineOp theCache =
+      helper.builder.create<MachineOp>(unknLoc, "cache", fType);
+  Block *cacheEntry = theCache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // make a variable op which returns this type
+  VariableOp varOp = helper.builder.create<VariableOp>(unknLoc, setType,
+                                                       nullptr, "idTypeVar");
+
+  std::string str;
+  llvm::raw_string_ostream stream(str);
+  varOp.print(stream);
+
+  auto expctOut = "%idTypeVar = fsm.variable \"idTypeVar\" : !fsm.set<!fsm.id, 3>";
+
+  EXPECT_STREQ(expctOut, str.c_str());
+}
+
+TEST(OpTypes, SetTypeParse) {
+  OpHelper helper;
+  llvm::StringRef OpText =
+      "fsm.machine @cache (){\n"
+      "  %idTypeVar = fsm.variable \"idTypeVar\" : !fsm.set<!fsm.id, 3>\n"
+      "}\n";
+
+  auto result = parseSourceString(OpText, &helper.ctx);
+
+  result->walk([](VariableOp vOp) {
+    EXPECT_TRUE(vOp.getType().isa<SetType>());
+    EXPECT_EQ(vOp.name(), "idTypeVar");
+    EXPECT_FALSE(vOp.initValue().hasValue());
+    SetType r = vOp.getType().cast<SetType>();
+    EXPECT_TRUE(r.getElementType().isa<IDType>());
+    EXPECT_EQ(r.getNumElements(), 3);
+  });
+}

@@ -24,6 +24,9 @@ void FSMType::print(llvm::raw_ostream &os) const {
       .Case<RangeType>([&](RangeType t) {
         os << "range<" << t.getStart() << ", " << t.getEnd() << ">";
       })
+      .Case<SetType>([&](SetType t) {
+        os << "set<" << t.getElementType() << ", " << t.getNumElements() << ">";
+      })
       .Default([](Type) { assert(0 && "unknown fsm dialect type"); });
 }
 
@@ -56,6 +59,15 @@ ParseResult parseType(FSMType &result, DialectAsmParser &parser) {
 
     return result = RangeType::get(ctx, start, end), success();
   }
+  if (name.equals("set")) {
+    Type elementType;
+    size_t count;
+    if (parser.parseLess() || parser.parseType(elementType) ||
+        parser.parseComma() || parser.parseInteger(count) ||
+        parser.parseGreater())
+      return failure();
+    return result = SetType::get(elementType, count), success();
+  }
 
   return parser.emitError(parser.getNameLoc(), "unknown fsm type"), failure();
 }
@@ -68,8 +80,12 @@ Type FSMDialect::parseType(::mlir::DialectAsmParser &parser) const {
 }
 
 void FSMDialect::registerTypes() {
-  addTypes<IDType, DataType, MsgType, StateType, RangeType>();
+  addTypes<IDType, DataType, MsgType, StateType, RangeType, SetType>();
 }
+
+//===----------------------------------------------------------------------===//
+// Range Type
+//===----------------------------------------------------------------------===//
 
 namespace mlir {
 namespace fsm {
@@ -105,11 +121,52 @@ RangeType RangeType::get(MLIRContext *context, size_t startRange,
 size_t RangeType::getStart() { return getImpl()->value.first; }
 size_t RangeType::getEnd() { return getImpl()->value.second; }
 
+//===----------------------------------------------------------------------===//
+// Set Type
+//===----------------------------------------------------------------------===//
+
+namespace mlir {
+namespace fsm {
+namespace detail {
+// Set Type Storage holds they PCCType in the set - and an int for the number of
+// elements in the set
+struct SetTypeStorage : public mlir::TypeStorage {
+  using KeyTy = std::pair<Type, size_t>;
+
+  SetTypeStorage(KeyTy value) : value{value} {}
+
+  // for comparison operations
+  bool operator==(const KeyTy &key) const { return key == value; }
+
+  static SetTypeStorage *construct(TypeStorageAllocator &allocator, KeyTy key) {
+    return new (allocator.allocate<SetTypeStorage>()) SetTypeStorage(key);
+  }
+
+  // define a hash function for key type
+  static llvm::hash_code hashKey(const KeyTy &key) {
+    return llvm::hash_value(key);
+  }
+
+  // Class holds the value
+  KeyTy value;
+};
+} // namespace detail
+} // namespace fsm
+} // namespace mlir
+
+SetType SetType::get(Type type, size_t count) {
+  return Base::get(type.getContext(), std::make_pair(type, count));
+}
+
+Type SetType::getElementType() { return getImpl()->value.first; }
+
+size_t SetType::getNumElements() { return getImpl()->value.second; }
 
 // verification
-LogicalResult mlir::fsm::areTypesCompatible(Type t1, Type t2){
+LogicalResult mlir::fsm::areTypesCompatible(Type t1, Type t2) {
   // Range is compatible with Integer Types
-  if((t1.isa<RangeType>() && t2.isa<IntegerType>()) || (t1.isa<IntegerType>() && t2.isa<RangeType>()))
+  if ((t1.isa<RangeType>() && t2.isa<IntegerType>()) ||
+      (t1.isa<IntegerType>() && t2.isa<RangeType>()))
     return success();
   return failure();
 }

@@ -7,6 +7,7 @@ namespace fsm {
 namespace detail {
 // FWD Declare Type Storage instances here
 struct RangeTypeStorage;
+struct SetTypeStorage;
 }
 
 // FWD Declares Types here
@@ -15,6 +16,7 @@ class DataType;
 class MsgType;
 class StateType;
 class RangeType;
+class SetType;
 
 //===----------------------------------------------------------------------===//
 // FSM Type
@@ -82,6 +84,18 @@ public:
   size_t getEnd();
 };
 
+//===----------------------------------------------------------------------===//
+// Set Type
+//===----------------------------------------------------------------------===//
+
+class SetType
+    : public FSMType::TypeBase<SetType, FSMType, detail::SetTypeStorage> {
+public:
+  using Base::Base;
+  Type getElementType();
+  size_t getNumElements();
+  static SetType get(Type elemType, size_t count);
+};
 
 /// used for verification
 LogicalResult areTypesCompatible(Type t1, Type t2);
