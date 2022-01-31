@@ -1,3 +1,5 @@
+%fwd = fsm.network {} : !fsm.network
+
 
 fsm.machine @cache(){
     %State = fsm.variable {initValue = "I"} : !fsm.state

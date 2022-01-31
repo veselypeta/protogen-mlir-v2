@@ -21,7 +21,10 @@ if (MSVC)
     add_compile_options(/W4 /WX)
 else()
     # lots of warnings and all warnings as errors
-    add_compile_options(-Wall -Wextra -pedantic -Werror -O3)
+    add_compile_options(-Wall -Wextra -pedantic -Werror)
+    if(NOT CMAKE_BUILD_TYPE EQUAL DEBUG)
+        add_compile_options(-O3)
+    endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")

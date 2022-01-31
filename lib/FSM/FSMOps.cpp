@@ -226,6 +226,11 @@ static LogicalResult verifyNetworkOp(NetworkOp netOp) {
   return success();
 }
 
+void NetworkOp::getAsmResultNames(
+    function_ref<void(Value, StringRef)> setNameFn) {
+  setNameFn(net(), name());
+}
+
 //===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//
