@@ -227,10 +227,10 @@ def IfOp: FSMOp<"if", [NoTerminator, SingleBlock, NoRegionArguments]>{
     let printer = [{ return ::print(*this, p); }];
 }
 
-def NetworkOp : FSMOp<"network", [HasParent<"mlir::ModuleOp">, HasCustomSSAName]>{
+def NetworkOp : FSMOp<"network", [HasParent<"mlir::ModuleOp">, HasCustomSSAName, Symbol]>{
     let summary = "Defines a global network onto which messages can be sent";
     let description = [{ TODO -- }];
-    let arguments = (ins StrAttr:$ordering, StrAttr:$name);
+    let arguments = (ins StrAttr:$ordering, StrAttr:$sym_name);
     let results = (outs NetworkType:$net);
     let verifier = [{ return ::verify$cppClass(*this); }];
     let assemblyFormat = [{

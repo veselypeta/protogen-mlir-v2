@@ -686,7 +686,7 @@ TEST(OpConstructionTests, NetworkOpPrint){
   llvm::raw_string_ostream sstream(str);
   helper.module.print(sstream);
   auto expectedText = "module  {\n"
-                      "  %fwd = fsm.network {name = \"fwd\", ordering = \"ordered\"} : !fsm.network\n"
+                      "  %fwd = fsm.network {ordering = \"ordered\", sym_name = \"fwd\"} : !fsm.network\n"
                       "}\n";
   EXPECT_STREQ(expectedText, str.c_str());
 }
@@ -694,12 +694,12 @@ TEST(OpConstructionTests, NetworkOpPrint){
 TEST(OpConstructionTests, NetworkOpParse){
   OpHelper helper;
   auto sourceText = "module  {\n"
-                    "  %fwd = fsm.network {name = \"fwd\", ordering = \"ordered\"} : !fsm.network\n"
+                    "  %fwd = fsm.network {ordering = \"ordered\", sym_name = \"fwd\"} : !fsm.network\n"
                     "}\n";
   auto result = parseSourceString(sourceText, &helper.ctx);
   EXPECT_NE(*result, nullptr);
   result->walk([](NetworkOp op){
-    EXPECT_EQ(op.name(), "fwd");
+    EXPECT_EQ(op.sym_name(), "fwd");
     EXPECT_EQ(op.ordering(), "ordered");
     EXPECT_TRUE(op.getType().isa<NetworkType>());
   });
