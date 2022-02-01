@@ -1,5 +1,9 @@
 module {
 
+%fwd = fsm.network @fwd "ordered"
+%resp = fsm.network @resp "unordered"
+%req = fsm.network @req "unordered"
+
 fsm.machine @cache(){
     %State = fsm.variable "State" {initValue = "I"} : !fsm.state
     %cl = fsm.variable "cl" : !fsm.data
@@ -9,12 +13,14 @@ fsm.machine @cache(){
             %src = fsm.ref @cache
             %dst = fsm.ref @directory
             %msg = fsm.message @Request "GetM" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %req %msg
         }
 
         fsm.transition @load() attributes {nextState=@I_load} {
             %src = fsm.ref @cache
             %dst = fsm.ref @directory
             %msg = fsm.message @Request "GetM" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %req %msg
         }
     }
 
@@ -47,12 +53,14 @@ fsm.machine @cache(){
             %src = fsm.ref @cache
             %dst = fsm.access {memberId = "src"} %Fwd_GetM : !fsm.msg -> !fsm.id
             %sent_msg = fsm.message @Resp "GetM_Ack_D" %src, %dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
+            fsm.send %resp %sent_msg
         }
 
         fsm.transition @evict() attributes {nextState = @M_evict}{
             %src = fsm.ref @cache
             %dst = fsm.ref @directory
             %msg = fsm.message @Resp "PutM" %src, %dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
+            fsm.send %req %msg
         }
     }
 
@@ -74,6 +82,7 @@ fsm.machine @directory(){
             %src = fsm.ref @directory
             %dst = fsm.access {memberId = "src"} %GetM : !fsm.msg -> !fsm.id
             %msg = fsm.message @Resp "GetM_Ack_D" %src, %dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
+            fsm.send %resp %msg
             fsm.update %owner, %dst : !fsm.id, !fsm.id
         }
     }
@@ -82,17 +91,21 @@ fsm.machine @directory(){
         fsm.transition @GetM(%GetM : !fsm.msg) attributes {nextState = @M}{
             %src = fsm.access {memberId = "src"} %GetM : !fsm.msg -> !fsm.id
             %msg = fsm.message @Request "Fwd_GetM" %src, %owner : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %fwd %msg
         }
 
         fsm.transition @PutM(%PutM : !fsm.msg) {
             %dst = fsm.access {memberId = "src"} %PutM : !fsm.msg -> !fsm.id
             %src = fsm.ref @directory
             %msg = fsm.message @Ack "Put_Ack" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %fwd %msg
             %true = constant true
             fsm.if %true {
                 %n_cl = fsm.access {memberId = "cl"} %PutM : !fsm.msg -> !fsm.data
                 fsm.update %cl, %n_cl : !fsm.data, !fsm.data
-                // TODO - figure out how to update state
+
+                %n_state = fsm.constant { value="I" } : !fsm.state
+                fsm.update %State, %n_state : !fsm.state, !fsm.state
             }
 
         }

@@ -82,6 +82,17 @@ def UpdateOp : FSMOp<"update", [/*SameTypeOperands = implemented in verifier*/]>
     let verifier = [{return ::verify$cppClass(*this); }];
 }
 
+def ConstOp : FSMOp<"constant", []>{
+    let summary = "Define a constant that can be used within pcc";
+    let description = [{ I mostly just use this for creating a state type constant }];
+
+    let arguments = (ins AnyAttr:$value);
+    let results = (outs AnyType:$output);
+    let assemblyFormat = [{
+        attr-dict `:` type($output)
+    }];
+}
+
 def StateOp : FSMOp<"state", [HasParent<"MachineOp">, Symbol, SymbolTable, NoTerminator, SingleBlock]> {
 
     let summary = "Define a state of a machine";
@@ -227,16 +238,43 @@ def IfOp: FSMOp<"if", [NoTerminator, SingleBlock, NoRegionArguments]>{
     let printer = [{ return ::print(*this, p); }];
 }
 
-def NetworkOp : FSMOp<"network", [HasParent<"mlir::ModuleOp">, HasCustomSSAName, Symbol]>{
+def NetworkOp : FSMOp<"network", [HasParent<"mlir::ModuleOp">, HasCustomSSAName]>{
     let summary = "Defines a global network onto which messages can be sent";
     let description = [{ TODO -- }];
-    let arguments = (ins StrAttr:$ordering, StrAttr:$sym_name);
+    let arguments = (ins StrAttr:$ordering, SymbolRefAttr:$sym_name);
     let results = (outs NetworkType:$net);
     let verifier = [{ return ::verify$cppClass(*this); }];
     let assemblyFormat = [{
-        attr-dict `:` type($net)
+        attr-dict $sym_name $ordering
     }];
 }
+
+def SendOp : FSMOp<"send", []>{
+    let summary = "Sends a message onto a network";
+    let description = [{ TODO }];
+    let arguments = (ins NetworkType:$network, MsgType:$message);
+    let assemblyFormat = [{
+        attr-dict $network $message
+    }];
+}
+
+def DeferMsg : FSMOp<"defer", []>{
+    let summary = "Pushes a message to a buffer to be sent at a later point";
+    let description = [{ TODO }];
+    let arguments = (ins MsgType:$message);
+    let assemblyFormat = [{
+        attr-dict $message
+    }];
+}
+
+def SendDeferMsg : FSMOp<"defer_send", []>{
+    let summary = "Sends a deferred message from the buffer";
+    let description = [{ Deferred messages are always sent on the response network }];
+    let arguments = (ins MsgType:$message);
+    let assemblyFormat = [{ attr-dict $message }];
+}
+
+
 
 
 

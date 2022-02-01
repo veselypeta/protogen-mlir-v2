@@ -228,7 +228,7 @@ static LogicalResult verifyNetworkOp(NetworkOp netOp) {
 
 void NetworkOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
-  setNameFn(this->net(), this->sym_name());
+  setNameFn(this->net(), this->sym_name().getLeafReference());
 }
 
 //===----------------------------------------------------------------------===//
