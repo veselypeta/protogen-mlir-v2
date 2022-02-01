@@ -2,12 +2,13 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "nlohmann/json.hpp"
 #include <vector>
+#include <set>
 
 namespace murphi {
 
 class FSMDialectInterpreter {
 public:
-  explicit FSMDialectInterpreter(mlir::ModuleOp op) : theModule{op} {}
+  explicit FSMDialectInterpreter(mlir::ModuleOp op);
   /// We can use StringRef since the lifetime of this class
   /// will be the same as the MurphiAssembler
 
@@ -16,7 +17,7 @@ public:
   std::vector<std::string> getMessageNames();
 
   /// Returns the global message type shared by all messages
-//  nlohmann::json getMessageType();
+  nlohmann::json getMessageType();
 
   /// Get the names of every state in the cache
   /// i.e. I, I_load, M_evict etc...
@@ -44,6 +45,7 @@ public:
 
 private:
   mlir::ModuleOp theModule;
+  std::set<std::pair<std::string, std::string>> mTypeElems;
 };
 
 } // namespace murphi

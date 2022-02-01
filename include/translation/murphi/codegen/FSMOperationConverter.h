@@ -29,4 +29,7 @@ private:
       llvm::ScopedHashTableScope<mlir::Value, std::string>;
 };
 
+
+std::string FSMConvertType(mlir::Type type);
+
 } // namespace murphi

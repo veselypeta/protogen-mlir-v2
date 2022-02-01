@@ -110,4 +110,17 @@ void FSMOperationConverter::convert(mlir::fsm::AccessOp op) {
   symbolTable.insert(op, accessor + "." + op.memberId().str());
 }
 
+std::string FSMConvertType(Type type) {
+  if (auto stateType = type.dyn_cast<StateType>())
+    return murphi::detail::e_cache_state_t();
+  if (auto msgType = type.dyn_cast<MsgType>())
+    return murphi::detail::r_message_t;
+  if (auto dataType = type.dyn_cast<DataType>())
+    return murphi::detail::ss_cache_val_t;
+  if (auto rangeType = type.dyn_cast<RangeType>())
+    return std::to_string(rangeType.getStart()) + ".." +
+           std::to_string(rangeType.getEnd());
+  assert(0 && "unsupported murphi type conversion");
+}
+
 } // namespace murphi

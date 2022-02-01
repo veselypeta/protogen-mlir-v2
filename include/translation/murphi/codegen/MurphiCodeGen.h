@@ -153,6 +153,8 @@ private:
 
   void assembleTypes(nlohmann::json &data) {
     assembleEnums(data);
+    // Message Type
+    data["decls"]["type_decls"].emplace_back(interpreter.getMessageType());
     assembleMachineEntryTypes(data);
   }
   void assembleDecls(nlohmann::json &data) {

@@ -58,6 +58,26 @@ json convertMachineType(MachineOp mach) {
 } // namespace
 namespace murphi {
 
+FSMDialectInterpreter::FSMDialectInterpreter(ModuleOp m)
+    : theModule{m},
+      mTypeElems{
+          {murphi::detail::c_adr,
+           murphi::detail::ss_address_t}, // target address
+          {murphi::detail::c_mtype,
+           murphi::detail::e_message_type_t},                    // message type
+          {murphi::detail::c_src, murphi::detail::e_machines_t}, // source
+          {murphi::detail::c_dst, murphi::detail::e_machines_t}  // destination
+      } {
+  // Here we establish what additional fields have to be added to set of all
+  // element types
+  theModule.walk([&](MessageDecl msgDecl) {
+    msgDecl.walk([&](MessageVariable var) {
+      mTypeElems.emplace(
+          std::make_pair(var.sym_name().str(), FSMConvertType(var.getType())));
+    });
+  });
+}
+
 json FSMDialectInterpreter::getMurphiCacheStatements(llvm::StringRef state,
                                                      llvm::StringRef action) {
   return getMurphiMachineStatements(state, action, "cache", theModule);
@@ -80,6 +100,16 @@ std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
     messageNames.insert(msgOp.msgName().str());
   }
   return {std::begin(messageNames), std::end(messageNames)};
+}
+
+/// Get the global Message type used in Murphi
+json FSMDialectInterpreter::getMessageType() {
+  std::vector<std::pair<std::string, std::string>> elems = {mTypeElems.begin(),
+                                                 mTypeElems.end()};
+  return murphi::detail::TypeDecl<murphi::detail::Record>{
+      murphi::detail::r_message_t,
+      {elems}
+  };
 }
 
 std::vector<std::string> FSMDialectInterpreter::getCacheStateNames() {
