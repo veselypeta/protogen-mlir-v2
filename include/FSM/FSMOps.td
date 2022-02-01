@@ -274,6 +274,34 @@ def SendDeferMsg : FSMOp<"defer_send", []>{
     let assemblyFormat = [{ attr-dict $message }];
 }
 
+def MessageDecl : FSMOp<"m_decl", [SymbolTable, Symbol, NoTerminator, HasParent<"::mlir::ModuleOp">, SingleBlock]>{
+    let summary = "Declares a message type";
+    let description = [{ TODO }];
+    let arguments = (ins SymbolNameAttr:$sym_name);
+    let regions = (region SizedRegion<1>:$body);
+    let assemblyFormat = [{
+        $sym_name attr-dict `decls` $body
+    }];
+    let extraClassDeclaration = [{
+    Block *addEntryBlock(){
+        assert(this->body().getBlocks().size() == 0 && "already added an entry block");
+        auto block = new Block();
+        this->body().push_back(block);
+        return block;
+    }
+    }];
+}
+
+def MessageVariable : FSMOp<"m_var", [Symbol, HasParent<"::mlir::fsm::MessageDecl">, HasCustomSSAName]>{
+    let summary = "Defines a variable type as part of a Message Decl";
+    let description = [{ TODO }];
+    let arguments = (ins SymbolNameAttr:$sym_name);
+    let results = (outs AnyType:$result);
+    let assemblyFormat = [{
+        attr-dict $sym_name `:` type($result)
+    }];
+
+}
 
 
 

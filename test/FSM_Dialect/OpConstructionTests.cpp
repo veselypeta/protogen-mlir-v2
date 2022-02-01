@@ -923,9 +923,9 @@ TEST(OpConstructionTests, SendDeferMsgParse) {
 
 TEST(OpConstructionTests, ConstOp) {
   OpHelper helper;
-  helper.builder.create<ConstOp>(
-      helper.builder.getUnknownLoc(), StateType::get(&helper.ctx),
-      helper.builder.getStringAttr("S"));
+  helper.builder.create<ConstOp>(helper.builder.getUnknownLoc(),
+                                 StateType::get(&helper.ctx),
+                                 helper.builder.getStringAttr("S"));
 
   std::string str;
   llvm::raw_string_ostream sstream(str);
@@ -937,18 +937,87 @@ TEST(OpConstructionTests, ConstOp) {
   EXPECT_STREQ(str.c_str(), expectedText);
 }
 
-TEST(OpConstructionTests, ConstOpParse){
+TEST(OpConstructionTests, ConstOpParse) {
   OpHelper helper;
   auto opText = "module  {\n"
-                      "  %0 = fsm.constant {value = \"S\"} : !fsm.state\n"
-                      "}\n";
+                "  %0 = fsm.constant {value = \"S\"} : !fsm.state\n"
+                "}\n";
 
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
-  result->walk([](ConstOp cop){
+  result->walk([](ConstOp cop) {
     ASSERT_TRUE(cop.value().isa<StringAttr>());
     EXPECT_EQ(cop.value().cast<StringAttr>().getValue(), "S");
     EXPECT_TRUE(cop.getType().isa<StateType>());
   });
+}
 
+TEST(OpConstructionTests, MessageDecl) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+  auto msgDecl = helper.builder.create<MessageDecl>(unknLoc, "Resp");
+  auto msgDeclEntry = msgDecl.addEntryBlock();
+  helper.builder.setInsertionPointToStart(msgDeclEntry);
+  helper.builder.create<NOPOp>(unknLoc);
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  fsm.m_decl @Resp decls  {\n"
+                      "    fsm.nop\n"
+                      "  }\n"
+                      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, MessageDeclParse) {
+  OpHelper helper;
+  auto opText = "module  {\n"
+                "  fsm.m_decl @Resp decls  {\n"
+                "    fsm.nop\n"
+                "  }\n"
+                "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](MessageDecl messageDecl) {
+    EXPECT_EQ(messageDecl.sym_name(), "Resp");
+  });
+}
+
+TEST(OpConstructionTests, MessageVariable) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+  auto msgDecl = helper.builder.create<MessageDecl>(unknLoc, "Resp");
+  auto msgDeclEntry = msgDecl.addEntryBlock();
+  helper.builder.setInsertionPointToStart(msgDeclEntry);
+  helper.builder.create<MessageVariable>(unknLoc, DataType::get(&helper.ctx),
+                                         "cl");
+
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  fsm.m_decl @Resp decls  {\n"
+                      "    %cl = fsm.m_var @cl : !fsm.data\n"
+                      "  }\n"
+                      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, MessageVariableParse){
+  OpHelper helper;
+  auto opText = "module  {\n"
+                      "  fsm.m_decl @Resp decls  {\n"
+                      "    %cl = fsm.m_var @cl : !fsm.data\n"
+                      "  }\n"
+                      "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](MessageVariable var){
+    EXPECT_EQ(var.sym_name(), "cl");
+    EXPECT_TRUE(var.getType().isa<DataType>());
+  });
 }

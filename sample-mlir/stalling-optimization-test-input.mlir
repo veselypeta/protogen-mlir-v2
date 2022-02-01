@@ -4,6 +4,18 @@ module {
 %resp = fsm.network @resp "unordered"
 %req = fsm.network @req "unordered"
 
+fsm.m_decl @Request decls {
+    fsm.nop
+}
+
+fsm.m_decl @Ack decls {
+    fsm.nop
+}
+
+fsm.m_decl @Resp decls {
+    %cl = fsm.m_var @cl : !fsm.data
+}
+
 fsm.machine @cache(){
     %State = fsm.variable "State" {initValue = "I"} : !fsm.state
     %cl = fsm.variable "cl" : !fsm.data

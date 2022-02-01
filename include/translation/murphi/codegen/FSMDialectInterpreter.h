@@ -15,6 +15,9 @@ public:
   /// i.e. GetM, Fwd_GetM, Put_Ack etc...
   std::vector<std::string> getMessageNames();
 
+  /// Returns the global message type shared by all messages
+//  nlohmann::json getMessageType();
+
   /// Get the names of every state in the cache
   /// i.e. I, I_load, M_evict etc...
   std::vector<std::string> getCacheStateNames();
@@ -30,9 +33,13 @@ public:
   nlohmann::json getDirectoryType();
 
   /// returns a JSON array of MurphiStatement
-  nlohmann::json getMurphiCacheStatements(llvm::StringRef state, llvm::StringRef action);
-  nlohmann::json getMurphiDirectoryStatements(llvm::StringRef state, llvm::StringRef action);
+  nlohmann::json getMurphiCacheStatements(llvm::StringRef state,
+                                          llvm::StringRef action);
+  nlohmann::json getMurphiDirectoryStatements(llvm::StringRef state,
+                                              llvm::StringRef action);
 
+  /// returns a vector of string which are the names of each stable state in the
+  /// cache
   std::vector<std::string> getCacheStableStateNames();
 
 private:

@@ -1,9 +1,9 @@
 #include "translation/murphi/codegen/FSMDialectInterpreter.h"
 #include "FSM/FSMOps.h"
 #include "FSM/FSMUtils.h"
+#include "translation/murphi/codegen/FSMOperationConverter.h"
 #include "translation/murphi/codegen/MurphiConstants.h"
 #include "translation/murphi/codegen/MurphiStructs.h"
-#include "translation/murphi/codegen/FSMOperationConverter.h"
 #include <set>
 
 using namespace mlir;

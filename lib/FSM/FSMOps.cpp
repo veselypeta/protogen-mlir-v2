@@ -230,7 +230,14 @@ void NetworkOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
   setNameFn(this->net(), this->sym_name().getLeafReference());
 }
+//===----------------------------------------------------------------------===//
+// Message Variable Op
+//===----------------------------------------------------------------------===//
 
+void MessageVariable::getAsmResultNames(
+    function_ref<void(Value, StringRef)> setNameFn) {
+  setNameFn(this->result(), this->sym_name());
+}
 //===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//
