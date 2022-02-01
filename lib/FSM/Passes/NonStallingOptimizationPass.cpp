@@ -15,7 +15,7 @@ public:
 };
 
 WalkResult handleTransientState(StateOp transientState,
-                                PatternRewriter & /*rewriter*/) {
+                                PatternRewriter &rewriter) {
   //  auto theCache = transientState->getParentOfType<MachineOp>();
   // find out what racing msgs can arrive ???
   auto logicalEndStateOpt =
@@ -36,6 +36,43 @@ WalkResult handleTransientState(StateOp transientState,
     emitRemark(transientState.getLoc(),
                "Can optimize racing transition " + racingTransition.sym_name() +
                    " in state " + transientState.sym_name());
+
+    // How do we optimize the non-stalling case ??
+
+    // we need to create the new state to transition to
+    // naming = {current_state}_{racing_action}_{prev_end}_{end_state}
+    auto getNonStallingTransientStateName =
+        [](llvm::StringRef startState, llvm::StringRef racing_action,
+           llvm::StringRef prev_end, llvm::StringRef end_state) -> std::string {
+      return (startState + "_" + racing_action + "_" + prev_end + "_" +
+              end_state)
+          .str();
+    };
+    auto nonStallStateName = getNonStallingTransientStateName(
+        transientState.sym_name(), racingTransition.sym_name(),
+        logicalEndState.sym_name(),
+        racingTransition.nextStateAttr().getLeafReference());
+    emitRemark(transientState.getLoc(), "Will transition from - " +
+                                            transientState.sym_name() + " -> " +
+                                            nonStallStateName);
+
+    // create the transition
+    rewriter.setInsertionPointToEnd(transientState.getBody());
+    FunctionType nsFnTy = racingTransition.getType();
+    auto nonStallTransition = rewriter.create<TransitionOp>(
+        transientState.getLoc(), racingTransition.sym_name(), nsFnTy,
+        rewriter.getSymbolRefAttr(nonStallStateName));
+    // inline the racing transaction
+    auto was_inlined = utils::inlineTransition(racingTransition, nonStallTransition, rewriter);
+    if(failed(was_inlined)){
+      emitError(nonStallTransition.getLoc(), "Failed to inline!");
+      return WalkResult::interrupt();
+    }
+    // instead of send we need to defer
+
+
+//    StateOp nonStallState =
+//        rewriter.create<StateOp>(transientState.getLoc(), nonStallStateName);
   }
 
   return WalkResult::advance();

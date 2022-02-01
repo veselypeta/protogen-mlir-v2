@@ -22,7 +22,7 @@ if (MSVC)
 else()
     # lots of warnings and all warnings as errors
     add_compile_options(-Wall -Wextra -pedantic -Werror)
-    if(NOT CMAKE_BUILD_TYPE EQUAL DEBUG)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
         message("OPTIMIZATIONS HAVE BEEN ENABLED")
         add_compile_options(-O3)
     endif()
