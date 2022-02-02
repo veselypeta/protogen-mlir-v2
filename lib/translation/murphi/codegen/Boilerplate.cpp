@@ -28,7 +28,7 @@ json emitNetworkDefinitionJson() {
            {{0, std::string(c_ordered_t) + "-1"}, {r_message_t}}}};
   detail::TypeDecl<
       detail::Array<detail::ID, detail::SubRange<size_t, std::string>>>
-      ordered_network_count{ord_type_name, {{e_machines_t}, {0, c_ordered_t}}};
+      ordered_network_count{ord_type_count_name, {{e_machines_t}, {0, c_ordered_t}}};
   detail::TypeDecl<
       detail::Array<detail::ID, detail::Multiset<detail::ID, detail::ID>>>
       unordered_network_t{un_ord_type_name,

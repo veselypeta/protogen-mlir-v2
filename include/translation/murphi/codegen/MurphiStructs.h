@@ -59,6 +59,12 @@ struct Record {
 
 void to_json(nlohmann::json &j, const Record &record);
 
+struct RecordV2 {
+  std::vector<nlohmann::json> decls;
+};
+
+void to_json(nlohmann::json &j, const RecordV2 &record);
+
 // *** ScalarSet
 template <class T>
 struct is_string : public std::is_same<std::string, typename std::decay_t<T>> {

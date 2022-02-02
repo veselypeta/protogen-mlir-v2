@@ -1,5 +1,7 @@
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "translation/murphi/codegen/Boilerplate.h"
 #include "translation/murphi/codegen/MurphiCodeGen.h"
+#include "translation/murphi/codegen/MurphiStructs.h"
 #include "translation/utils/JSONValidation.h"
 #include <gtest/gtest.h>
 
@@ -77,6 +79,17 @@ TEST(MurphiCodeGen, MurphiType_schema_validation) {
 TEST(MurphiCodeGen, MurphiRecordType_to_json) {
   detail::TypeDecl<detail::Record> record{
       "my_record", {{{"id", "ID"}, {"hello", "world"}, {"field", "type"}}}};
+  json j = record;
+  std::string schema_path =
+      std::string(schema_base_directory) + "gen_TypeDecl.json";
+  ASSERT_TRUE(validate_json(schema_path, j));
+}
+
+TEST(MurphiCodeGen, RecordTypeV2) {
+  auto record = detail::TypeDecl<detail::RecordV2>{
+      "my_record", {
+                       {detail::VarDecl<detail::ID>{"field_1", {"the_type"}}}}
+  };
   json j = record;
   std::string schema_path =
       std::string(schema_base_directory) + "gen_TypeDecl.json";
@@ -238,7 +251,7 @@ TEST_F(ModuleOpFixture, validate_add_procs) {
   ASSERT_TRUE(codeGen.is_json_valid());
 }
 
-TEST(DisableUnusedFunction, DirectoyWarnings){
+TEST(DisableUnusedFunction, DirectoyWarnings) {
   detail::e_directory_state_t();
   detail::e_cache_state_t();
   detail::r_cache_entry_t();

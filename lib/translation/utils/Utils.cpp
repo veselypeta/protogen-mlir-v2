@@ -1,4 +1,6 @@
 #include "translation/utils/utils.h"
+#include "translation/murphi/codegen/MurphiConstants.h"
+#include <cassert>
 
 namespace translation {
 namespace utils {
@@ -41,6 +43,25 @@ std::string indentAllLines(const std::string &str, size_t level) {
 bool isWhitespace(unsigned char c) {
   return (c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' ||
           c == '\f');
+}
+
+std::string mangleCacheState(const std::string &state){
+  return mangleState(state, murphi::detail::cache_state_prefix);
+}
+
+
+std::string mangleDirectoryState(const std::string &state){
+  return mangleState(state, murphi::detail::directory_state_prefix);
+}
+
+std::string mangleState(const std::string &state, const std::string &prefix){
+  return prefix + state;
+}
+
+std::string demangleState(const std::string &state){
+  auto split = state.find( '_');
+  assert(split != std::string::npos && "Could not demangle state name");
+  return state.substr(split+1, state.length());
 }
 
 } // namespace utils

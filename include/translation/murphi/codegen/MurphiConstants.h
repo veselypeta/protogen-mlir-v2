@@ -97,6 +97,10 @@ std::string e_cache_state_t();
 std::string r_cache_entry_t();
 std::string r_directory_entry_t();
 
+// ** State prefixes *** //
+constexpr auto cache_state_prefix = "cache_";
+constexpr auto directory_state_prefix = "directory_";
+
 // *** Record Keywords *** //
 constexpr char r_message_t[] = "Message";
 

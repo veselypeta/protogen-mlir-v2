@@ -59,8 +59,6 @@ public:
   nlohmann::json getCacheStartState();
   nlohmann::json getDirectoryStartState();
 
-  nlohmann::json getNetworkStartState(const std::string &nedId);
-
 private:
   mlir::ModuleOp theModule;
   std::set<std::pair<std::string, std::string>> mTypeElems;

@@ -16,15 +16,16 @@ TEST(FSMDialectInterpreter, getCacheStates) {
   FSMDialectInterpreter interpreter(*result);
 
   auto cacheStateNames = interpreter.getCacheStateNames();
+  // state names are mangled
   EXPECT_EQ(cacheStateNames.size(), 5);
   EXPECT_NE(
-      std::find(std::begin(cacheStateNames), std::end(cacheStateNames), "I"),
+      std::find(std::begin(cacheStateNames), std::end(cacheStateNames), "cache_I"),
       std::end(cacheStateNames));
   EXPECT_NE(
-      std::find(std::begin(cacheStateNames), std::end(cacheStateNames), "I_load"),
+      std::find(std::begin(cacheStateNames), std::end(cacheStateNames), "cache_I_load"),
       std::end(cacheStateNames));
   EXPECT_NE(
-      std::find(std::begin(cacheStateNames), std::end(cacheStateNames), "M_evict"),
+      std::find(std::begin(cacheStateNames), std::end(cacheStateNames), "cache_M_evict"),
       std::end(cacheStateNames));
 }
 

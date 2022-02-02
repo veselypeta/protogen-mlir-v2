@@ -5,6 +5,10 @@
 
 namespace translation {
 namespace utils{
+std::string demangleState(const std::string &state);
+std::string mangleState(const std::string &state, const std::string &prefix);
+std::string mangleDirectoryState(const std::string &state);
+std::string mangleCacheState(const std::string &state);
 
 std::vector<std::string> splitString(const std::string &str, char delim);
 

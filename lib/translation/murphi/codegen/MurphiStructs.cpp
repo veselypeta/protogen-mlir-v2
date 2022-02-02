@@ -39,6 +39,15 @@ void to_json(json &j, const Record &r) {
   j = {{"typeId", "record"}, {"type", {{"decls", decls}}}};
 }
 
+void to_json(json &j, const RecordV2 &r){
+  j = {
+    {"typeId", "record"},
+    {"type", {
+                 {"decls", r.decls}
+             }}
+  };
+}
+
 /*
  * ScalarSet to_json helper functions
  */
@@ -260,7 +269,7 @@ void to_json(json &j, const UnorderedSendFunction &usf) {
                    Designator{msg_p, {Indexer{"object", ExprID{c_dst}}}}}}},
       detail::ExprID{"true"}};
   BinaryExpr<decltype(ms_count), ExprID> assert_val{
-      ms_count, {"true"}, BinaryOps.less_than};
+      ms_count, {c_unordered_t}, BinaryOps.less_than};
   Assert<decltype(assert_val)> l1Ass{assert_val, excess_messages_err};
 
   // L2 -> MultiSetAdd(msg, req[msg.dst]);

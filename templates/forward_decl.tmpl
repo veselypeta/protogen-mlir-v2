@@ -1,10 +1,10 @@
 {# ACCEPTS TYPE FwdDecl #}
 {%- if typeId == "const"-%}
-const {{ decl.id }} := {{ decl.value }};
+const {{ decl.id }} : {{ decl.value }};
 {%- endif -%}
 {%- if typeId == "type"-%}
-type {{ decl.id }} := {{ render_template("type_expr.tmpl", decl) }};
+type {{ decl.id }} : {{ render_template("type_expr.tmpl", decl) }};
 {%- endif -%}
 {%- if typeId == "var"-%}
-var {{ decl.id }} := {{ render_template("type_expr.tmpl", decl) }};
+var {{ decl.id }} : {{ render_template("type_expr.tmpl", decl) }};
 {%- endif -%}

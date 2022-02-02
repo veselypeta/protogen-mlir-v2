@@ -80,12 +80,16 @@ FSMDialectInterpreter::FSMDialectInterpreter(ModuleOp m)
 
 json FSMDialectInterpreter::getMurphiCacheStatements(llvm::StringRef state,
                                                      llvm::StringRef action) {
-  return getMurphiMachineStatements(state, action, "cache", theModule);
+  return getMurphiMachineStatements(
+      translation::utils::demangleState(state.str()), action, "cache",
+      theModule);
 }
 
 json FSMDialectInterpreter::getMurphiDirectoryStatements(
     llvm::StringRef state, llvm::StringRef action) {
-  return getMurphiMachineStatements(state, action, "directory", theModule);
+  return getMurphiMachineStatements(
+      translation::utils::demangleState(state.str()), action, "directory",
+      theModule);
 }
 
 std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
@@ -164,9 +168,15 @@ nlohmann::json FSMDialectInterpreter::getMessageFactory(std::string &msgType) {
     }
 
     auto asin = detail::Assignment<detail::Designator, detail::ExprID>{
-        {r_msg_elem.first, {}}, {valToBeAssigned}};
+        {detail::c_msg,
+         {detail::Indexer{"object", detail::ExprID{r_msg_elem.first}}}},
+        {valToBeAssigned}};
     msgFactoryFunction.statements.emplace_back(std::move(asin));
   }
+
+  // return the message
+  msgFactoryFunction.statements.emplace_back(
+      detail::ReturnStmt{detail::ExprID{detail::c_msg}});
 
   return msgFactoryFunction;
 }
@@ -181,7 +191,8 @@ std::vector<std::string> FSMDialectInterpreter::getCacheStateNames() {
   utils::searchFor<StateOp>(theCache, allCacheStateOps);
 
   for (auto stateOp : allCacheStateOps) {
-    stateNames.push_back(stateOp.sym_name().str());
+    stateNames.push_back(
+        translation::utils::mangleCacheState(stateOp.sym_name().str()));
   }
 
   return stateNames;
@@ -197,7 +208,8 @@ std::vector<std::string> FSMDialectInterpreter::getDirectoryStateNames() {
   utils::searchFor<StateOp>(theCache, allDirectoryStates);
 
   for (auto stateOp : allDirectoryStates) {
-    stateNames.push_back(stateOp.sym_name().str());
+    stateNames.push_back(
+        translation::utils::mangleDirectoryState(stateOp.sym_name().str()));
   }
 
   return stateNames;
@@ -210,8 +222,10 @@ std::vector<std::string> FSMDialectInterpreter::getCacheStableStateNames() {
   });
 
   std::set<std::string> outs;
-  std::for_each(std::begin(stableStates), std::end(stableStates),
-                [&outs](StateOp op) { outs.insert(op.sym_name().str()); });
+  std::for_each(
+      std::begin(stableStates), std::end(stableStates), [&outs](StateOp op) {
+        outs.insert(translation::utils::mangleCacheState(op.sym_name().str()));
+      });
   return {outs.begin(), outs.end()};
 }
 
@@ -235,6 +249,24 @@ FSMDialectInterpreter::getNetworks() {
   return networks;
 }
 
+std::string compute_default_value(VariableOp varOp) {
+  auto theMach = varOp->getParentOfType<MachineOp>();
+  auto manglePref = theMach.sym_name().str() == "directory"
+                        ? detail::directory_state_prefix
+                        : detail::cache_state_prefix;
+  if (varOp.initValue().hasValue()) {
+    if (auto attr = varOp.initValueAttr().cast<StringAttr>()) {
+      // special case for state types -> we need to mangle
+      auto init = attr.getValue().str();
+      if (varOp.getType().isa<StateType>()) {
+        return translation::utils::mangleState(init, manglePref);
+      }
+      return init;
+    }
+  }
+  return "0";
+}
+
 nlohmann::json compute_mach_ss(const std::string &machId, MachineOp theMach) {
   constexpr auto mach_idx = "i";
   constexpr auto adr_idx = "a";
@@ -254,13 +286,9 @@ nlohmann::json compute_mach_ss(const std::string &machId, MachineOp theMach) {
     auto lhs = common_start; // copy the common_start
     lhs.indexes.emplace_back(
         detail::Indexer{"object", detail::ExprID{varOp.name().str()}});
-    std::string defaultValue =
-        varOp.initValue().hasValue()
-            ? varOp.initValueAttr().cast<StringAttr>().getValue().str()
-            : "0";
+    std::string defaultValue = compute_default_value(varOp);
     for_adr.stmts.emplace_back(
-        detail::Assignment<decltype(lhs), detail::ExprID>{
-            lhs, {defaultValue}});
+        detail::Assignment<decltype(lhs), detail::ExprID>{lhs, {defaultValue}});
   }
   for_mach.stmts.emplace_back(std::move(for_adr));
   return for_mach;
