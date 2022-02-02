@@ -225,4 +225,14 @@ json FSMDialectInterpreter::getDirectoryType() {
   return convertMachineType(dir);
 }
 
+std::vector<std::pair<std::string, std::string>>
+FSMDialectInterpreter::getNetworks() {
+  std::vector<std::pair<std::string, std::string>> networks;
+  for (auto netOp : theModule.getOps<NetworkOp>()) {
+    networks.emplace_back(std::make_pair(
+        netOp.sym_name().getLeafReference().str(), netOp.ordering().str()));
+  }
+  return networks;
+}
+
 } // namespace murphi

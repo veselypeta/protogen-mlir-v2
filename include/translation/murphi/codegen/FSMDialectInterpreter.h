@@ -3,6 +3,7 @@
 #include "nlohmann/json.hpp"
 #include <vector>
 #include <set>
+#include "translation/utils/utils.h"
 
 namespace murphi {
 
@@ -38,6 +39,11 @@ public:
 
   nlohmann::json getCacheType();
   nlohmann::json getDirectoryType();
+
+
+  /// Returns a vector of pairs of the form
+  /// {"fwd", "ordered"} etc..
+  std::vector<std::pair<std::string, std::string>> getNetworks();
 
   /// returns a JSON array of MurphiStatement
   nlohmann::json getMurphiCacheStatements(llvm::StringRef state,

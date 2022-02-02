@@ -245,14 +245,71 @@ private:
     // Assemble Network Objects
     assembleNetworkObjects(data);
   }
+
+  void assembleMachineVars(nlohmann::json &data) {
+
+    detail::VarDecl<detail::ID> var_cache{detail::cache_v(),
+                                          {{detail::cache_obj_t()}}};
+    detail::VarDecl<detail::ID> var_dir{detail::directory_v(),
+                                        {{detail::directory_obj_t()}}};
+    data["decls"]["var_decls"].push_back(var_cache);
+    data["decls"]["var_decls"].push_back(var_dir);
+  }
+
+  void assembleNetworkVars(nlohmann::json &data) {
+    for(std::pair<std::string,std::string> &network : interpreter.getNetworks()) {
+      std::string netId = network.first;
+      std::string netOrder = network.second;
+      if (netOrder == "ordered") {
+
+        detail::VarDecl<detail::ID> ord_net_v{
+            netId,
+            {{std::string(detail::ObjKey) + detail::ordered}}};
+        detail::VarDecl<detail::ID> ord_net_cnt_v{
+            std::string(detail::CntKey) + netId,
+            {{std::string(detail::ObjKey) + detail::ordered_cnt}}};
+        data["decls"]["var_decls"].push_back(ord_net_v);
+        data["decls"]["var_decls"].push_back(ord_net_cnt_v);
+
+      } else {
+        detail::VarDecl<detail::ID> unord_net_v{
+            netId,
+            {{std::string(detail::ObjKey) + detail::unordered}}};
+        data["decls"]["var_decls"].push_back(unord_net_v);
+      }
+    }
+  }
+
+  void assembleVariables(nlohmann::json &data){
+    assembleMachineVars(data);
+    assembleNetworkVars(data);
+  }
+
   void assembleDecls(nlohmann::json &data) {
     assembleConstants(data);
     assembleTypes(data);
+    assembleVariables(data);
   }
 
   void assembleMessageFactories(nlohmann::json &data) {
     for (std::string &msgName : interpreter.getMessageTypeNames())
       data["proc_decls"].emplace_back(interpreter.getMessageFactory(msgName));
+  }
+
+  void assembleNetworkSendFunctions(nlohmann::json &data){
+    for(std::pair<std::string, std::string> &network : interpreter.getNetworks()){
+          auto netID = network.first;
+          auto order = network.second;
+          if (order == "ordered") {
+            // ordered networks
+            data["proc_decls"].push_back(
+                detail::OrderedSendFunction{netID});
+            data["proc_decls"].push_back(detail::OrderedPopFunction{netID});
+          } else {
+            data["proc_decls"].push_back(
+                detail::UnorderedSendFunction{netID});
+          }
+        }
   }
 
   template <class StateCallableT, class ConvertCallableT>
@@ -327,8 +384,10 @@ private:
       }
     }
   }
+
   void assembleProcedures(nlohmann::json &data) {
     assembleMessageFactories(data);
+    assembleNetworkSendFunctions(data);
     assembleCacheController(data);
     assembleDirectoryController(data);
     assembleStartStateFunctions(data);
