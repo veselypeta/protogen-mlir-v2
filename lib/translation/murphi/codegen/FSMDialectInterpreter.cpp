@@ -235,4 +235,44 @@ FSMDialectInterpreter::getNetworks() {
   return networks;
 }
 
+nlohmann::json compute_mach_ss(const std::string &machId, MachineOp theMach) {
+  constexpr auto mach_idx = "i";
+  constexpr auto adr_idx = "a";
+  auto for_mach = detail::ForStmt<detail::ForEachQuantifier<detail::ID>>{
+      {mach_idx, {detail::SetKey + machId}}, {}};
+
+  auto for_adr = detail::ForStmt<detail::ForEachQuantifier<detail::ID>>{
+      {adr_idx, {detail::ss_address_t}}, {}};
+
+  // i_cache[i][a].??? := cache_I;
+  auto common_start =
+      detail::Designator{detail::mach_prefix_v + machId,
+                         {detail::Indexer{"array", detail::ExprID{mach_idx}},
+                          detail::Indexer{"array", detail::ExprID{adr_idx}}}};
+
+  for (auto varOp : theMach.getOps<VariableOp>()) {
+    auto lhs = common_start; // copy the common_start
+    lhs.indexes.emplace_back(
+        detail::Indexer{"object", detail::ExprID{varOp.name().str()}});
+    std::string defaultValue =
+        varOp.initValue().hasValue()
+            ? varOp.initValueAttr().cast<StringAttr>().getValue().str()
+            : "0";
+    for_adr.stmts.emplace_back(
+        detail::Assignment<decltype(lhs), detail::ExprID>{
+            lhs, {defaultValue}});
+  }
+  for_mach.stmts.emplace_back(std::move(for_adr));
+  return for_mach;
+}
+
+nlohmann::json FSMDialectInterpreter::getCacheStartState() {
+  return compute_mach_ss("cache", theModule.lookupSymbol<MachineOp>("cache"));
+}
+
+nlohmann::json FSMDialectInterpreter::getDirectoryStartState() {
+  return compute_mach_ss("directory",
+                         theModule.lookupSymbol<MachineOp>("directory"));
+}
+
 } // namespace murphi

@@ -94,5 +94,19 @@ CaseStmt getBasicCaseStmt(std::string&& caseText){
   };
 }
 
+json getOrderedCountStartState(const std::string &netId){
+  constexpr auto mach_idx = "n";
+  auto for_quant =
+      detail::ForEachQuantifier<detail::ID>{mach_idx, {detail::e_machines_t}};
+
+  auto cnt_stmt = detail::Assignment<detail::Designator, detail::ExprID>{
+      {detail::CntKey + netId,
+       {detail::Indexer{"array", detail::ExprID{mach_idx}}}},
+      {"0"}};
+
+  return detail::ForStmt<decltype(for_quant)>{std::move(for_quant),
+                                              {std::move(cnt_stmt)}};
+}
+
 } // namespace boilerplate
 } // namespace murphi

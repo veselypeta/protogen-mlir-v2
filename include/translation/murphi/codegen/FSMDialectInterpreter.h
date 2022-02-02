@@ -1,9 +1,9 @@
 #pragma once
 #include "mlir/IR/BuiltinOps.h"
 #include "nlohmann/json.hpp"
-#include <vector>
-#include <set>
 #include "translation/utils/utils.h"
+#include <set>
+#include <vector>
 
 namespace murphi {
 
@@ -40,7 +40,6 @@ public:
   nlohmann::json getCacheType();
   nlohmann::json getDirectoryType();
 
-
   /// Returns a vector of pairs of the form
   /// {"fwd", "ordered"} etc..
   std::vector<std::pair<std::string, std::string>> getNetworks();
@@ -54,6 +53,13 @@ public:
   /// returns a vector of string which are the names of each stable state in the
   /// cache
   std::vector<std::string> getCacheStableStateNames();
+
+  /// returns the json statements to implement the rules for the cache/directory's start
+  /// state
+  nlohmann::json getCacheStartState();
+  nlohmann::json getDirectoryStartState();
+
+  nlohmann::json getNetworkStartState(const std::string &nedId);
 
 private:
   mlir::ModuleOp theModule;

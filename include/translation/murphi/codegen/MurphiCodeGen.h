@@ -395,6 +395,8 @@ private:
 
   void assembleRules(nlohmann::json &data) {
     assembleCacheRuleset(data);
+    assembleNetworkRulesets(data);
+    assembleStartStateRules(data);
     assembleInvariant(data);
   }
 
@@ -411,6 +413,39 @@ private:
       }
     }
     data["rules"].emplace_back(std::move(cacheRuleset));
+  }
+
+  void assembleNetworkRulesets(nlohmann::json &data){
+    for (std::pair<std::string, std::string> &network : interpreter.getNetworks()) {
+      std::string netId = network.first;
+      std::string netOrder = network.second;
+      if (netOrder == "ordered") {
+        data["rules"].push_back(detail::OrderedRuleset{netId});
+      } else {
+        data["rules"].push_back(detail::UnorderedRuleset{netId});
+      }
+    }
+  }
+
+  void assembleStartStateRules(nlohmann::json &data){
+    auto ss = detail::StartState{"PROTOCOL START STATE", {}, {}};
+
+    /// add the directory and cache start states
+    ss.statements.emplace_back(interpreter.getCacheStartState());
+    ss.statements.emplace_back(interpreter.getDirectoryStartState());
+
+    /// ** Undefine networks //
+    for (std::pair<std::string, std::string> &nw : interpreter.getNetworks()) {
+      auto netId = nw.first;
+      auto ordering = nw.second;
+      auto rhs = detail::Designator{netId, {}};
+      ss.statements.emplace_back(detail::UndefineStmt<decltype(rhs)>{rhs});
+      if(ordering == "ordered")
+        ss.statements.emplace_back(boilerplate::getOrderedCountStartState(netId));
+    }
+
+
+    data["rules"].push_back(ss);
   }
 
   void assembleInvariant(nlohmann::json &data) {

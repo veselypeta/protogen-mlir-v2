@@ -20,5 +20,7 @@ murphi::detail::SwitchStmt getStateHandlerSwitch();
 
 murphi::detail::CaseStmt getBasicCaseStmt(const std::string &caseStr);
 murphi::detail::CaseStmt getBasicCaseStmt(std::string &&caseText);
+
+nlohmann::json getOrderedCountStartState(const std::string &netId);
 } // namespace boilerplate
 } // namespace murphi
