@@ -126,6 +126,8 @@ public:
 private:
   void assembleConstants(nlohmann::json &data) {
     murphi::boilerplate::setBoilerplateConstants(data);
+    data["decls"]["const_decls"].push_back(
+        detail::ConstDecl{detail::c_nr_cache, interpreter.getCacheSetSize()});
   }
 
   void assembleEnums(nlohmann::json &data) {
@@ -151,20 +153,105 @@ private:
     data["decls"]["type_decls"].emplace_back(interpreter.getDirectoryType());
   }
 
+  void assembleStaticTypes(nlohmann::json &data) {
+    // Address type
+    data["decls"]["type_decls"].emplace_back(
+        detail::TypeDecl<detail::ScalarSet<std::string>>{
+            detail::ss_address_t,
+            detail::ScalarSet<std::string>{detail::c_val_cnt_t}});
+    // ClValue type
+    data["decls"]["type_decls"].emplace_back(
+        detail::TypeDecl<detail::SubRange<size_t, std::string>>{
+            detail::ss_cache_val_t, {0, detail::c_val_cnt_t}});
+  }
+
+  void assembleMachineSets(nlohmann::json &data) {
+    auto add_mach_decl_type = [&](const std::string &machine) {
+      if (machine == detail::machines.cache) {
+        data["decls"]["type_decls"].push_back(
+            detail::TypeDecl<detail::ScalarSet<std::string>>{
+                detail::cache_set_t(),
+                detail::ScalarSet<std::string>{detail::c_nr_cache}});
+      } else {
+        // must be a directory
+        data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Enum>{
+            detail::directory_set_t(), {{machine}}});
+      }
+    };
+
+    // add the cache set
+    add_mach_decl_type(detail::machines.cache.str());
+    add_mach_decl_type(detail::machines.directory.str());
+
+    // push a union of these for the Machines type
+    data["decls"]["type_decls"].push_back(detail::TypeDecl<detail::Union>{
+        detail::e_machines_t,
+        {{detail::cache_set_t(), detail::directory_set_t()}}});
+
+    // TODO - add counters for necessary ranges;
+  }
+
+  void assembleMultipleAddresses(nlohmann::json &data) {
+    detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheMach{
+        detail::cache_mach_t(),
+        {{detail::ss_address_t}, {detail::cache_set_t()}}};
+
+    detail::TypeDecl<detail::Array<detail::ID, detail::ID>> dirMach{
+        detail::directory_mach_t(),
+        {{detail::ss_address_t}, {detail::directory_set_t()}}};
+
+    data["decls"]["type_decls"].push_back(std::move(cacheMach));
+    data["decls"]["type_decls"].push_back(std::move(dirMach));
+  }
+
+  void assembleMachineObjects(nlohmann::json &data) {
+
+    detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheObj{
+        detail::cache_obj_t(),
+        {{detail::cache_set_t()}, {detail::cache_mach_t()}}};
+
+    detail::TypeDecl<detail::Array<detail::ID, detail::ID>> dirObj{
+        detail::directory_obj_t(),
+        {{detail::directory_set_t()}, {detail::directory_mach_t()}}};
+
+    data["decls"]["type_decls"].push_back(std::move(cacheObj));
+    data["decls"]["type_decls"].push_back(std::move(dirObj));
+  }
+
+  void assembleNetworkObjects(nlohmann::json &data) {
+    for (const auto &type : boilerplate::emitNetworkDefinitionJson()) {
+      data["decls"]["type_decls"].push_back(type);
+    }
+  }
+
   void assembleTypes(nlohmann::json &data) {
     assembleEnums(data);
+    // assemble setup types
+    assembleStaticTypes(data);
+
+    // set types
+    assembleMachineSets(data);
+
     // Message Type
     data["decls"]["type_decls"].emplace_back(interpreter.getMessageType());
     assembleMachineEntryTypes(data);
+
+    // Machine Multiple Addresses
+    assembleMultipleAddresses(data);
+
+    // Assemble Machine Objects
+    assembleMachineObjects(data);
+
+    // Assemble Network Objects
+    assembleNetworkObjects(data);
   }
   void assembleDecls(nlohmann::json &data) {
     assembleConstants(data);
     assembleTypes(data);
   }
 
-
-  void assembleMessageFactories(nlohmann::json &data){
-    for(std::string &msgName : interpreter.getMessageTypeNames())
+  void assembleMessageFactories(nlohmann::json &data) {
+    for (std::string &msgName : interpreter.getMessageTypeNames())
       data["proc_decls"].emplace_back(interpreter.getMessageFactory(msgName));
   }
 

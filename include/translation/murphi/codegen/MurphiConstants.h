@@ -37,6 +37,7 @@ constexpr char c_val_cnt_t[] = "VAL_COUNT";
 constexpr size_t c_val_max = 1;
 constexpr char c_adr_cnt_t[] = "ADR_COUNT";
 constexpr size_t c_adr_cnt = 1;
+constexpr auto c_nr_cache = "NrCaches";
 
 // *** Keys *** //
 constexpr char SetKey[] = "OBJSET_";
