@@ -159,7 +159,9 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::IfOp op) {
   }
   if (!op.elseRegion().empty()) {
     for (auto &elseOp : op.elseRegion().getOps()) {
-      ifStmt.elseStmts.emplace_back(convert(&elseOp));
+      auto convertedStmt = convert(&elseOp);
+      if (convertedStmt != nullptr)
+        ifStmt.elseStmts.emplace_back(convert(&elseOp));
     }
   }
   return ifStmt;
