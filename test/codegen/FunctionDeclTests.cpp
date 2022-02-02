@@ -137,3 +137,28 @@ TEST(FunctionTests, UnorderedSendFunction){
   bool is_valid = JSONValidation::validate_json(schema_path, data);
   ASSERT_TRUE(is_valid);
 }
+
+TEST(FunctionTests, GenericMurphiFunction){
+  auto msgFactoryFunction = detail::GenericMurphiFunction{
+    "Response",
+      {detail::Formal<detail::ID>{detail::c_adr, {detail::ss_address_t}}},
+      detail::ID{detail::r_message_t},
+      {detail::ForwardDecl<detail::TypeDecl<detail::ID>>{"var", {detail::c_msg, {detail::r_message_t}}}},
+      {}
+  };
+
+  json data = msgFactoryFunction;
+
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+
+  ASSERT_FALSE(result.empty());
+
+  // verify json
+  std::string schema_path =
+      std::string(JSONValidation::schema_base_directory) + "gen_ProcDecl.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  ASSERT_TRUE(is_valid);
+
+}

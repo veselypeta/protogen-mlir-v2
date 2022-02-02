@@ -105,11 +105,70 @@ std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
 /// Get the global Message type used in Murphi
 json FSMDialectInterpreter::getMessageType() {
   std::vector<std::pair<std::string, std::string>> elems = {mTypeElems.begin(),
-                                                 mTypeElems.end()};
+                                                            mTypeElems.end()};
   return murphi::detail::TypeDecl<murphi::detail::Record>{
-      murphi::detail::r_message_t,
-      {elems}
-  };
+      murphi::detail::r_message_t, {elems}};
+}
+
+std::vector<std::string> FSMDialectInterpreter::getMessageTypeNames() {
+  std::vector<std::string> names;
+  theModule.walk(
+      [&names](MessageDecl decl) { names.push_back(decl.sym_name().str()); });
+  return names;
+}
+
+nlohmann::json FSMDialectInterpreter::getMessageFactory(std::string &msgType) {
+  auto definingMsg = theModule.lookupSymbol<MessageDecl>(msgType);
+  assert(definingMsg != nullptr &&
+         "Could not resolve the reference to the message");
+  auto msgFactoryFunction = detail::GenericMurphiFunction{
+      msgType,
+      {},
+      detail::ID{detail::r_message_t},
+      {detail::ForwardDecl<detail::TypeDecl<detail::ID>>{
+          "var", {detail::c_msg, {detail::r_message_t}}}},
+      {}};
+
+  // add the necessary parameters
+  // adr : Address
+  msgFactoryFunction.params.emplace_back(
+      detail::Formal<detail::ID>{detail::c_adr, {detail::ss_address_t}});
+  // mtype : MessageType
+  msgFactoryFunction.params.emplace_back(
+      detail::Formal<detail::ID>{detail::c_mtype, {detail::e_message_type_t}});
+  // src : Machines
+  msgFactoryFunction.params.emplace_back(
+      detail::Formal<detail::ID>{detail::c_src, {detail::e_machines_t}});
+  // dst :: Machines
+  msgFactoryFunction.params.emplace_back(
+      detail::Formal<detail::ID>{detail::c_dst, {detail::e_machines_t}});
+
+  /// for each additional variable in the type add an additional parameter
+  for (auto msgVar : definingMsg.getOps<MessageVariable>()) {
+    msgFactoryFunction.params.emplace_back(detail::Formal<detail::ID>{
+        msgVar.sym_name().str(), {FSMConvertType(msgVar.getType())}});
+  }
+
+  /// Now we can setup the statements
+  for (auto r_msg_elem : mTypeElems) {
+    std::string valToBeAssigned;
+    auto is_default_param = [&](const std::string &field) {
+      return field == detail::c_adr || field == detail::c_mtype ||
+             field == detail::c_src || field == detail::c_dst;
+    };
+    if (definingMsg.lookupSymbol(r_msg_elem.first) != nullptr ||
+        is_default_param(r_msg_elem.first)) {
+      valToBeAssigned = r_msg_elem.first;
+    } else {
+      valToBeAssigned = detail::c_undef;
+    }
+
+    auto asin = detail::Assignment<detail::Designator, detail::ExprID>{
+        {r_msg_elem.first, {}}, {valToBeAssigned}};
+    msgFactoryFunction.statements.emplace_back(std::move(asin));
+  }
+
+  return msgFactoryFunction;
 }
 
 std::vector<std::string> FSMDialectInterpreter::getCacheStateNames() {

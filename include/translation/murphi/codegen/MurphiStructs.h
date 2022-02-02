@@ -422,6 +422,17 @@ struct MessageFactory {
 };
 void to_json(nlohmann::json &j, const MessageFactory &mc);
 
+/// --- Generic Murphi Function -- //
+struct GenericMurphiFunction {
+  std::string funcId;
+  std::vector<nlohmann::json> params;
+  nlohmann::json returnType;
+  std::vector<nlohmann::json> forwardDecls;
+  std::vector<nlohmann::json> statements;
+};
+
+void to_json (nlohmann::json &j, const GenericMurphiFunction &gmf);
+
 /// -- Ordered Send Function -- ///
 struct OrderedSendFunction {
   std::string netId;

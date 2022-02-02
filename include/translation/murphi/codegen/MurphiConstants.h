@@ -101,6 +101,7 @@ constexpr char r_message_t[] = "Message";
 
 // *** Built-in type *** //
 constexpr char bool_t[] = "boolean";
+constexpr char c_undef[] = "undefined";
 
 // *** MSG ***
 // default msg fields

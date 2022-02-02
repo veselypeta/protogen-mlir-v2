@@ -117,6 +117,16 @@ void to_json(json &j, const MessageFactory &m) {
        {"statements", paramAssignments}};
 }
 
+void to_json(json &j, const GenericMurphiFunction &gmf) {
+  j = {{"procType", "function"},
+       {"def",
+        {{"id", gmf.funcId},
+         {"params", gmf.params},
+         {"returnType", gmf.returnType},
+         {"forwardDecls", gmf.forwardDecls},
+         {"statements", gmf.statements}}}};
+}
+
 void to_json(json &j, const OrderedSendFunction &usf) {
   constexpr char msg_p[] = "msg";
   // Line 1 -> Assert Statement (for too many messages in queue)
@@ -538,9 +548,9 @@ void to_json(json &j, const SWMRInvariant &) {
 
   // i_cache[c1][a].State
   auto cache1Des = Designator{cache_v(),
-                             {Indexer{"array", ExprID{cache1}},
-                              Indexer{"array", ExprID{addressRef}},
-                              Indexer{"object", ExprID{c_state}}}};
+                              {Indexer{"array", ExprID{cache1}},
+                               Indexer{"array", ExprID{addressRef}},
+                               Indexer{"object", ExprID{c_state}}}};
 
   auto eq_m = BinaryExpr<decltype(cache1Des), ExprID>{
       cache1Des, {modifiedState}, BinaryOps.eq};

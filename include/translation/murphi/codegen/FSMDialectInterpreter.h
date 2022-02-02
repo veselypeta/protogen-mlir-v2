@@ -19,6 +19,12 @@ public:
   /// Returns the global message type shared by all messages
   nlohmann::json getMessageType();
 
+  /// Returns the names of the types of messasges that can be sent
+  /// in the protocol i.e. Resp or Ack
+  std::vector<std::string> getMessageTypeNames();
+
+  nlohmann::json getMessageFactory(std::string &msgType);
+
   /// Get the names of every state in the cache
   /// i.e. I, I_load, M_evict etc...
   std::vector<std::string> getCacheStateNames();

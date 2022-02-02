@@ -162,6 +162,12 @@ private:
     assembleTypes(data);
   }
 
+
+  void assembleMessageFactories(nlohmann::json &data){
+    for(std::string &msgName : interpreter.getMessageTypeNames())
+      data["proc_decls"].emplace_back(interpreter.getMessageFactory(msgName));
+  }
+
   template <class StateCallableT, class ConvertCallableT>
   void assembleMachineController(nlohmann::json &data,
                                  llvm::StringRef machineName,
@@ -235,6 +241,7 @@ private:
     }
   }
   void assembleProcedures(nlohmann::json &data) {
+    assembleMessageFactories(data);
     assembleCacheController(data);
     assembleDirectoryController(data);
     assembleStartStateFunctions(data);
