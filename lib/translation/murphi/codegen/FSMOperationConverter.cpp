@@ -10,6 +10,13 @@ namespace murphi {
 
 void FSMOperationConverter::setupSymbolTable(mlir::fsm::TransitionOp op) {
   auto parentMach = op->getParentOfType<MachineOp>();
+  auto theModule = op->getParentOfType<ModuleOp>();
+
+  // setup global networks
+  for (auto network : theModule.getOps<NetworkOp>()) {
+    symbolTable.insert(network, network.sym_name().getLeafReference().str());
+  }
+
   // for each state variable
   for (auto stateVar : parentMach.getOps<VariableOp>()) {
     auto varName = stateVar.name();
@@ -60,6 +67,14 @@ nlohmann::json FSMOperationConverter::convert(mlir::Operation *op) {
     convert(accessOp);
   if (auto updateOp = dyn_cast<UpdateOp>(op))
     return convert(updateOp);
+  if (auto stdConstOp = dyn_cast<ConstantOp>(op))
+    convert(stdConstOp);
+  if (auto ifOp = dyn_cast<IfOp>(op))
+    return convert(ifOp);
+  if (auto fsmConst = dyn_cast<ConstOp>(op))
+    convert(fsmConst);
+  if (auto sendOp = dyn_cast<SendOp>(op))
+    return convert(sendOp);
   return nullptr;
 }
 
@@ -75,6 +90,9 @@ json FSMOperationConverter::convert(MessageOp op) {
     auto val = symbolTable.lookup(operand);
     msgConstr.actuals.emplace_back(murphi::detail::ExprID{std::move(val)});
   }
+
+  // add msg to the symbol table
+  symbolTable.insert(op, murphi::detail::c_msg);
 
   return murphi::detail::Assignment<murphi::detail::Designator,
                                     decltype(msgConstr)>{
@@ -108,6 +126,43 @@ void FSMOperationConverter::convert(mlir::fsm::ReferenceOp op) {
 void FSMOperationConverter::convert(mlir::fsm::AccessOp op) {
   std::string accessor = symbolTable.lookup(op.msg());
   symbolTable.insert(op, accessor + "." + op.memberId().str());
+}
+
+void FSMOperationConverter::convert(mlir::ConstantOp op) {
+  Attribute valAttr = op.value();
+  if (auto boolAttr = valAttr.dyn_cast<BoolAttr>())
+    symbolTable.insert(op, boolAttr.getValue() ? "true" : "false");
+}
+
+void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
+  Attribute valAttr = op.value();
+  if (auto strAttr = valAttr.dyn_cast<StringAttr>())
+    symbolTable.insert(op, strAttr.getValue().str());
+}
+
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::SendOp op) {
+  auto netId = symbolTable.lookup(op.network());
+  auto sendCall = murphi::detail::ProcCall{
+      murphi::detail::send_pref_f + netId,
+      {detail::ExprID{symbolTable.lookup(op.message())}}};
+  return sendCall;
+}
+
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::IfOp op) {
+  auto condText = symbolTable.lookup(op.condition());
+  auto ifStmt =
+      murphi::detail::IfStmt<murphi::detail::ExprID>{{condText}, {}, {}};
+  for (auto &thenOp : op.thenRegion().getOps()) {
+    auto convertedStmt = convert(&thenOp);
+    if (convertedStmt != nullptr)
+      ifStmt.thenStmts.emplace_back(convertedStmt);
+  }
+  if (!op.elseRegion().empty()) {
+    for (auto &elseOp : op.elseRegion().getOps()) {
+      ifStmt.elseStmts.emplace_back(convert(&elseOp));
+    }
+  }
+  return ifStmt;
 }
 
 std::string FSMConvertType(Type type) {

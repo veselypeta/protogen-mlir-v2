@@ -2,6 +2,7 @@
 #include "FSM/FSMOps.h"
 #include "nlohmann/json.hpp"
 #include "llvm/ADT/ScopedHashTable.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 namespace murphi {
 
 /// This class is responsible for converting operations
@@ -21,6 +22,10 @@ private:
   nlohmann::json convert(mlir::fsm::UpdateOp op);
   void convert(mlir::fsm::ReferenceOp op);
   void convert(mlir::fsm::AccessOp op);
+  void convert(mlir::ConstantOp op);
+  void convert(mlir::fsm::ConstOp op);
+  nlohmann::json convert(mlir::fsm::SendOp op);
+  nlohmann::json convert(mlir::fsm::IfOp op);
   nlohmann::json convert(mlir::Operation *op);
   void setupSymbolTable(mlir::fsm::TransitionOp op);
 
