@@ -192,14 +192,27 @@ private:
   }
 
   void assembleMultipleAddresses(nlohmann::json &data) {
+    //  MACH_cache: record
+    //        CL: array[Address] of ENTRY_cache;
+    //    end;
+
+//    auto get_rec_def = [](const std::string &machId){
+//      auto inner = detail::VarDecl<detail::Array<detail::ID, detail::ID>>{
+//        detail::CLIdent_t, {{detail::ss_address_t}, {detail::SetKey + machId}}};
+//      auto full =  detail::TypeDecl<detail::RecordV2>{detail::cache_mach_t(), {{inner}}};
+//    };
+//    auto recDecl = detail::VarDecl<detail::Array<detail::ID, detail::ID>>{
+//        detail::CLIdent_t, {{detail::ss_address_t}, {detail::cache_set_t()}}};
+//    auto cacheAdrRec =
+//        detail::TypeDecl<detail::RecordV2>{detail::cache_mach_t(), {{recDecl}}};
+
     detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheMach{
         detail::cache_mach_t(),
-        {{detail::ss_address_t}, {detail::cache_set_t()}}};
+        {{detail::ss_address_t}, {detail::r_cache_entry_t()}}};
 
     detail::TypeDecl<detail::Array<detail::ID, detail::ID>> dirMach{
         detail::directory_mach_t(),
-        {{detail::ss_address_t}, {detail::directory_set_t()}}};
-
+        {{detail::ss_address_t}, {detail::r_directory_entry_t()}}};
     data["decls"]["type_decls"].push_back(std::move(cacheMach));
     data["decls"]["type_decls"].push_back(std::move(dirMach));
   }
@@ -257,14 +270,14 @@ private:
   }
 
   void assembleNetworkVars(nlohmann::json &data) {
-    for(std::pair<std::string,std::string> &network : interpreter.getNetworks()) {
+    for (std::pair<std::string, std::string> &network :
+         interpreter.getNetworks()) {
       std::string netId = network.first;
       std::string netOrder = network.second;
       if (netOrder == "ordered") {
 
         detail::VarDecl<detail::ID> ord_net_v{
-            netId,
-            {{std::string(detail::ObjKey) + detail::ordered}}};
+            netId, {{std::string(detail::ObjKey) + detail::ordered}}};
         detail::VarDecl<detail::ID> ord_net_cnt_v{
             std::string(detail::CntKey) + netId,
             {{std::string(detail::ObjKey) + detail::ordered_cnt}}};
@@ -273,14 +286,13 @@ private:
 
       } else {
         detail::VarDecl<detail::ID> unord_net_v{
-            netId,
-            {{std::string(detail::ObjKey) + detail::unordered}}};
+            netId, {{std::string(detail::ObjKey) + detail::unordered}}};
         data["decls"]["var_decls"].push_back(unord_net_v);
       }
     }
   }
 
-  void assembleVariables(nlohmann::json &data){
+  void assembleVariables(nlohmann::json &data) {
     assembleMachineVars(data);
     assembleNetworkVars(data);
   }
@@ -296,20 +308,19 @@ private:
       data["proc_decls"].emplace_back(interpreter.getMessageFactory(msgName));
   }
 
-  void assembleNetworkSendFunctions(nlohmann::json &data){
-    for(std::pair<std::string, std::string> &network : interpreter.getNetworks()){
-          auto netID = network.first;
-          auto order = network.second;
-          if (order == "ordered") {
-            // ordered networks
-            data["proc_decls"].push_back(
-                detail::OrderedSendFunction{netID});
-            data["proc_decls"].push_back(detail::OrderedPopFunction{netID});
-          } else {
-            data["proc_decls"].push_back(
-                detail::UnorderedSendFunction{netID});
-          }
-        }
+  void assembleNetworkSendFunctions(nlohmann::json &data) {
+    for (std::pair<std::string, std::string> &network :
+         interpreter.getNetworks()) {
+      auto netID = network.first;
+      auto order = network.second;
+      if (order == "ordered") {
+        // ordered networks
+        data["proc_decls"].push_back(detail::OrderedSendFunction{netID});
+        data["proc_decls"].push_back(detail::OrderedPopFunction{netID});
+      } else {
+        data["proc_decls"].push_back(detail::UnorderedSendFunction{netID});
+      }
+    }
   }
 
   template <class StateCallableT, class ConvertCallableT>
@@ -415,8 +426,9 @@ private:
     data["rules"].emplace_back(std::move(cacheRuleset));
   }
 
-  void assembleNetworkRulesets(nlohmann::json &data){
-    for (std::pair<std::string, std::string> &network : interpreter.getNetworks()) {
+  void assembleNetworkRulesets(nlohmann::json &data) {
+    for (std::pair<std::string, std::string> &network :
+         interpreter.getNetworks()) {
       std::string netId = network.first;
       std::string netOrder = network.second;
       if (netOrder == "ordered") {
@@ -427,7 +439,7 @@ private:
     }
   }
 
-  void assembleStartStateRules(nlohmann::json &data){
+  void assembleStartStateRules(nlohmann::json &data) {
     auto ss = detail::StartState{"PROTOCOL START STATE", {}, {}};
 
     /// add the directory and cache start states
@@ -440,10 +452,10 @@ private:
       auto ordering = nw.second;
       auto rhs = detail::Designator{netId, {}};
       ss.statements.emplace_back(detail::UndefineStmt<decltype(rhs)>{rhs});
-      if(ordering == "ordered")
-        ss.statements.emplace_back(boilerplate::getOrderedCountStartState(netId));
+      if (ordering == "ordered")
+        ss.statements.emplace_back(
+            boilerplate::getOrderedCountStartState(netId));
     }
-
 
     data["rules"].push_back(ss);
   }

@@ -1,6 +1,6 @@
 {# takes a Record type key of "type" #}
 record
 {% for recDecl in decls %}
-    {{ recDecl.id }} : {{ recDecl.type }};
+    {{ recDecl.id }} : {{ render_template("type_expr.tmpl", recDecl) }};
 {% endfor %}
 end

@@ -1,5 +1,6 @@
 #include "translation/murphi/codegen/FSMOperationConverter.h"
 #include "translation/murphi/codegen/MurphiCodeGen.h"
+#include "translation/utils/utils.h"
 
 using namespace nlohmann;
 using namespace mlir;
@@ -46,13 +47,16 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::TransitionOp op) {
   // if has end state attr
   auto nextStateAttr = op.nextState();
   if (nextStateAttr.hasValue()) {
-    auto nextState = nextStateAttr.getValue().getLeafReference();
+    // remember to mangle the state
+    auto nextState = translation::utils::mangleState(
+        nextStateAttr.getValue().getLeafReference().str(),
+        op->getParentOfType<MachineOp>().sym_name().str() + "_");
     data.push_back(murphi::detail::Assignment<murphi::detail::Designator,
                                               murphi::detail::ExprID>{
         {murphi::detail::cle_a,
          {murphi::detail::Indexer{
              "object", murphi::detail::ExprID{murphi::detail::c_state}}}},
-        {nextState.str()}});
+        {nextState}});
   }
 
   return data;
@@ -136,8 +140,13 @@ void FSMOperationConverter::convert(mlir::ConstantOp op) {
 
 void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
   Attribute valAttr = op.value();
-  if (auto strAttr = valAttr.dyn_cast<StringAttr>())
-    symbolTable.insert(op, strAttr.getValue().str());
+  auto parentMach = op->getParentOfType<MachineOp>();
+  if (auto strAttr = valAttr.dyn_cast<StringAttr>()) {
+    // we need to remember to mangle the names of the states
+    symbolTable.insert(
+        op, translation::utils::mangleState(strAttr.getValue().str(),
+                                            parentMach.sym_name().str() + "_"));
+  }
 }
 
 nlohmann::json FSMOperationConverter::convert(mlir::fsm::SendOp op) {

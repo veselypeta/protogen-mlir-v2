@@ -104,6 +104,8 @@ fsm.machine @directory(){
             %src = fsm.access {memberId = "src"} %GetM : !fsm.msg -> !fsm.id
             %msg = fsm.message @Request "Fwd_GetM" %src, %owner : !fsm.id, !fsm.id -> !fsm.msg
             fsm.send %fwd %msg
+            %n_own = fsm.access {memberId = "src"} %GetM : !fsm.msg -> !fsm.id
+            fsm.update %owner, %n_own : !fsm.id, !fsm.id
         }
 
         fsm.transition @PutM(%PutM : !fsm.msg) {

@@ -550,7 +550,7 @@ void to_json(json &j, const SWMRInvariant &) {
   constexpr auto cache1 = "c1";
   constexpr auto cache2 = "c2";
   constexpr auto addressRef = "a";
-  constexpr auto modifiedState = "M";
+  constexpr auto modifiedState = "cache_M";
 
   // c1 != c2
   auto c1neq2 = BinaryExpr<ExprID, ExprID>{{cache1}, {cache2}, BinaryOps.n_eq};

@@ -8,9 +8,9 @@ function {{ id }} ( {{ render_template("formal_params.tmpl", params) }} ) : {{ r
 {% endfor %}
 {%- endif -%}
 begin
-{%- if exists("statements") -%}
-    {%- for stmt in statements %}
+{% if exists("statements") %}
+{% for stmt in statements %}
 {{ render_template("statement.tmpl",stmt, 1) }}
-    {%- endfor -%}
-{%- endif -%}
+{% endfor %}
+{% endif %}
 end;

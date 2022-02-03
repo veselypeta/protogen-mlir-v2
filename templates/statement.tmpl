@@ -26,8 +26,9 @@ undefine {{ render_template("expression.tmpl", statement.value) }};{# -#}
 {%- endif -%}
 {% if typeId == "alias" %}
 alias {{ statement.alias }} : {{ render_template("expression.tmpl", statement.expr) }} do
-{% for stmt in statement.statements %}{{ render_template("statement.tmpl", stmt, 1) }}{% endfor %}
-
+{% for stmt in statement.statements %}
+{{ render_template("statement.tmpl", stmt, 1) }}
+{%- endfor %}
 end;
 {% endif %}
 {% if typeId == "switch" %}

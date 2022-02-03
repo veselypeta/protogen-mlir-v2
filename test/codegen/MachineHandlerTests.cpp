@@ -148,7 +148,7 @@ TEST(RuleTest, SWMRInvariantTest) {
                      "    forall c1 : OBJSET_cache do\n"
                      "        forall c2 : OBJSET_cache do\n"
                      "            forall a : Address do\n"
-                     "                ( c1 != c2 & i_cache[c1][a].State = M ) -> ( i_cache[c2][a].State != M )\n"
+                     "                ( c1 != c2 & i_cache[c1][a].State = cache_M ) -> ( i_cache[c2][a].State != cache_M )\n"
                      "            endforall\n"
                      "        endforall\n"
                      "    endforall;\n";

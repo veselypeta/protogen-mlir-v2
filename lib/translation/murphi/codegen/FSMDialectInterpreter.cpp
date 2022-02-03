@@ -283,12 +283,16 @@ nlohmann::json compute_mach_ss(const std::string &machId, MachineOp theMach) {
                           detail::Indexer{"array", detail::ExprID{adr_idx}}}};
 
   for (auto varOp : theMach.getOps<VariableOp>()) {
-    auto lhs = common_start; // copy the common_start
-    lhs.indexes.emplace_back(
-        detail::Indexer{"object", detail::ExprID{varOp.name().str()}});
-    std::string defaultValue = compute_default_value(varOp);
-    for_adr.stmts.emplace_back(
-        detail::Assignment<decltype(lhs), detail::ExprID>{lhs, {defaultValue}});
+    Type varOpType = varOp.getType();
+    // dont instantiate {id types or sets of id types} types
+    if(!varOpType.isa<IDType>()){
+      auto lhs = common_start; // copy the common_start
+      lhs.indexes.emplace_back(
+          detail::Indexer{"object", detail::ExprID{varOp.name().str()}});
+      std::string defaultValue = compute_default_value(varOp);
+      for_adr.stmts.emplace_back(
+          detail::Assignment<decltype(lhs), detail::ExprID>{lhs, {defaultValue}});
+    }
   }
   for_mach.stmts.emplace_back(std::move(for_adr));
   return for_mach;

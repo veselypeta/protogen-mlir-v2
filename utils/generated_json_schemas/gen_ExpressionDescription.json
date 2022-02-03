@@ -43,6 +43,24 @@
             "title": "BinaryOp",
             "type": "string"
         },
+        "ConstDecl": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "value": {
+                    "title": "value",
+                    "type": "number"
+                }
+            },
+            "required": [
+                "id",
+                "value"
+            ],
+            "title": "ConstDecl",
+            "type": "object"
+        },
         "Designator": {
             "properties": {
                 "id": {
@@ -309,26 +327,17 @@
             "properties": {
                 "decls": {
                     "items": {
-                        "properties": {
-                            "id": {
-                                "title": "id",
-                                "type": "string"
+                        "anyOf": [
+                            {
+                                "$ref": "#/definitions/ConstDecl"
                             },
-                            "type": {
-                                "$ref": "#/definitions/MurphiType",
-                                "title": "type"
+                            {
+                                "$ref": "#/definitions/TypeDecl"
                             },
-                            "typeId": {
-                                "$ref": "#/definitions/MurphiTypeId",
-                                "title": "typeId"
+                            {
+                                "$ref": "#/definitions/VarDecl"
                             }
-                        },
-                        "required": [
-                            "id",
-                            "type",
-                            "typeId"
-                        ],
-                        "type": "object"
+                        ]
                     },
                     "title": "decls",
                     "type": "array"
@@ -475,6 +484,29 @@
             "title": "ScalarsetType",
             "type": "object"
         },
+        "TypeDecl": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "id",
+                "type",
+                "typeId"
+            ],
+            "title": "TypeDecl",
+            "type": "object"
+        },
         "TypeDescription": {
             "properties": {
                 "type": {
@@ -516,6 +548,29 @@
                 "listElems"
             ],
             "title": "UnionType",
+            "type": "object"
+        },
+        "VarDecl": {
+            "properties": {
+                "id": {
+                    "title": "id",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/MurphiType",
+                    "title": "type"
+                },
+                "typeId": {
+                    "$ref": "#/definitions/MurphiTypeId",
+                    "title": "typeId"
+                }
+            },
+            "required": [
+                "id",
+                "type",
+                "typeId"
+            ],
+            "title": "VarDecl",
             "type": "object"
         }
     }

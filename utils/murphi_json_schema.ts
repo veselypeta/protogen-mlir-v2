@@ -28,12 +28,7 @@ type Decl = ConstDecl | TypeDecl | VarDecl;
 type MurphiTypeId = "record" | "enum" | "sub_range" | "array" | "ID" | "multiset" | "scalarset" | "union";
 
 interface MurphiRecord {
-    decls:
-        {
-            id: string;
-            typeId: MurphiTypeId;
-            type: MurphiType;
-        }[];
+    decls:Decl[];
 }
 
 interface Enum {
