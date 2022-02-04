@@ -303,6 +303,16 @@ def MessageVariable : FSMOp<"m_var", [Symbol, HasParent<"::mlir::fsm::MessageDec
 
 }
 
+def CompareOp : FSMOp<"comp">{
+    let summary = "Compare two values";
+    let description = [{ TODO }];
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs, StrAttr:$compOp);
+    let results = (outs I1:$result);
+    let assemblyFormat = [{
+        attr-dict $compOp $lhs`,` $rhs `:` type($lhs)`,` type($rhs)
+    }];
+}
+
 
 
 

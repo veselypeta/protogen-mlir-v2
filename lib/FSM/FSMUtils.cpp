@@ -79,8 +79,7 @@ LogicalResult inlineTransition(TransitionOp from, TransitionOp to,
   // set an inline point at the end of the 'to' transition
   Block *toEntry = to.addEntryBlock();
   rewriter.setInsertionPointToStart(toEntry);
-  auto inlinePoint = rewriter.create<ConstantOp>(rewriter.getUnknownLoc(),
-                                                 rewriter.getI64IntegerAttr(1));
+  auto inlinePoint = rewriter.create<NOPOp>(rewriter.getUnknownLoc());
 
   // make sure that from has a trailing terminator
   rewriter.setInsertionPointToEnd(&from.body().front());

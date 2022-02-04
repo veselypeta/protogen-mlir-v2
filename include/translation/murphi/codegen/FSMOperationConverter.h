@@ -24,6 +24,7 @@ private:
   void convert(mlir::fsm::AccessOp op);
   void convert(mlir::ConstantOp op);
   void convert(mlir::fsm::ConstOp op);
+  void convert(mlir::fsm::CompareOp op);
   nlohmann::json convert(mlir::fsm::SendOp op);
   nlohmann::json convert(mlir::fsm::IfOp op);
   nlohmann::json convert(mlir::Operation *op);

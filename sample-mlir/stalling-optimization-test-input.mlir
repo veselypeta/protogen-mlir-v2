@@ -113,11 +113,11 @@ fsm.machine @directory(){
             %src = fsm.ref @directory
             %msg = fsm.message @Ack "Put_Ack" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
             fsm.send %fwd %msg
-            %true = constant true
-            fsm.if %true {
+            %s_src = fsm.access {memberId = "src"} %PutM : !fsm.msg -> !fsm.id
+            %is_eq = fsm.comp "=" %s_src, %owner : !fsm.id, !fsm.id
+            fsm.if %is_eq {
                 %n_cl = fsm.access {memberId = "cl"} %PutM : !fsm.msg -> !fsm.data
                 fsm.update %cl, %n_cl : !fsm.data, !fsm.data
-
                 %n_state = fsm.constant { value="I" } : !fsm.state
                 fsm.update %State, %n_state : !fsm.state, !fsm.state
             }

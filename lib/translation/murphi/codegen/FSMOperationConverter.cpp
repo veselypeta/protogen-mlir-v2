@@ -79,6 +79,8 @@ nlohmann::json FSMOperationConverter::convert(mlir::Operation *op) {
     convert(fsmConst);
   if (auto sendOp = dyn_cast<SendOp>(op))
     return convert(sendOp);
+  if (auto compOp = dyn_cast<CompareOp>(op))
+    convert(compOp);
   return nullptr;
 }
 
@@ -147,6 +149,13 @@ void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
         op, translation::utils::mangleState(strAttr.getValue().str(),
                                             parentMach.sym_name().str() + "_"));
   }
+}
+
+void FSMOperationConverter::convert(mlir::fsm::CompareOp op) {
+  symbolTable.insert(
+      op,
+      symbolTable.lookup(op.lhs()) + op.compOp().str() + symbolTable.lookup(op.rhs())
+      );
 }
 
 nlohmann::json FSMOperationConverter::convert(mlir::fsm::SendOp op) {

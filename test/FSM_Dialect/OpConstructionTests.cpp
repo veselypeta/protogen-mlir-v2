@@ -1007,17 +1007,75 @@ TEST(OpConstructionTests, MessageVariable) {
   EXPECT_STREQ(str.c_str(), expectedText);
 }
 
-TEST(OpConstructionTests, MessageVariableParse){
+TEST(OpConstructionTests, MessageVariableParse) {
   OpHelper helper;
   auto opText = "module  {\n"
-                      "  fsm.m_decl @Resp decls  {\n"
-                      "    %cl = fsm.m_var @cl : !fsm.data\n"
-                      "  }\n"
-                      "}\n";
+                "  fsm.m_decl @Resp decls  {\n"
+                "    %cl = fsm.m_var @cl : !fsm.data\n"
+                "  }\n"
+                "}\n";
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
-  result->walk([](MessageVariable var){
+  result->walk([](MessageVariable var) {
     EXPECT_EQ(var.sym_name(), "cl");
     EXPECT_TRUE(var.getType().isa<DataType>());
   });
+}
+
+TEST(OpConstructionTests, ComparisonOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // create a send op
+  auto msgSrc = helper.builder.create<AccessOp>(
+      unknLoc, MsgType::get(&helper.ctx), trans1.getArgument(0),
+      helper.builder.getStringAttr("src"));
+
+  auto msgDst = helper.builder.create<AccessOp>(
+      unknLoc, MsgType::get(&helper.ctx), trans1.getArgument(0),
+      helper.builder.getStringAttr("dst"));
+
+  helper.builder.create<CompareOp>(unknLoc, helper.builder.getI1Type(), msgSrc, msgDst, "=");
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  %testnet = fsm.network @testnet \"ordered\"\n"
+                      "  fsm.machine @cache() {\n"
+                      "    fsm.state @s1 transitions  {\n"
+                      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+                      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.msg\n"
+                      "        %1 = fsm.access {memberId = \"dst\"} %arg0 : !fsm.msg -> !fsm.msg\n"
+                      "        %2 = fsm.comp \"=\" %0, %1 : !fsm.msg, !fsm.msg\n"
+                      "      }\n"
+                      "    }\n"
+                      "  }\n"
+                      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
 }
