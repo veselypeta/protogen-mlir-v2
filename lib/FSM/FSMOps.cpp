@@ -238,6 +238,20 @@ void MessageVariable::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
   setNameFn(this->result(), this->sym_name());
 }
+
+//===----------------------------------------------------------------------===//
+// Set Add Op
+//===----------------------------------------------------------------------===//
+
+static LogicalResult verifySetAdd(SetAdd op){
+  if(!op.theSet().getType().isa<SetType>())
+    return op.emitOpError("The first parameter must be a set");
+  auto setType = op.theSet().getType().cast<SetType>();
+  if(setType.getElementType().getTypeID() != op.value().getType().getTypeID())
+    return op.emitOpError("value operand type must match set element type");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//

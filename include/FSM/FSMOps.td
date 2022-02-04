@@ -313,6 +313,26 @@ def CompareOp : FSMOp<"comp">{
     }];
 }
 
+def AddOp : FSMOp<"add">{
+    let summary = "Add two values together";
+    let description = [{ TODO }];
+    let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs I64:$result);
+    let assemblyFormat = [{
+        attr-dict $lhs `,` $rhs `:` type($lhs) `,` type($rhs)
+    }];
+}
+
+def SetAdd : FSMOp<"set_add">{
+    let summary = "add an element to a set";
+    let description = [{ TODO }];
+    let arguments = (ins AnyType:$theSet, AnyType:$value);
+    let assemblyFormat = [{
+        attr-dict $theSet `,` $value `:` type($theSet) `,` type($value)
+    }];
+    let verifier = [{return ::verify$cppClass(*this); }];
+}
+
 
 
 

@@ -1058,7 +1058,67 @@ TEST(OpConstructionTests, ComparisonOp) {
       unknLoc, MsgType::get(&helper.ctx), trans1.getArgument(0),
       helper.builder.getStringAttr("dst"));
 
-  helper.builder.create<CompareOp>(unknLoc, helper.builder.getI1Type(), msgSrc, msgDst, "=");
+  helper.builder.create<CompareOp>(unknLoc, helper.builder.getI1Type(), msgSrc,
+                                   msgDst, "=");
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> "
+      "!fsm.msg\n"
+      "        %1 = fsm.access {memberId = \"dst\"} %arg0 : !fsm.msg -> "
+      "!fsm.msg\n"
+      "        %2 = fsm.comp \"=\" %0, %1 : !fsm.msg, !fsm.msg\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, AddOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // create two constant
+  auto c1 = helper.builder.create<ConstOp>(unknLoc, helper.builder.getI64Type(),
+                                           helper.builder.getStringAttr("1"));
+  auto c2 = helper.builder.create<ConstOp>(unknLoc, helper.builder.getI64Type(),
+                                           helper.builder.getStringAttr("1"));
+
+  // create the add op
+  helper.builder.create<AddOp>(unknLoc, helper.builder.getI64Type(), c1, c2);
 
   // print out the result
   std::string str;
@@ -1070,12 +1130,117 @@ TEST(OpConstructionTests, ComparisonOp) {
                       "  fsm.machine @cache() {\n"
                       "    fsm.state @s1 transitions  {\n"
                       "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
-                      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.msg\n"
-                      "        %1 = fsm.access {memberId = \"dst\"} %arg0 : !fsm.msg -> !fsm.msg\n"
-                      "        %2 = fsm.comp \"=\" %0, %1 : !fsm.msg, !fsm.msg\n"
+                      "        %0 = fsm.constant {value = \"1\"} : i64\n"
+                      "        %1 = fsm.constant {value = \"1\"} : i64\n"
+                      "        %2 = fsm.add %0, %1 : i64, i64\n"
                       "      }\n"
                       "    }\n"
                       "  }\n"
                       "}\n";
   EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, AddOpParse) {
+  OpHelper helper;
+  auto opText = "module  {\n"
+                "  %testnet = fsm.network @testnet \"ordered\"\n"
+                "  fsm.machine @cache() {\n"
+                "    fsm.state @s1 transitions  {\n"
+                "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+                "        %0 = fsm.constant {value = \"1\"} : i64\n"
+                "        %1 = fsm.constant {value = \"1\"} : i64\n"
+                "        %2 = fsm.add %0, %1 : i64, i64\n"
+                "      }\n"
+                "    }\n"
+                "  }\n"
+                "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](AddOp addOp) {
+    EXPECT_TRUE(addOp.getType().isa<IntegerType>());
+    EXPECT_TRUE(addOp.lhs().getType().isa<IntegerType>());
+    EXPECT_TRUE(addOp.rhs().getType().isa<IntegerType>());
+  });
+}
+
+TEST(OpConstructionTests, SetAddOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a set variable
+  auto setVar = helper.builder.create<VariableOp>(
+      unknLoc, SetType::get(IDType::get(&helper.ctx), 3), nullptr, "set");
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // access the cl
+  auto access = helper.builder.create<AccessOp>(unknLoc, IDType::get(&helper.ctx), trans1.getArgument(0), "src");
+
+  // set add op
+  helper.builder.create<SetAdd>(unknLoc, setVar, access);
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.id\n"
+      "        fsm.set_add %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+
+TEST(OpConstructionTests, SetAddParse) {
+  OpHelper helper;
+  auto opText  =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.id\n"
+      "        fsm.set_add %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](SetAdd addOp) {
+    EXPECT_TRUE(addOp.theSet().getType().isa<SetType>());
+    EXPECT_TRUE(addOp.value().getType().isa<IDType>());
+  });
 }
