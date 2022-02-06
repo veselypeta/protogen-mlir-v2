@@ -1568,3 +1568,80 @@ TEST(OpConstructionTests, SetDeleteParse) {
     EXPECT_TRUE(delOp.value().getType().isa<IDType>());
   });
 }
+
+
+TEST(OpConstructionTests, SetClearOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a set variable
+  auto setVar = helper.builder.create<VariableOp>(
+      unknLoc, SetType::get(IDType::get(&helper.ctx), 3), nullptr, "set");
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+
+  // set clear op
+  helper.builder.create<SetClear>(unknLoc, setVar);
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        fsm.set_clear %set : !fsm.set<!fsm.id, 3>\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, SetClearParse) {
+  OpHelper helper;
+  auto opText  =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        fsm.set_clear %set : !fsm.set<!fsm.id, 3>\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](SetClear setClear) {
+    EXPECT_TRUE(setClear.theSet().getType().isa<SetType>());
+  });
+}

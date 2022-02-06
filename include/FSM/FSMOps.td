@@ -374,6 +374,16 @@ def SetDelete : FSMOp<"set_delete">{
     let verifier = [{return ::verify$cppClass(*this); }];
 }
 
+def SetClear : FSMOp<"set_clear">{
+    let summary = "clear all elements in the set";
+    let description = [{ TODO }];
+    let arguments = (ins AnyType:$theSet);
+    let assemblyFormat = [{
+        attr-dict $theSet `:` type($theSet)
+    }];
+    let verifier = [{return ::verify$cppClass(*this); }];
+}
+
 
 
 

@@ -291,6 +291,14 @@ static LogicalResult verifySetDelete(SetDelete op){
 }
 
 //===----------------------------------------------------------------------===//
+// Set Clear Op
+//===----------------------------------------------------------------------===//
+static LogicalResult verifySetClear(SetClear op){
+  if(!op.theSet().getType().isa<SetType>())
+    return op.emitOpError("The set operand must be of type !fms.set");
+  return success();
+}
+//===----------------------------------------------------------------------===//
 // TableGen generated logic
 //===----------------------------------------------------------------------===//
 

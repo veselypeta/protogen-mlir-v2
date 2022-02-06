@@ -259,7 +259,7 @@ fsm.machine @directory(){
             %ack_m = fsm.message @Ack "Inv" %src, %src : !fsm.id, !fsm.id -> !fsm.msg
             fsm.multicast %fwd %ack_m %cache : !fsm.set<!fsm.id, 3>
             fsm.update %owner, %src : !fsm.id, !fsm.id
-
+            fsm.set_clear %cache : !fsm.set<!fsm.id, 3>
 
         }
 
