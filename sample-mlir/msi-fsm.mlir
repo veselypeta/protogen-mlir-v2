@@ -215,8 +215,57 @@ fsm.machine @directory(){
         fsm.transition @GetM(%msg : !fsm.msg) attributes {nextState=@M}{
             %m_src = fsm.ref @directory
             %m_dst = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %m_cnt = fsm.set_count %cache : !fsm.set<!fsm.id, 3>
+            %n_msg = fsm.message @RespAck "GetM_Ack_AD" %m_src, %m_dst, %cl, %m_cnt : !fsm.id, !fsm.id, !fsm.data, i64 -> !fsm.msg
+
+            %n_own = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            fsm.update %owner, %n_own : !fsm.id, !fsm.id
+        }
+    } // end I
+
+    fsm.state @S transitions {
+
+        fsm.transition @GetS(%msg : !fsm.msg) attributes {nextState=@S} {
+            %src = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            fsm.set_add %cache, %src : !fsm.set<!fsm.id, 3>, !fsm.id
+
+            %m_src = fsm.ref @directory
+            %m_dst = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %n_msg = fsm.message @Resp "GetS_Ack" %m_src, %m_dst, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
+            fsm.send %resp %n_msg
         }
 
-    } // end I
+        fsm.transition @Upgrade(%msg : !fsm.msg) {
+            %src = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %contains = fsm.set_contains %cache, %src : !fsm.set<!fsm.id, 3>, !fsm.id
+            fsm.if %contains {
+                %u_src = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+                fsm.set_delete %cache, %u_src : !fsm.set<!fsm.id, 3>, !fsm.id
+                %c_cnt = fsm.set_count %cache : !fsm.set<!fsm.id, 3>
+                %self = fsm.ref @directory
+                %s_msg = fsm.message @RespAck "GetM_Ack_AD" %self, %u_src, %cl, %c_cnt : !fsm.id, !fsm.id, !fsm.data, i64 -> !fsm.msg
+                fsm.send %resp %s_msg
+                %m_state = fsm.constant {value = "M"} : !fsm.state
+                fsm.update %State, %m_state : !fsm.state, !fsm.state
+            } else {
+                %u_src = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+                %c_cnt = fsm.set_count %cache : !fsm.set<!fsm.id, 3>
+                %self = fsm.ref @directory
+                %s_msg = fsm.message @RespAck "GetM_Ack_AD" %self, %u_src, %cl, %c_cnt : !fsm.id, !fsm.id, !fsm.data, i64 -> !fsm.msg
+                fsm.send %resp %s_msg
+                %m_state = fsm.constant {value = "M"} : !fsm.state
+                fsm.update %State, %m_state : !fsm.state, !fsm.state
+            }
+            %ack_m = fsm.message @Ack "Inv" %src, %src : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.multicast %fwd %ack_m %cache : !fsm.set<!fsm.id, 3>
+            fsm.update %owner, %src : !fsm.id, !fsm.id
+
+
+        }
+
+    } // end S
+
+
+
 
 }

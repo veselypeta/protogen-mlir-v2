@@ -783,6 +783,86 @@ TEST(OpConstructionTests, SendOpParse) {
   });
 }
 
+TEST(OpConstructionTests, MulticastOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  auto network = helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a set
+  auto theSet = helper.builder.create<VariableOp>(
+      unknLoc, SetType::get(IDType::get(&helper.ctx), 3), nullptr, "mySet");
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // create a send op
+  helper.builder.create<MulticastOp>(unknLoc, network, trans1.getArgument(0),
+                                     theSet);
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %mySet = fsm.variable \"mySet\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        fsm.multicast %testnet %arg0 %mySet : !fsm.set<!fsm.id, 3>\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, MulticastOpParse) {
+  OpHelper helper;
+  auto opText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %mySet = fsm.variable \"mySet\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        fsm.multicast %testnet %arg0 %mySet : !fsm.set<!fsm.id, 3>\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+
+  result->walk([](MulticastOp multicastOp) {
+    EXPECT_TRUE(multicastOp.message().getType().isa<MsgType>());
+    EXPECT_TRUE(multicastOp.network().getType().isa<NetworkType>());
+    EXPECT_TRUE(multicastOp.theSet().getType().isa<SetType>());
+  });
+}
+
 TEST(OpConstructionTests, DeferMsg) {
   OpHelper helper;
   Location unknLoc = helper.builder.getUnknownLoc();
@@ -1195,7 +1275,8 @@ TEST(OpConstructionTests, SetAddOp) {
   helper.builder.setInsertionPointToStart(t1Entry);
 
   // access the cl
-  auto access = helper.builder.create<AccessOp>(unknLoc, IDType::get(&helper.ctx), trans1.getArgument(0), "src");
+  auto access = helper.builder.create<AccessOp>(
+      unknLoc, IDType::get(&helper.ctx), trans1.getArgument(0), "src");
 
   // set add op
   helper.builder.create<SetAdd>(unknLoc, setVar, access);
@@ -1212,7 +1293,8 @@ TEST(OpConstructionTests, SetAddOp) {
       "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
       "    fsm.state @s1 transitions  {\n"
       "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
-      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.id\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> "
+      "!fsm.id\n"
       "        fsm.set_add %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
       "      }\n"
       "    }\n"
@@ -1221,26 +1303,268 @@ TEST(OpConstructionTests, SetAddOp) {
   EXPECT_STREQ(str.c_str(), expectedText);
 }
 
-
 TEST(OpConstructionTests, SetAddParse) {
   OpHelper helper;
-  auto opText  =
+  auto opText = "module  {\n"
+                "  %testnet = fsm.network @testnet \"ordered\"\n"
+                "  fsm.machine @cache() {\n"
+                "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+                "    fsm.state @s1 transitions  {\n"
+                "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+                "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg "
+                "-> !fsm.id\n"
+                "        fsm.set_add %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+                "      }\n"
+                "    }\n"
+                "  }\n"
+                "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](SetAdd addOp) {
+    EXPECT_TRUE(addOp.theSet().getType().isa<SetType>());
+    EXPECT_TRUE(addOp.value().getType().isa<IDType>());
+  });
+}
+
+TEST(OpConstructionTests, SetCountOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a set variable
+  auto setVar = helper.builder.create<VariableOp>(
+      unknLoc, SetType::get(IDType::get(&helper.ctx), 3), nullptr, "set");
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // count the set
+  helper.builder.create<SetCount>(unknLoc, helper.builder.getI64Type(), setVar);
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText = "module  {\n"
+                      "  %testnet = fsm.network @testnet \"ordered\"\n"
+                      "  fsm.machine @cache() {\n"
+                      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+                      "    fsm.state @s1 transitions  {\n"
+                      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+                      "        %0 = fsm.set_count %set : !fsm.set<!fsm.id, 3>\n"
+                      "      }\n"
+                      "    }\n"
+                      "  }\n"
+                      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, SetCountParse) {
+  OpHelper helper;
+  auto opText = "module  {\n"
+                "  %testnet = fsm.network @testnet \"ordered\"\n"
+                "  fsm.machine @cache() {\n"
+                "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+                "    fsm.state @s1 transitions  {\n"
+                "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+                "        %0 = fsm.set_count %set : !fsm.set<!fsm.id, 3>\n"
+                "      }\n"
+                "    }\n"
+                "  }\n"
+                "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](SetCount cnt) {
+    EXPECT_TRUE(cnt.theSet().getType().isa<SetType>());
+    EXPECT_TRUE(cnt.count().getType().isa<IntegerType>());
+  });
+}
+
+TEST(OpConstructionTests, SetContainsOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a set variable
+  auto setVar = helper.builder.create<VariableOp>(
+      unknLoc, SetType::get(IDType::get(&helper.ctx), 3), nullptr, "set");
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // access the cl
+  auto access = helper.builder.create<AccessOp>(
+      unknLoc, IDType::get(&helper.ctx), trans1.getArgument(0), "src");
+
+  // set add op
+  helper.builder.create<SetContains>(unknLoc, helper.builder.getI1Type(),
+                                     setVar, access);
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
       "module  {\n"
       "  %testnet = fsm.network @testnet \"ordered\"\n"
       "  fsm.machine @cache() {\n"
       "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
       "    fsm.state @s1 transitions  {\n"
       "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
-      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> !fsm.id\n"
-      "        fsm.set_add %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> "
+      "!fsm.id\n"
+      "        %1 = fsm.set_contains %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, SetContainsParse) {
+  OpHelper helper;
+  auto opText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> "
+      "!fsm.id\n"
+      "        %1 = fsm.set_contains %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
       "      }\n"
       "    }\n"
       "  }\n"
       "}\n";
   auto result = parseSourceString(opText, &helper.ctx);
   ASSERT_NE(*result, nullptr);
-  result->walk([](SetAdd addOp) {
-    EXPECT_TRUE(addOp.theSet().getType().isa<SetType>());
-    EXPECT_TRUE(addOp.value().getType().isa<IDType>());
+  result->walk([](SetContains setContainsOp) {
+    EXPECT_TRUE(setContainsOp.theSet().getType().isa<SetType>());
+    EXPECT_TRUE(setContainsOp.value().getType().isa<IDType>());
+  });
+}
+
+TEST(OpConstructionTests, SetDeleteOp) {
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  // create a network
+  /*auto network = */ helper.builder.create<NetworkOp>(
+      unknLoc, NetworkType::get(&helper.ctx), "ordered",
+      helper.builder.getSymbolRefAttr("testnet"));
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a set variable
+  auto setVar = helper.builder.create<VariableOp>(
+      unknLoc, SetType::get(IDType::get(&helper.ctx), 3), nullptr, "set");
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  // access the cl
+  auto access = helper.builder.create<AccessOp>(
+      unknLoc, IDType::get(&helper.ctx), trans1.getArgument(0), "src");
+
+  // set delete op
+  helper.builder.create<SetDelete>(unknLoc, setVar, access);
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> "
+      "!fsm.id\n"
+      "        fsm.set_delete %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, SetDeleteParse) {
+  OpHelper helper;
+  auto opText =
+      "module  {\n"
+      "  %testnet = fsm.network @testnet \"ordered\"\n"
+      "  fsm.machine @cache() {\n"
+      "    %set = fsm.variable \"set\" : !fsm.set<!fsm.id, 3>\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        %0 = fsm.access {memberId = \"src\"} %arg0 : !fsm.msg -> "
+      "!fsm.id\n"
+      "        fsm.set_delete %set, %0 : !fsm.set<!fsm.id, 3>, !fsm.id\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](SetDelete delOp) {
+    EXPECT_TRUE(delOp.theSet().getType().isa<SetType>());
+    EXPECT_TRUE(delOp.value().getType().isa<IDType>());
   });
 }

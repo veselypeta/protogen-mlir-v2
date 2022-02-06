@@ -170,18 +170,24 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::IfOp op) {
   auto condText = symbolTable.lookup(op.condition());
   auto ifStmt =
       murphi::detail::IfStmt<murphi::detail::ExprID>{{condText}, {}, {}};
-  for (auto &thenOp : op.thenRegion().getOps()) {
-    auto convertedStmt = convert(&thenOp);
-    if (convertedStmt != nullptr)
-      ifStmt.thenStmts.emplace_back(convertedStmt);
-  }
+  {
+    // instantiate a new symbol table -> for the then scope
+    SymbolTableScopeT thenScope(symbolTable);
+    for (auto &thenOp : op.thenRegion().getOps()) {
+      auto convertedStmt = convert(&thenOp);
+      if (convertedStmt != nullptr)
+        ifStmt.thenStmts.emplace_back(convertedStmt);
+    }
+  } // then scope deallocated here
   if (!op.elseRegion().empty()) {
+    // ST for the else scope
+    SymbolTableScopeT elseScope(symbolTable);
     for (auto &elseOp : op.elseRegion().getOps()) {
       auto convertedStmt = convert(&elseOp);
       if (convertedStmt != nullptr)
         ifStmt.elseStmts.emplace_back(convert(&elseOp));
     }
-  }
+  } // else scope deallocated here
   return ifStmt;
 }
 

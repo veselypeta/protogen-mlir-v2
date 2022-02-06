@@ -240,10 +240,48 @@ void MessageVariable::getAsmResultNames(
 }
 
 //===----------------------------------------------------------------------===//
+// Multicast Op
+//===----------------------------------------------------------------------===//
+static LogicalResult verifyMulticastOp(MulticastOp op){
+  if(!op.theSet().getType().isa<SetType>())
+    return op.emitOpError("operand is not of set type");
+  auto setType = op.theSet().getType().cast<SetType>();
+  if(!setType.getElementType().isa<IDType>())
+    return op.emitOpError("the element type of the set is not ID");
+  if(op.network().getDefiningOp<NetworkOp>().ordering() != "ordered")
+    op.emitOpError("can only multicast to ordered networks");
+  return success();
+}
+
+
+//===----------------------------------------------------------------------===//
 // Set Add Op
 //===----------------------------------------------------------------------===//
-
 static LogicalResult verifySetAdd(SetAdd op){
+  if(!op.theSet().getType().isa<SetType>())
+    return op.emitOpError("The first parameter must be a set");
+  auto setType = op.theSet().getType().cast<SetType>();
+  if(setType.getElementType().getTypeID() != op.value().getType().getTypeID())
+    return op.emitOpError("value operand type must match set element type");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Set Contains Op
+//===----------------------------------------------------------------------===//
+static LogicalResult verifySetContains(SetContains op){
+  if(!op.theSet().getType().isa<SetType>())
+    return op.emitOpError("The first parameter must be a set");
+  auto setType = op.theSet().getType().cast<SetType>();
+  if(setType.getElementType().getTypeID() != op.value().getType().getTypeID())
+    return op.emitOpError("value operand type must match set element type");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Set Delete Op
+//===----------------------------------------------------------------------===//
+static LogicalResult verifySetDelete(SetDelete op){
   if(!op.theSet().getType().isa<SetType>())
     return op.emitOpError("The first parameter must be a set");
   auto setType = op.theSet().getType().cast<SetType>();

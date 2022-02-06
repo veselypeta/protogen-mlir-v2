@@ -258,6 +258,16 @@ def SendOp : FSMOp<"send", []>{
     }];
 }
 
+def MulticastOp : FSMOp<"multicast">{
+    let summary = "multicast a message based on entries in a set";
+    let description = [{}];
+    let arguments = (ins NetworkType:$network, MsgType:$message, AnyType:$theSet);
+    let assemblyFormat = [{
+        attr-dict $network $message $theSet `:` type($theSet)
+    }];
+    let verifier = [{ return ::verify$cppClass(*this); }];
+}
+
 def DeferMsg : FSMOp<"defer", []>{
     let summary = "Pushes a message to a buffer to be sent at a later point";
     let description = [{ TODO }];
@@ -326,6 +336,37 @@ def AddOp : FSMOp<"add">{
 def SetAdd : FSMOp<"set_add">{
     let summary = "add an element to a set";
     let description = [{ TODO }];
+    let arguments = (ins AnyType:$theSet, AnyType:$value);
+    let assemblyFormat = [{
+        attr-dict $theSet `,` $value `:` type($theSet) `,` type($value)
+    }];
+    let verifier = [{return ::verify$cppClass(*this); }];
+}
+
+def SetCount : FSMOp<"set_count">{
+    let summary = "count the number of elements in a set";
+    let description = [{ TODO }];
+    let arguments = (ins AnyType:$theSet);
+    let results = (outs I64:$count);
+    let assemblyFormat = [{
+        attr-dict $theSet `:` type($theSet)
+    }];
+}
+
+def SetContains : FSMOp<"set_contains">{
+    let summary = "returns true if the value is in the set";
+    let description = [{}];
+    let arguments = (ins AnyType:$theSet, AnyType:$value);
+    let results = (outs I1:$result);
+    let assemblyFormat = [{
+        attr-dict $theSet `,` $value `:` type($theSet) `,` type($value)
+    }];
+    let verifier = [{return ::verify$cppClass(*this); }];
+}
+
+def SetDelete : FSMOp<"set_delete">{
+    let summary = "deletes an element from a set";
+    let description = [{}];
     let arguments = (ins AnyType:$theSet, AnyType:$value);
     let assemblyFormat = [{
         attr-dict $theSet `,` $value `:` type($theSet) `,` type($value)
