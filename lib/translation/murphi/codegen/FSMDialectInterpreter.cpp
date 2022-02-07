@@ -26,11 +26,11 @@ json getMurphiMachineStatements(llvm::StringRef state, llvm::StringRef action,
   return opConverter.convert(transOp);
 }
 
-std::string mapFSMTypeToMurphiType(VariableOp var) {
-  auto t = var.getType();
-  if (t.isa<StateType>())
-    return var->getParentOfType<MachineOp>().sym_name().str() +
-           murphi::detail::state_suffix;
+std::string mapFSMTypeToMurphiType(Type t) {
+  if (t.isa<RangeType>()) {
+    auto rt = t.cast<RangeType>();
+    return std::to_string(rt.getStart()) + ".." + std::to_string(rt.getEnd());
+  }
 
   if (t.isa<IDType>())
     return murphi::detail::e_machines_t;
@@ -42,6 +42,19 @@ std::string mapFSMTypeToMurphiType(VariableOp var) {
     return murphi::detail::r_message_t;
 
   assert(0 && "variable op has invalid type");
+}
+std::string mapFSMTypeToMurphiType(VariableOp var) {
+  Type t = var.getType();
+  if (t.isa<StateType>())
+    return var->getParentOfType<MachineOp>().sym_name().str() +
+           murphi::detail::state_suffix;
+  if (t.isa<SetType>()) {
+    auto st = t.cast<SetType>();
+    return murphi::detail::Set{mapFSMTypeToMurphiType(st.getElementType()),
+                               st.getNumElements()}
+        .getSetId();
+  }
+  return mapFSMTypeToMurphiType(var.getType());
 }
 
 json convertMachineType(MachineOp mach) {
@@ -229,6 +242,41 @@ std::vector<std::string> FSMDialectInterpreter::getCacheStableStateNames() {
   return {outs.begin(), outs.end()};
 }
 
+json FSMDialectInterpreter::getSetTypes() {
+  json data;
+  theModule.walk([&](VariableOp varOp) {
+    if (varOp.getType().isa<SetType>()) {
+      auto st = varOp.getType().cast<SetType>();
+      auto theSet = detail::Set{mapFSMTypeToMurphiType(st.getElementType()),
+                                st.getNumElements()};
+      setTypeMap.insert({st, theSet});
+      // push back the decls
+      json jsonified = theSet;
+      for (auto &j : jsonified)
+        data.push_back(j);
+    }
+  });
+  return data;
+}
+
+nlohmann::json FSMDialectInterpreter::getSetOperationImpl() {
+  json data = json::array();
+  for(auto &elem : setTypeMap){
+    auto theSet = elem.second;
+    // .add()
+    data.push_back(detail::SetAdd{theSet});
+    // .count()
+    data.push_back(detail::SetCount{theSet});
+    // .contains()
+    data.push_back(detail::SetContains{theSet});
+    // .del()
+    data.push_back(detail::SetDelete{theSet});
+    // .clear()
+    data.push_back(detail::SetClear{theSet});
+  }
+  return data;
+}
+
 json FSMDialectInterpreter::getCacheType() {
   auto theCache = theModule.lookupSymbol<MachineOp>("cache");
   return convertMachineType(theCache);
@@ -255,7 +303,9 @@ std::string compute_default_value(VariableOp varOp) {
                         ? detail::directory_state_prefix
                         : detail::cache_state_prefix;
   if (varOp.initValue().hasValue()) {
-    if (auto attr = varOp.initValueAttr().cast<StringAttr>()) {
+    auto initAttr = varOp.initValueAttr();
+    if (initAttr.isa<StringAttr>()) {
+      auto attr = initAttr.cast<StringAttr>();
       // special case for state types -> we need to mangle
       auto init = attr.getValue().str();
       if (varOp.getType().isa<StateType>()) {
@@ -285,13 +335,14 @@ nlohmann::json compute_mach_ss(const std::string &machId, MachineOp theMach) {
   for (auto varOp : theMach.getOps<VariableOp>()) {
     Type varOpType = varOp.getType();
     // dont instantiate {id types or sets of id types} types
-    if(!varOpType.isa<IDType>()){
+    if (!varOpType.isa<IDType>()) {
       auto lhs = common_start; // copy the common_start
       lhs.indexes.emplace_back(
           detail::Indexer{"object", detail::ExprID{varOp.name().str()}});
       std::string defaultValue = compute_default_value(varOp);
       for_adr.stmts.emplace_back(
-          detail::Assignment<decltype(lhs), detail::ExprID>{lhs, {defaultValue}});
+          detail::Assignment<decltype(lhs), detail::ExprID>{lhs,
+                                                            {defaultValue}});
     }
   }
   for_mach.stmts.emplace_back(std::move(for_adr));

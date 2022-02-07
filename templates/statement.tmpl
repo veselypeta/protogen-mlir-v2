@@ -37,3 +37,6 @@ end;
 {% if typeId == "return" %}
 return {{ render_template("expression.tmpl", statement.value) }};
 {% endif %}
+{% if typeId=="ms_rem_pred"%}
+MultisetRemovePred({{ statement.varId }}:{{ render_template("expression.tmpl", statement.varValue) }}, {{ render_template("expression.tmpl", statement.predicate) }});{# -#}
+{% endif %}

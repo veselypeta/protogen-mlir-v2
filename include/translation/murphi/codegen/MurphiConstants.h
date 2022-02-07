@@ -23,6 +23,7 @@ namespace detail {
 // sr_  : refers to an integer SubRange
 // r_   : refers to a record
 // a_   : refers to an array
+// v_   : refers to a set (or vector)
 
 // a map to each type of machine
 constexpr struct {
@@ -47,6 +48,16 @@ constexpr char ObjKey[] = "OBJ_";
 constexpr char Initval[] = "INITVAL";
 constexpr char CLIdent_t[] = "CL";
 constexpr char CntKey[] = "cnt_";
+
+// *** Sets *** //
+constexpr auto SetPrefix = "v_";
+constexpr auto AddPrefix = "add_";
+constexpr auto CountPrefix = "count_";
+constexpr auto ContainsPrefix = "contains_";
+constexpr auto DeletePrefix = "delete_";
+constexpr auto ClearPrefix = "clear_";
+constexpr auto c_set_var = "sv";
+constexpr auto c_set_elem = "n";
 
 // Network Parameters
 constexpr char c_ordered_t[] = "O_NET_MAX";

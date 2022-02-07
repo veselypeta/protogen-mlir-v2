@@ -99,6 +99,7 @@ interface MurphiProcedure {
 interface Formal {
     id: ID;
     type: TypeDescription;
+    passByReference: boolean;
 }
 
 interface FwdDecl {
@@ -106,8 +107,8 @@ interface FwdDecl {
     decl: TypeDecl | VarDecl | ConstDecl;
 }
 
-type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt | ProcCall | AliasStmt | SwitchStmt | ReturnStmt;
-type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine" | "proc_call" | "alias" | "switch" | "return";
+type Statement = AssignmentStmt | AssertStmt | ForStmt | IfStmt | UndefineStmt | ProcCall | AliasStmt | SwitchStmt | ReturnStmt | MultisetRemovePred;
+type StatementType = 'assignment' | 'assert' | "for" | "if" | "undefine" | "proc_call" | "alias" | "switch" | "return"  | "ms_rem_pred";
 
 interface AssignmentStmt {
     lhs: DesignatorDescription;
@@ -198,6 +199,12 @@ interface NegExpr {
 }
 
 interface MultisetCount{
+    varId: ID;
+    varValue: ExpressionDescription;
+    predicate: ExpressionDescription;
+}
+
+interface MultisetRemovePred{
     varId: ID;
     varValue: ExpressionDescription;
     predicate: ExpressionDescription;

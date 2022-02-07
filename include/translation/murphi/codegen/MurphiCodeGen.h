@@ -165,6 +165,12 @@ private:
             detail::ss_cache_val_t, {0, detail::c_val_cnt_t}});
   }
 
+  void assembleSetTypes(nlohmann::json &data){
+    for(nlohmann::json &set : interpreter.getSetTypes()){
+      data["decls"]["type_decls"].emplace_back(set);
+    }
+  }
+
   void assembleMachineSets(nlohmann::json &data) {
     auto add_mach_decl_type = [&](const std::string &machine) {
       if (machine == detail::machines.cache) {
@@ -188,24 +194,11 @@ private:
         detail::e_machines_t,
         {{detail::cache_set_t(), detail::directory_set_t()}}});
 
-    // TODO - add counters for necessary ranges;
+    // Counts for ranges
+    assembleSetTypes(data);
   }
 
   void assembleMultipleAddresses(nlohmann::json &data) {
-    //  MACH_cache: record
-    //        CL: array[Address] of ENTRY_cache;
-    //    end;
-
-//    auto get_rec_def = [](const std::string &machId){
-//      auto inner = detail::VarDecl<detail::Array<detail::ID, detail::ID>>{
-//        detail::CLIdent_t, {{detail::ss_address_t}, {detail::SetKey + machId}}};
-//      auto full =  detail::TypeDecl<detail::RecordV2>{detail::cache_mach_t(), {{inner}}};
-//    };
-//    auto recDecl = detail::VarDecl<detail::Array<detail::ID, detail::ID>>{
-//        detail::CLIdent_t, {{detail::ss_address_t}, {detail::cache_set_t()}}};
-//    auto cacheAdrRec =
-//        detail::TypeDecl<detail::RecordV2>{detail::cache_mach_t(), {{recDecl}}};
-
     detail::TypeDecl<detail::Array<detail::ID, detail::ID>> cacheMach{
         detail::cache_mach_t(),
         {{detail::ss_address_t}, {detail::r_cache_entry_t()}}};
@@ -323,6 +316,12 @@ private:
     }
   }
 
+  void assembleSetHelperFunction(nlohmann::json &data){
+    for(nlohmann::json &func : interpreter.getSetOperationImpl()){
+      data["proc_decls"].push_back(func);
+    }
+  }
+
   template <class StateCallableT, class ConvertCallableT>
   void assembleMachineController(nlohmann::json &data,
                                  llvm::StringRef machineName,
@@ -399,6 +398,7 @@ private:
   void assembleProcedures(nlohmann::json &data) {
     assembleMessageFactories(data);
     assembleNetworkSendFunctions(data);
+    assembleSetHelperFunction(data);
     assembleCacheController(data);
     assembleDirectoryController(data);
     assembleStartStateFunctions(data);

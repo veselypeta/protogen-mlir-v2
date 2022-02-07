@@ -1,4 +1,4 @@
 {# This template renders a list of formal parameters #}
 {%- for param in params -%}
-{%- if loop/is_last %}{{ param.id }} : {{ render_template("type_expr.tmpl", param.type) }}{% else %}{{ param.id }} : {{ render_template("type_expr.tmpl", param.type) }}; {% endif -%}
+{% if param.passByReference %}var {% endif %}{{param.id}} : {{render_template("type_expr.tmpl", param.type)}}{%if not loop/is_last %}; {% endif %}
 {%- endfor -%}

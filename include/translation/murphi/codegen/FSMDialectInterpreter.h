@@ -1,11 +1,21 @@
 #pragma once
+#include "translation/murphi/codegen/MurphiStructs.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "FSM/FSMOps.h"
 #include "nlohmann/json.hpp"
 #include "translation/utils/utils.h"
 #include <set>
 #include <vector>
 
 namespace murphi {
+
+/// Used for hashing Set Types
+class TypeHash{
+public:
+  size_t operator()(const mlir::fsm::SetType &s) const {
+    return hash_value(s);
+  }
+};
 
 class FSMDialectInterpreter {
 public:
@@ -37,6 +47,16 @@ public:
   /// get the number of caches in the simulation
   constexpr size_t getCacheSetSize() { return 3; };
 
+  /// return the type decls for any required sets used in the protocol
+  /// Set naming is the following:
+  /// v_{{ size_of_set}}_{{index_type}}
+  /// i.e. v_3_Machines
+  nlohmann::json getSetTypes();
+
+  /// return the implementation of each set operations for every set type
+  /// i.e. add, contains, del, etc.
+  nlohmann::json getSetOperationImpl();
+
   nlohmann::json getCacheType();
   nlohmann::json getDirectoryType();
 
@@ -62,6 +82,7 @@ public:
 private:
   mlir::ModuleOp theModule;
   std::set<std::pair<std::string, std::string>> mTypeElems;
+  std::unordered_map<mlir::fsm::SetType, murphi::detail::Set, TypeHash> setTypeMap;
 };
 
 } // namespace murphi

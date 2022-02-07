@@ -238,3 +238,21 @@ TEST(StatementTest, ReturnStmt) {
   EXPECT_FALSE(result.empty());
   EXPECT_STREQ(result.c_str(), "return true;\n");
 }
+
+TEST(StatementTest, MultisetRemove) {
+  auto msRem = detail::MultisetRemovePred{"i", detail::ExprID{"val"},
+                                          detail::ExprID{"true"}};
+
+  json data = msRem;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("statement.tmpl");
+  auto result = env.render(tmpl, data);
+
+  // verify json
+  std::string schema_path = std::string(JSONValidation::schema_base_directory) +
+                            "gen_StatementDescription.json";
+  bool is_valid = JSONValidation::validate_json(schema_path, data);
+  EXPECT_TRUE(is_valid);
+  EXPECT_FALSE(result.empty());
+  EXPECT_STREQ(result.c_str(), "MultisetRemovePred(i:val, true);");
+}

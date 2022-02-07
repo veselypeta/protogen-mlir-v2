@@ -136,11 +136,14 @@ void to_json(nlohmann::json &j, const Multiset<IndexT, TypeT> &m) {
 template <class TypeT> struct Formal {
   std::string id;
   TypeT type;
+  bool passByReference = false; // default pass-by-value
 };
 
 template <class TypeT>
 void to_json(nlohmann::json &j, const Formal<TypeT> &formal) {
-  j = {{"id", formal.id}, {"type", formal.type}};
+  j = {{"id", formal.id},
+       {"type", formal.type},
+       {"passByReference", formal.passByReference}};
 }
 
 // *** Forward Decls
@@ -331,6 +334,13 @@ struct MultisetCount {
 };
 void to_json(nlohmann::json &j, const MultisetCount &ms);
 
+struct MultisetRemovePred {
+  std::string varId;
+  nlohmann::json varValue;
+  nlohmann::json predicate;
+};
+void to_json(nlohmann::json &j, const MultisetRemovePred &msrp);
+
 struct ProcCall {
   std::string funId;
   std::vector<nlohmann::json> actuals;
@@ -345,8 +355,7 @@ struct ProcCallExpr {
 
 void to_json(nlohmann::json &j, const ProcCallExpr &fn);
 
-template<class QuantifierT>
-struct ForAll {
+template <class QuantifierT> struct ForAll {
   QuantifierT quantifier;
   nlohmann::json expr;
 };
@@ -357,14 +366,9 @@ struct ParensExpr {
 void to_json(nlohmann::json &j, const ParensExpr &pExpr);
 
 template <class QuantifierT>
-void to_json(nlohmann::json &j, const ForAll<QuantifierT> &fa){
-  j = {
-    {"typeId", "forall"},
-    {"expression", {
-                         {"quantifier", fa.quantifier},
-                         {"expr", fa.expr}
-                   }}
-  };
+void to_json(nlohmann::json &j, const ForAll<QuantifierT> &fa) {
+  j = {{"typeId", "forall"},
+       {"expression", {{"quantifier", fa.quantifier}, {"expr", fa.expr}}}};
 }
 
 /*
@@ -437,7 +441,7 @@ struct GenericMurphiFunction {
   std::vector<nlohmann::json> statements;
 };
 
-void to_json (nlohmann::json &j, const GenericMurphiFunction &gmf);
+void to_json(nlohmann::json &j, const GenericMurphiFunction &gmf);
 
 /// -- Ordered Send Function -- ///
 struct OrderedSendFunction {
@@ -499,6 +503,55 @@ void to_json(nlohmann::json &j, const UnorderedRuleset &urs);
 /// -- SWMR Invariant -- ///
 struct SWMRInvariant {};
 void to_json(nlohmann::json &j, const SWMRInvariant &swmrInv);
+
+/// Used to represent a set Type;
+struct Set{
+    std::string elementType;
+    size_t size;
+    std::string getSetId() const;
+    std::string getCntType() const;
+
+    // set ops
+    std::string set_add_fname() const;
+    std::string set_count_fname() const;
+    std::string set_contains_fname() const;
+    std::string set_delete_fname() const;
+    std::string set_clear_fname() const;
+};
+
+void to_json(nlohmann::json &j, const Set &theSet);
+
+// FIXME - currently set add implementations assume that element type is of type
+// ID
+/// -- Set Add -- ///
+struct SetAdd {
+  Set theSet;
+};
+void to_json(nlohmann::json &j, const SetAdd &setAdd);
+
+/// -- Set Count -- ///
+struct SetCount {
+  Set theSet;
+};
+void to_json(nlohmann::json &j, const SetCount &setAdd);
+
+/// -- Set Contains -- ///
+struct SetContains {
+  Set theSet;
+};
+void to_json(nlohmann::json &j, const SetContains &setAdd);
+
+/// -- Set Delete -- ///
+struct SetDelete {
+  Set theSet;
+};
+void to_json(nlohmann::json &j, const SetDelete &setAdd);
+
+/// -- Set Clear -- ///
+struct SetClear {
+  Set theSet;
+};
+void to_json(nlohmann::json &j, const SetClear &setAdd);
 
 } // namespace detail
 } // namespace murphi

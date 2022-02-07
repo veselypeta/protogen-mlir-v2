@@ -275,6 +275,10 @@
             "title": "id",
             "type": "string"
         },
+        "passByReference": {
+            "title": "passByReference",
+            "type": "boolean"
+        },
         "type": {
             "$ref": "#/definitions/TypeDescription",
             "title": "type"
@@ -282,6 +286,7 @@
     },
     "required": [
         "id",
+        "passByReference",
         "type"
     ],
     "type": "object"

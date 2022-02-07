@@ -162,3 +162,90 @@ TEST(FunctionTests, GenericMurphiFunction){
   ASSERT_TRUE(is_valid);
 
 }
+
+TEST(FunctionTests, SetOpAdd){
+  auto setOpAdd = detail::SetAdd{{"Machines", 3}};
+
+
+  json data = setOpAdd;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+  auto expectedText =
+      "procedure add_v_3_Machines(var sv : v_3_Machines; n : Machines);\n"
+      "begin\n"
+      "    if MultisetCount(i:sv, sv[i] = n) = 0 then\n"
+      "        MultisetAdd(n, sv);\n"
+      "    endif;\n"
+      "end;\n";
+
+  ASSERT_STREQ(result.c_str(), expectedText);
+}
+
+TEST(FunctionTests, SetOpCount){
+  auto setOpCount = detail::SetCount{{"OBJSET_cache", 5}};
+
+  json data = setOpCount;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expectedText =
+      "function count_v_5_OBJSET_cache ( var sv : v_5_OBJSET_cache ) : cnt_v_5_OBJSET_cache;\n"
+      "begin\n"
+      "    return MultisetCount(i:sv, IsMember(sv[i], OBJSET_cache));\n"
+      "end;\n";
+
+  ASSERT_STREQ(result.c_str(), expectedText);
+}
+
+TEST(FunctionTests, SetOpContains){
+  auto setOpContains = detail::SetContains{{"OBJSET_cache", 3}};
+  json data = setOpContains;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expectedText =
+      "function contains_v_3_OBJSET_cache ( var sv : v_3_OBJSET_cache; n : OBJSET_cache ) : boolean;\n"
+      "begin\n"
+      "    return MultisetCount(i:sv, sv[i] = n) = 1;\n"
+      "end;\n";
+
+  ASSERT_STREQ(result.c_str(), expectedText);
+
+}
+
+TEST(FunctionTests, SetOpDelete){
+  auto setOpDelete = detail::SetDelete{{"OBJSET_cache", 3}};
+  json data = setOpDelete;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expectedText =
+      "procedure delete_v_3_OBJSET_cache(var sv : v_3_OBJSET_cache; n : OBJSET_cache);\n"
+      "begin\n"
+      "    if MultisetCount(i:sv, sv[i] = n) = 1 then\n"
+      "        MultisetRemovePred(i:sv, sv[i] = n);\n"
+      "    endif;\n"
+      "end;\n";
+
+  ASSERT_STREQ(result.c_str(), expectedText);
+}
+
+TEST(FunctionTests, SetOpClear){
+  auto setOpClear = detail::SetClear{{"OBJSET_cache", 3}};
+  json data = setOpClear;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expectedText =
+      "procedure clear_v_3_OBJSET_cache(var sv : v_3_OBJSET_cache);\n"
+      "begin\n"
+      "    MultisetRemovePred(i:sv, true);\n"
+      "end;\n";
+
+  ASSERT_STREQ(result.c_str(), expectedText);
+}

@@ -39,13 +39,8 @@ void to_json(json &j, const Record &r) {
   j = {{"typeId", "record"}, {"type", {{"decls", decls}}}};
 }
 
-void to_json(json &j, const RecordV2 &r){
-  j = {
-    {"typeId", "record"},
-    {"type", {
-                 {"decls", r.decls}
-             }}
-  };
+void to_json(json &j, const RecordV2 &r) {
+  j = {{"typeId", "record"}, {"type", {{"decls", r.decls}}}};
 }
 
 /*
@@ -293,6 +288,14 @@ void to_json(json &j, const MultisetCount &ms) {
         {{"varId", ms.varId},
          {"varValue", ms.varValue},
          {"predicate", ms.predicate}}}};
+}
+
+void to_json(json &j, const MultisetRemovePred &msrp) {
+  j = {{"typeId", "ms_rem_pred"},
+       {"statement",
+        {{"varId", msrp.varId},
+         {"varValue", msrp.varValue},
+         {"predicate", msrp.predicate}}}};
 }
 
 void to_json(json &j, const ProcCall &fn) {
@@ -546,6 +549,28 @@ void to_json(json &j, const UnorderedRuleset &urs) {
   j = ruleset;
 }
 
+/// Set Type ///
+std::string Set::getSetId() const {
+  return SetPrefix + std::to_string(size) + "_" + elementType;
+}
+std::string Set::getCntType() const { return CntKey + getSetId(); }
+std::string Set::set_add_fname() const { return AddPrefix + getSetId(); }
+std::string Set::set_count_fname() const { return CountPrefix + getSetId(); }
+std::string Set::set_contains_fname() const {
+  return ContainsPrefix + getSetId();
+}
+std::string Set::set_delete_fname() const { return DeletePrefix + getSetId(); }
+std::string Set::set_clear_fname() const { return ClearPrefix + getSetId(); }
+
+void to_json(json &j, const Set &theSet) {
+  j = {TypeDecl<Multiset<ID, ID>>{
+           theSet.getSetId(),
+           {{std::to_string(theSet.size)}, {theSet.elementType}}},
+
+       TypeDecl<SubRange<size_t, size_t>>{theSet.getCntType(),
+                                          {0, theSet.size}}};
+}
+
 void to_json(json &j, const SWMRInvariant &) {
   constexpr auto cache1 = "c1";
   constexpr auto cache2 = "c2";
@@ -633,6 +658,117 @@ void to_json(json &j, const StartState &ss) {
 void to_json(json &j, const Invariant &inv) {
   j = {{"typeId", "invariant"},
        {"rule", {{"desc", inv.desc}, {"expr", inv.expr}}}};
+}
+
+/// ----------------------------------------------------------------------- ///
+/// -------- Set Operations
+/// ----------------------------------------------------------------------- ///
+void to_json(json &j, const SetAdd &setAdd) {
+
+  auto add_stmt = detail::ProcCall{detail::multiset_add_f,
+                                   {ExprID{c_set_elem}, ExprID{c_set_var}}};
+
+  auto if_cond = BinaryExpr<MultisetCount, ExprID>{
+      {"i", ExprID{c_set_var},
+       BinaryExpr<Designator, ExprID>{
+           {c_set_var, {Indexer{"array", ExprID{"i"}}}},
+           {c_set_elem},
+           BinaryOps.eq}},
+      {"0"},
+      BinaryOps.eq};
+
+  auto if_stmt = IfStmt<decltype(if_cond)>{if_cond, {add_stmt}, {}};
+
+  j = {
+      {"procType", "procedure"},
+      {"def",
+       {{"id", setAdd.theSet.set_add_fname()},
+        {"params",
+         {detail::Formal<detail::ID>{
+              detail::c_set_var, {setAdd.theSet.getSetId()}, true},
+          detail::Formal<detail::ID>{
+              detail::c_set_elem, {setAdd.theSet.elementType}, false}}},
+        {"statements", {if_stmt}}}},
+  };
+}
+void to_json(json &j, const SetCount &setCount) {
+
+  j = {{"procType", "function"},
+       {"def",
+        {{"id", setCount.theSet.set_count_fname()},
+         {"params",
+          {detail::Formal<detail::ID>{
+              detail::c_set_var, {setCount.theSet.getSetId()}, true}}},
+         {"returnType", ID{setCount.theSet.getCntType()}},
+         {"statements",
+          {ReturnStmt{MultisetCount{
+              "i", ExprID{c_set_var},
+              ProcCallExpr{
+                  is_member_f,
+                  {Designator{c_set_var, {Indexer{"array", ExprID{"i"}}}},
+                   ExprID{setCount.theSet.elementType}}}}}}}}}};
+}
+void to_json(json &j, const SetContains &setContains) {
+  j = {{"procType", "function"},
+       {"def",
+        {{"id", setContains.theSet.set_contains_fname()},
+         {"params",
+          {detail::Formal<detail::ID>{
+               detail::c_set_var, {setContains.theSet.getSetId()}, true},
+           detail::Formal<detail::ID>{
+               detail::c_set_elem, {setContains.theSet.elementType}, false}}},
+         {"returnType", ID{bool_t}},
+         {"statements",
+          {ReturnStmt{BinaryExpr<MultisetCount, ExprID>{
+              {"i", ExprID{c_set_var},
+               BinaryExpr<Designator, ExprID>{
+                   {c_set_var, {Indexer{"array", ExprID{"i"}}}},
+                   {c_set_elem},
+                   BinaryOps.eq}},
+              {"1"},
+              BinaryOps.eq}}}}}}};
+}
+void to_json(json &j, const SetDelete &setDelete) {
+  auto remove =
+      MultisetRemovePred{"i", ExprID{c_set_var},
+                         BinaryExpr<Designator, ExprID>{
+                             {c_set_var, {Indexer{"array", ExprID{"i"}}}},
+                             {c_set_elem},
+                             BinaryOps.eq}};
+
+  auto ms_count = MultisetCount{"i", ExprID{c_set_var},
+                               BinaryExpr<Designator, ExprID>{
+                                   {c_set_var, {Indexer{"array", ExprID{"i"}}}},
+                                   {c_set_elem},
+                                   BinaryOps.eq}};
+
+  auto if_cond = BinaryExpr<decltype(ms_count), ExprID>{
+      ms_count,
+      ExprID{"1"},
+      BinaryOps.eq
+  };
+  j = {{"procType", "procedure"},
+       {"def",
+        {{"id", setDelete.theSet.set_delete_fname()},
+         {"params",
+          {detail::Formal<detail::ID>{
+               detail::c_set_var, {setDelete.theSet.getSetId()}, true},
+           detail::Formal<detail::ID>{
+               detail::c_set_elem, {setDelete.theSet.elementType}, false}}},
+         {"statements", {IfStmt<decltype(if_cond)>{if_cond, {remove}, {}}}}}}};
+}
+void to_json(json &j, const SetClear &setClear) {
+  j = {
+      {"procType", "procedure"},
+      {"def", {
+                  {"id", setClear.theSet.set_clear_fname()},
+                  {"params", {detail::Formal<detail::ID>{
+                                 detail::c_set_var, {setClear.theSet.getSetId()}, true}}},
+                  {"statements", {
+                                     MultisetRemovePred{"i", ExprID{c_set_var}, ExprID{"true"}}
+                                 }}
+              }}
+  };
 }
 
 } // namespace detail

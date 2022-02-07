@@ -436,6 +436,29 @@
             "title": "MultisetCount",
             "type": "object"
         },
+        "MultisetRemovePred": {
+            "properties": {
+                "predicate": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "predicate"
+                },
+                "varId": {
+                    "title": "varId",
+                    "type": "string"
+                },
+                "varValue": {
+                    "$ref": "#/definitions/ExpressionDescription",
+                    "title": "varValue"
+                }
+            },
+            "required": [
+                "predicate",
+                "varId",
+                "varValue"
+            ],
+            "title": "MultisetRemovePred",
+            "type": "object"
+        },
         "MultisetType": {
             "properties": {
                 "index": {
@@ -674,6 +697,9 @@
                 },
                 {
                     "$ref": "#/definitions/ReturnStmt"
+                },
+                {
+                    "$ref": "#/definitions/MultisetRemovePred"
                 }
             ],
             "title": "Statement"
@@ -703,6 +729,7 @@
                 "assignment",
                 "for",
                 "if",
+                "ms_rem_pred",
                 "proc_call",
                 "return",
                 "switch",
