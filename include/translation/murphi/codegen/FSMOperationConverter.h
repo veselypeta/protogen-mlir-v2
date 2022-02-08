@@ -25,9 +25,11 @@ private:
   void convert(mlir::ConstantOp op);
   void convert(mlir::fsm::ConstOp op);
   void convert(mlir::fsm::CompareOp op);
+  void convert(mlir::fsm::AddOp op);
   nlohmann::json convert(mlir::fsm::SendOp op);
   nlohmann::json convert(mlir::fsm::IfOp op);
   nlohmann::json convert(mlir::Operation *op);
+  nlohmann::json convert(mlir::fsm::SetAdd op);
   void setupSymbolTable(mlir::fsm::TransitionOp op);
 
   llvm::ScopedHashTable<mlir::Value, std::string> symbolTable;

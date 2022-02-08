@@ -107,15 +107,9 @@ json FSMDialectInterpreter::getMurphiDirectoryStatements(
 
 std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
   std::set<std::string> messageNames;
-
-  std::vector<MessageOp> allSentMessages;
-  allSentMessages.reserve(default_reserve_amount);
-
-  utils::searchFor<MessageOp>(theModule.getOperation(), allSentMessages);
-
-  for (auto msgOp : allSentMessages) {
-    messageNames.insert(msgOp.msgName().str());
-  }
+  theModule.walk([&](MessageOp op){
+    messageNames.insert(op.msgName().str());
+  });
   return {std::begin(messageNames), std::end(messageNames)};
 }
 

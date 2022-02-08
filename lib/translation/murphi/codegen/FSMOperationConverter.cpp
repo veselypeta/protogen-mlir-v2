@@ -81,6 +81,10 @@ nlohmann::json FSMOperationConverter::convert(mlir::Operation *op) {
     return convert(sendOp);
   if (auto compOp = dyn_cast<CompareOp>(op))
     convert(compOp);
+  if(auto addOp = dyn_cast<AddOp>(op))
+    convert(addOp);
+  if(auto setAdd = dyn_cast<SetAdd>(op))
+    return convert(setAdd);
   return nullptr;
 }
 
@@ -143,19 +147,23 @@ void FSMOperationConverter::convert(mlir::ConstantOp op) {
 void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
   Attribute valAttr = op.value();
   auto parentMach = op->getParentOfType<MachineOp>();
+
   if (auto strAttr = valAttr.dyn_cast<StringAttr>()) {
     // we need to remember to mangle the names of the states
+    if(op.getResult().getType().isa<StateType>()){
     symbolTable.insert(
         op, translation::utils::mangleState(strAttr.getValue().str(),
                                             parentMach.sym_name().str() + "_"));
+    } else{
+      symbolTable.insert(
+          op, strAttr.getValue().str());
+    }
   }
 }
 
 void FSMOperationConverter::convert(mlir::fsm::CompareOp op) {
-  symbolTable.insert(
-      op,
-      symbolTable.lookup(op.lhs()) + op.compOp().str() + symbolTable.lookup(op.rhs())
-      );
+  symbolTable.insert(op, symbolTable.lookup(op.lhs()) + op.compOp().str() +
+                             symbolTable.lookup(op.rhs()));
 }
 
 nlohmann::json FSMOperationConverter::convert(mlir::fsm::SendOp op) {
@@ -191,6 +199,26 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::IfOp op) {
   return ifStmt;
 }
 
+void FSMOperationConverter::convert(mlir::fsm::AddOp op) {
+  symbolTable.insert(op.result(), symbolTable.lookup(op.lhs()) + detail::BinaryOps.plus.str() +
+                                      symbolTable.lookup(op.rhs()));
+}
+
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::SetAdd op) {
+  auto st = op.theSet().getType().cast<SetType>();
+  auto theSet = detail::Set{
+      FSMConvertType(st.getElementType()),
+      st.getNumElements()
+  };
+  return detail::ProcCall{
+    theSet.set_add_fname(),
+        {
+          detail::ExprID{symbolTable.lookup(op.theSet())},
+          detail::ExprID{symbolTable.lookup(op.value())}
+      }
+  };
+}
+
 std::string FSMConvertType(Type type) {
   if (auto stateType = type.dyn_cast<StateType>())
     return murphi::detail::e_cache_state_t();
@@ -201,6 +229,8 @@ std::string FSMConvertType(Type type) {
   if (auto rangeType = type.dyn_cast<RangeType>())
     return std::to_string(rangeType.getStart()) + ".." +
            std::to_string(rangeType.getEnd());
+  if (auto idType = type.dyn_cast<IDType>())
+    return detail::e_machines_t;
   assert(0 && "unsupported murphi type conversion");
 }
 
