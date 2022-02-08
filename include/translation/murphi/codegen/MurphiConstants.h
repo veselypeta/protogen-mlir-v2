@@ -176,6 +176,7 @@ constexpr char cl_mutex_v[] = "cl_mutex";
 constexpr char aq_mut_f[] = "Acquire_Mutex";
 constexpr char rel_mut_f[] = "Release_Mutex";
 constexpr char send_pref_f[] = "Send_";
+constexpr auto multicast_pref_f = "Multicast_";
 constexpr auto cpu_action_pref_f = "SEND_";
 constexpr char excess_messages_err[] = "Too many messages!";
 constexpr char pop_pref_f[] = "Pop_";

@@ -249,3 +249,29 @@ TEST(FunctionTests, SetOpClear){
 
   ASSERT_STREQ(result.c_str(), expectedText);
 }
+
+TEST(FunctionTests, MulticastSend){
+  auto ms = detail::MulticastSend{
+    "fwd",
+        detail::Set{"Machines", 3}
+  };
+  json data = ms;
+  auto &env = InjaEnvSingleton::getInstance();
+  const auto tmpl = env.parse_template("proc_decl.tmpl");
+  auto result = env.render(tmpl, data);
+
+  auto expectedText =
+      "procedure Multicast_fwd_v_3_Machines(var msg : Message; dst : v_3_Machines);\n"
+      "begin\n"
+      "    for iSV : Machines do\n"
+      "        if iSV != msg.src then\n"
+      "            if MultisetCount(i:dst, dst[i] = iSV) = 1 then\n"
+      "                msg.dst := iSV;\n"
+      "                Send_fwd(msg);\n"
+      "            endif;\n"
+      "        endif;\n"
+      "    endfor;\n"
+      "end;\n";
+
+  ASSERT_STREQ(result.c_str(), expectedText);
+}

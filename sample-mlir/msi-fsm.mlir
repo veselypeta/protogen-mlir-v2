@@ -260,10 +260,72 @@ fsm.machine @directory(){
             fsm.multicast %fwd %ack_m %cache : !fsm.set<!fsm.id, 3>
             fsm.update %owner, %src : !fsm.id, !fsm.id
             fsm.set_clear %cache : !fsm.set<!fsm.id, 3>
-
         }
 
+        fsm.transition @PutS(%msg : !fsm.msg){
+            %PutSSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %src = fsm.ref @directory
+            %PutAck = fsm.message @Resp "Put_Ack" %src, %PutSSrc, %cl : !fsm.id, !fsm.id, !fsm.data -> !fsm.msg
+            fsm.send %fwd %PutAck
+            fsm.set_delete %cache, %PutSSrc : !fsm.set<!fsm.id, 3>, !fsm.id
+
+            %c_count = fsm.set_count %cache : !fsm.set<!fsm.id, 3>
+            %zero = fsm.constant {value = "0"} : i64
+            %eq_zero = fsm.comp "=" %c_count, %zero : i64, i64
+            fsm.if %eq_zero {
+                %I_state = fsm.constant {value = "I"} : !fsm.state
+                fsm.update %State, %I_state : !fsm.state, !fsm.state
+            }
+        }
     } // end S
+
+
+    fsm.state @M transitions {
+        fsm.transition @GetS(%msg : !fsm.msg) attributes {nextState=@M_GetS}{
+            %GetSSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %Fwd_GetS = fsm.message @Request "Fwd_GetS" %GetSSrc, %owner : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.set_add %cache, %GetSSrc : !fsm.set<!fsm.id, 3>, !fsm.id
+            fsm.set_add %cache, %owner : !fsm.set<!fsm.id, 3>, !fsm.id
+        }
+
+        fsm.transition @GetM(%msg : !fsm.msg) {
+            %GetMSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %Fwd_GetM = fsm.message @Request "Fwd_GetM" %GetMSrc, %owner : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %fwd %msg
+            fsm.update %owner, %GetMSrc : !fsm.id, !fsm.id
+        }
+
+        fsm.transition @PutM(%msg : !fsm.msg) {
+            %PutMSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %src = fsm.ref @directory
+            %Ack = fsm.message @Ack "Put_Ack" %src, %PutMSrc : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %fwd %Ack
+            fsm.set_delete %cache, %PutMSrc : !fsm.set<!fsm.id, 3>, !fsm.id
+
+            %is_eq = fsm.comp "=" %owner, %PutMSrc : !fsm.id, !fsm.id
+            fsm.if %is_eq {
+                %PutMcl = fsm.access {memberId = "cl"} %msg : !fsm.msg -> !fsm.data
+                fsm.update %cl, %PutMcl : !fsm.data, !fsm.data
+
+                %I_state = fsm.constant {value = "I"} : !fsm.state
+                fsm.update %State, %I_state : !fsm.state, !fsm.state
+            }
+        }
+
+    } // end M
+
+    fsm.state @M_GetS transitions {
+        fsm.transition @WB(%msg : !fsm.msg){
+            %WBSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
+            %is_eq = fsm.comp "=" %WBSrc, %owner : !fsm.id, !fsm.id
+            fsm.if %is_eq {
+                %WBcl = fsm.access {memberId = "cl"} %msg : !fsm.msg -> !fsm.data
+                fsm.update %cl, %WBcl : !fsm.data, !fsm.data
+                %S_state = fsm.constant {value = "S"} : !fsm.state
+                fsm.update %State, %S_state : !fsm.state, !fsm.state
+            }
+        }
+    } // end S_GetS
 
 
 

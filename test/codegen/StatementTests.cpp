@@ -53,6 +53,11 @@ TEST(StatementTests, ForStmt) {
   auto result = env.render(tmpl, data);
   EXPECT_FALSE(result.empty());
 
+  auto expectedText = "for i : type do\n"
+                      "    assert( value_to_be_tested ) \"assertion failed!\";\n"
+                      "endfor;";
+  EXPECT_STREQ(result.c_str(), expectedText);
+
   // verify json
   std::string schema_path = std::string(JSONValidation::schema_base_directory) +
                             "gen_StatementDescription.json";

@@ -521,8 +521,14 @@ struct Set{
 
 void to_json(nlohmann::json &j, const Set &theSet);
 
-// FIXME - currently set add implementations assume that element type is of type
-// ID
+struct MulticastSend{
+  std::string netId;
+  Set theSet;
+  std::string m_cast_fname() const;
+};
+
+void to_json(nlohmann::json &j, const MulticastSend &mcast);
+
 /// -- Set Add -- ///
 struct SetAdd {
   Set theSet;

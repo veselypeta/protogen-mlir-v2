@@ -571,6 +571,51 @@ void to_json(json &j, const Set &theSet) {
                                           {0, theSet.size}}};
 }
 
+/// Multicast
+std::string MulticastSend::m_cast_fname() const {
+  return multicast_pref_f + netId + "_" + theSet.getSetId();
+}
+
+void to_json(json &j, const MulticastSend &ms) {
+  constexpr auto elem_idx = "iSV";
+
+  auto change_dst = Assignment<Designator, ExprID>{
+      {c_msg, {Indexer{"object", ExprID{c_dst}}}},
+      {elem_idx}
+  };
+
+  auto send_msg = ProcCall{
+      send_pref_f + ms.netId,
+      {ExprID{c_msg}}
+  };
+
+  auto if_ms_count = IfStmt<BinaryExpr<MultisetCount, ExprID>>{
+      {{"i", ExprID{c_dst},
+        BinaryExpr<Designator, ExprID>{{c_dst, {Indexer{"array", ExprID{"i"}}}},
+                                       {elem_idx},
+                                       BinaryOps.eq}},
+       {"1"},
+       BinaryOps.eq},
+      {change_dst, send_msg},
+      {}};
+
+  auto if_not_src = IfStmt<BinaryExpr<ExprID, Designator>>{
+      {{elem_idx}, {c_msg, {Indexer{"object", ExprID{c_src}}}}, BinaryOps.n_eq},
+      {if_ms_count},
+      {}};
+
+  auto for_mach = ForStmt<ForEachQuantifier<ID>>{
+      {elem_idx, {ms.theSet.elementType}}, {if_not_src}};
+
+  j = {{"procType", "procedure"},
+       {"def",
+        {{"id", ms.m_cast_fname()},
+         {"params",
+          {Formal<ID>{c_msg, {r_message_t}, true},
+           Formal<ID>{c_dst, {ms.theSet.getSetId()}, false}}},
+         {"statements", {for_mach}}}}};
+}
+
 void to_json(json &j, const SWMRInvariant &) {
   constexpr auto cache1 = "c1";
   constexpr auto cache2 = "c2";
@@ -736,17 +781,15 @@ void to_json(json &j, const SetDelete &setDelete) {
                              {c_set_elem},
                              BinaryOps.eq}};
 
-  auto ms_count = MultisetCount{"i", ExprID{c_set_var},
-                               BinaryExpr<Designator, ExprID>{
-                                   {c_set_var, {Indexer{"array", ExprID{"i"}}}},
-                                   {c_set_elem},
-                                   BinaryOps.eq}};
+  auto ms_count =
+      MultisetCount{"i", ExprID{c_set_var},
+                    BinaryExpr<Designator, ExprID>{
+                        {c_set_var, {Indexer{"array", ExprID{"i"}}}},
+                        {c_set_elem},
+                        BinaryOps.eq}};
 
-  auto if_cond = BinaryExpr<decltype(ms_count), ExprID>{
-      ms_count,
-      ExprID{"1"},
-      BinaryOps.eq
-  };
+  auto if_cond = BinaryExpr<decltype(ms_count), ExprID>{ms_count, ExprID{"1"},
+                                                        BinaryOps.eq};
   j = {{"procType", "procedure"},
        {"def",
         {{"id", setDelete.theSet.set_delete_fname()},
@@ -758,17 +801,14 @@ void to_json(json &j, const SetDelete &setDelete) {
          {"statements", {IfStmt<decltype(if_cond)>{if_cond, {remove}, {}}}}}}};
 }
 void to_json(json &j, const SetClear &setClear) {
-  j = {
-      {"procType", "procedure"},
-      {"def", {
-                  {"id", setClear.theSet.set_clear_fname()},
-                  {"params", {detail::Formal<detail::ID>{
-                                 detail::c_set_var, {setClear.theSet.getSetId()}, true}}},
-                  {"statements", {
-                                     MultisetRemovePred{"i", ExprID{c_set_var}, ExprID{"true"}}
-                                 }}
-              }}
-  };
+  j = {{"procType", "procedure"},
+       {"def",
+        {{"id", setClear.theSet.set_clear_fname()},
+         {"params",
+          {detail::Formal<detail::ID>{
+              detail::c_set_var, {setClear.theSet.getSetId()}, true}}},
+         {"statements",
+          {MultisetRemovePred{"i", ExprID{c_set_var}, ExprID{"true"}}}}}}};
 }
 
 } // namespace detail
