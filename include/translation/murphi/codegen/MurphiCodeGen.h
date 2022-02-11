@@ -316,6 +316,15 @@ private:
     }
   }
 
+  void assembleNetworkMulticastFunctions(nlohmann::json &data){
+    for(std::pair<std::string, std::string> &network : interpreter.getNetworks()){
+      auto netID = network.first;
+      data["proc_decls"].push_back(
+          detail::MulticastSend{netID, detail::Set{detail::e_machines_t, interpreter.getCacheSetSize()}}
+          );
+    }
+  }
+
   void assembleSetHelperFunction(nlohmann::json &data){
     for(nlohmann::json &func : interpreter.getSetOperationImpl()){
       data["proc_decls"].push_back(func);
@@ -398,6 +407,7 @@ private:
   void assembleProcedures(nlohmann::json &data) {
     assembleMessageFactories(data);
     assembleNetworkSendFunctions(data);
+    assembleNetworkMulticastFunctions(data);
     assembleSetHelperFunction(data);
     assembleCacheController(data);
     assembleDirectoryController(data);

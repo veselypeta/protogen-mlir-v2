@@ -81,10 +81,20 @@ nlohmann::json FSMOperationConverter::convert(mlir::Operation *op) {
     return convert(sendOp);
   if (auto compOp = dyn_cast<CompareOp>(op))
     convert(compOp);
-  if(auto addOp = dyn_cast<AddOp>(op))
+  if (auto addOp = dyn_cast<AddOp>(op))
     convert(addOp);
-  if(auto setAdd = dyn_cast<SetAdd>(op))
+  if (auto setAdd = dyn_cast<SetAdd>(op))
     return convert(setAdd);
+  if (auto setCount = dyn_cast<SetCount>(op))
+    convert(setCount);
+  if (auto setContains = dyn_cast<SetContains>(op))
+    convert(setContains);
+  if (auto setDelete = dyn_cast<SetDelete>(op))
+    return convert(setDelete);
+  if (auto setClear = dyn_cast<SetClear>(op))
+    return convert(setClear);
+  if(auto multicastOp = dyn_cast<MulticastOp>(op))
+    return convert(multicastOp);
   return nullptr;
 }
 
@@ -150,13 +160,12 @@ void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
 
   if (auto strAttr = valAttr.dyn_cast<StringAttr>()) {
     // we need to remember to mangle the names of the states
-    if(op.getResult().getType().isa<StateType>()){
-    symbolTable.insert(
-        op, translation::utils::mangleState(strAttr.getValue().str(),
-                                            parentMach.sym_name().str() + "_"));
-    } else{
+    if (op.getResult().getType().isa<StateType>()) {
       symbolTable.insert(
-          op, strAttr.getValue().str());
+          op, translation::utils::mangleState(
+                  strAttr.getValue().str(), parentMach.sym_name().str() + "_"));
+    } else {
+      symbolTable.insert(op, strAttr.getValue().str());
     }
   }
 }
@@ -200,21 +209,63 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::IfOp op) {
 }
 
 void FSMOperationConverter::convert(mlir::fsm::AddOp op) {
-  symbolTable.insert(op.result(), symbolTable.lookup(op.lhs()) + detail::BinaryOps.plus.str() +
+  symbolTable.insert(op.result(), symbolTable.lookup(op.lhs()) +
+                                      detail::BinaryOps.plus.str() +
                                       symbolTable.lookup(op.rhs()));
 }
 
 nlohmann::json FSMOperationConverter::convert(mlir::fsm::SetAdd op) {
   auto st = op.theSet().getType().cast<SetType>();
-  auto theSet = detail::Set{
-      FSMConvertType(st.getElementType()),
-      st.getNumElements()
-  };
+  auto theSet =
+      detail::Set{FSMConvertType(st.getElementType()), st.getNumElements()};
+  return detail::ProcCall{theSet.set_add_fname(),
+                          {detail::ExprID{symbolTable.lookup(op.theSet())},
+                           detail::ExprID{symbolTable.lookup(op.value())}}};
+}
+
+void FSMOperationConverter::convert(mlir::fsm::SetContains op) {
+  auto setType = op.theSet().getType().cast<SetType>();
+  auto theSet = detail::Set{FSMConvertType(setType.getElementType()),
+                            setType.getNumElements()};
+  symbolTable.insert(op.result(), theSet.set_contains_fname() + "(" +
+                                      symbolTable.lookup(op.theSet()) + ", " +
+                                      symbolTable.lookup(op.value()) + ")");
+}
+
+void FSMOperationConverter::convert(mlir::fsm::SetCount op) {
+  auto setType = op.theSet().getType().cast<SetType>();
+  auto theSet = detail::Set{FSMConvertType(setType.getElementType()),
+                            setType.getNumElements()};
+  symbolTable.insert(op.count(), theSet.set_count_fname() + "(" +
+                                     symbolTable.lookup(op.theSet()) + ")");
+}
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::SetDelete op) {
+  auto setType = op.theSet().getType().cast<SetType>();
+  auto theSet = detail::Set{FSMConvertType(setType.getElementType()),
+                            setType.getNumElements()};
+  return detail::ProcCall{theSet.set_delete_fname(),
+                          {detail::ExprID{symbolTable.lookup(op.theSet())},
+                           detail::ExprID{symbolTable.lookup(op.value())}}};
+}
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::SetClear op) {
+  auto setType = op.theSet().getType().cast<SetType>();
+  auto theSet = detail::Set{FSMConvertType(setType.getElementType()),
+                            setType.getNumElements()};
+  return detail::ProcCall{theSet.set_clear_fname(),
+                          {detail::ExprID{symbolTable.lookup(op.theSet())}}};
+}
+
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::MulticastOp op) {
+  auto setType = op.theSet().getType().cast<SetType>();
+  auto theSet = detail::Set{FSMConvertType(setType.getElementType()),
+                            setType.getNumElements()};
+  auto netId = op.network().getDefiningOp<NetworkOp>().sym_name().getLeafReference().str();
+  auto msSend = detail::MulticastSend{netId, theSet};
   return detail::ProcCall{
-    theSet.set_add_fname(),
-        {
-          detail::ExprID{symbolTable.lookup(op.theSet())},
-          detail::ExprID{symbolTable.lookup(op.value())}
+    msSend.m_cast_fname(),
+      {
+          detail::ExprID{symbolTable.lookup(op.message())},
+          detail::ExprID{symbolTable.lookup(op.theSet())}
       }
   };
 }
