@@ -48,6 +48,12 @@ MessageOp getLastMessageSent(StateOp op) {
   assert(false && "linked previous state sent no messages");
 }
 
+llvm::StringRef getLastActionPerformed(StateOp op) {
+  // same limitations and getLastMessageSent();
+  TransitionOp previousTransition = getPreviousTransition(op);
+  return previousTransition.sym_name();
+}
+
 StateOp getStableStartState(StateOp stateOp) {
   MachineOp parentMach = stateOp->getParentOfType<MachineOp>();
   // if a stable state -> return self
@@ -127,6 +133,39 @@ StateOp getDirectoryStateHavingSent(llvm::StringRef msgName,
   assert(executedTransition.nextState().hasValue() &&
          "undecidable unless directory has known end state");
   return theDirectory.lookupSymbol<StateOp>(executedTransition.nextStateAttr());
+}
+
+llvm::Optional<StateOp> getDestinationState(StateOp startState, TransitionOp racingTransition){
+  auto theCache = startState->getParentOfType<StateOp>();
+  auto prev_msg_sent = getLastMessageSent(startState);
+  auto prev_action_performed = getLastActionPerformed(startState);
+  auto racing_trans_end_state = racingTransition.nextStateAttr().getLeafReference();
+  auto end_state_by_msg =
+      racing_trans_end_state.str() + "_" + prev_msg_sent.msgName().str();
+  auto end_state_by_action =
+      racing_trans_end_state.str() + "_" + prev_action_performed.str();
+  if(auto by_msg = theCache.lookupSymbol<StateOp>(end_state_by_msg)){
+    return {by_msg};
+  } else if (auto by_action = theCache.lookupSymbol<StateOp>(end_state_by_action)){
+    return {by_action};
+  } else {
+    return {};
+  }
+}
+
+LogicalResult optimizeStateTransitionV2(StateOp startState,
+                                        TransitionOp racingTransition,
+                                        PatternRewriter &rewriter) {
+//  auto theCache = startState->getParentOfType<MachineOp>();
+
+  auto dst_state = getDestinationState(startState, racingTransition);
+  if(dst_state.hasValue()){
+    // simply inline and transition
+    rewriter.setInsertionPointToEnd(startState->getBlock());
+    // check the directory for reinterpretations
+  }
+
+  return success();
 }
 
 LogicalResult optimizeStateTransition(StateOp startState,

@@ -235,7 +235,7 @@ fsm.machine @directory(){
             fsm.send %resp %n_msg
         }
 
-        fsm.transition @Upgrade(%msg : !fsm.msg) {
+        fsm.transition @Upgrade(%msg : !fsm.msg) attributes {nextState=@M} {
             %src = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
             %contains = fsm.set_contains %cache, %src : !fsm.set<!fsm.id, 3>, !fsm.id
             fsm.if %contains {
