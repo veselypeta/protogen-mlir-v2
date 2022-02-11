@@ -58,6 +58,10 @@ LogicalResult optimizeStateTransition(StateOp startState,
                                       TransitionOp racingTransition,
                                       PatternRewriter &rewriter);
 
+LogicalResult optimizeStateTransitionV2(StateOp startState,
+                                      TransitionOp racingTransition,
+                                      PatternRewriter &rewriter);
+
 template <class CallableT>
 WalkResult runOnEachTransientState(MachineOp machine, PatternRewriter &rewriter,
                                    CallableT callable) {

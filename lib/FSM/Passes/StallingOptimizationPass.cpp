@@ -56,7 +56,7 @@ void StallingOptimizationPass::runOnOperation() {
       emitRemark(startState.getLoc(),
                  "Optimizing: (" + startState.sym_name() + ", " + racingEvent);
 
-      assert(succeeded(optimizeStateTransition(startState, racingTransaction,
+      assert(succeeded(optimizeStateTransitionV2(startState, racingTransaction,
                                                rewriter)) &&
              "failed to optimize protocol");
 
