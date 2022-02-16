@@ -1645,3 +1645,66 @@ TEST(OpConstructionTests, SetClearParse) {
     EXPECT_TRUE(setClear.theSet().getType().isa<SetType>());
   });
 }
+
+
+TEST(OpConstructionTests, CallOp){
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  helper.builder.create<fsm::CallOp>(unknLoc, helper.builder.getSymbolRefAttr("PutAck"), t1Entry->getArgument(0));
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto expectedText =
+      "module  {\n"
+      "  fsm.machine @cache() {\n"
+      "    fsm.state @s1 transitions  {\n"
+      "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+      "        fsm.call @PutAck(%arg0)\n"
+      "      }\n"
+      "    }\n"
+      "  }\n"
+      "}\n";
+  EXPECT_STREQ(str.c_str(), expectedText);
+}
+
+TEST(OpConstructionTests, CallOpParse) {
+  OpHelper helper;
+  auto opText  =
+          "module  {\n"
+          "  fsm.machine @cache() {\n"
+          "    fsm.state @s1 transitions  {\n"
+          "      fsm.transition @t1(%arg0: !fsm.msg) {\n"
+          "        fsm.call @PutAck(%arg0)\n"
+          "      }\n"
+          "    }\n"
+          "  }\n"
+          "}\n";
+  auto result = parseSourceString(opText, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+  result->walk([](fsm::CallOp call) {
+    EXPECT_TRUE(call.message().getType().isa<MsgType>());
+    EXPECT_EQ(call.theTransition().getLeafReference(), "PutAck");
+  });
+}

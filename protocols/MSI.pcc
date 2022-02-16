@@ -211,7 +211,7 @@ Architecture directory {
     }
 
     Process(S, PutS){
-       msg = Resp(Put_Ack, ID, PutS.src, cl);
+       msg = Ack(Put_Ack, ID, PutS.src);
        fwd.send(msg);
        cache.del(PutS.src);
 

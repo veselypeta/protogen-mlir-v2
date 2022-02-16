@@ -45,13 +45,30 @@ MessageOp getLastMessageSent(StateOp op) {
   for (auto msgOp : transitionsBlock.getOps<MessageOp>()) {
     return msgOp;
   }
+
+  // look back at most 2 states - for now
+  // FIXME -> This needs a more general solution
+  if (auto prePreviousTransition = getPreviousTransition(
+          previousTransition->getParentOfType<StateOp>())) {
+    for (auto msgOp : prePreviousTransition.front().getOps<MessageOp>()) {
+      return msgOp;
+    }
+  }
+
   assert(false && "linked previous state sent no messages");
 }
 
 llvm::StringRef getLastActionPerformed(StateOp op) {
-  // same limitations and getLastMessageSent();
+  // FIXME - looks back at most two states
   TransitionOp previousTransition = getPreviousTransition(op);
-  return previousTransition.sym_name();
+  if (isCpuEvent(previousTransition.sym_name()))
+    return previousTransition.sym_name();
+
+  previousTransition =
+      getPreviousTransition(previousTransition->getParentOfType<StateOp>());
+  if (isCpuEvent(previousTransition.sym_name()))
+    return previousTransition.sym_name();
+  assert(0 && "could not find a cpu event linking previous transitions");
 }
 
 StateOp getStableStartState(StateOp stateOp) {
@@ -120,8 +137,8 @@ std::string getNextStateName(llvm::StringRef destinationState,
   return newState;
 }
 
-StateOp getDirectoryStateHavingSent(llvm::StringRef msgName,
-                                    MachineOp theDirectory) {
+TransitionOp getDirectoryTransitionHavingSent(llvm::StringRef msgName,
+                                              MachineOp theDirectory) {
   std::vector<MessageOp> allSentMessages;
   searchForIf(theDirectory, allSentMessages, [msgName](MessageOp test_msg) {
     return test_msg.msgName() == msgName;
@@ -130,9 +147,33 @@ StateOp getDirectoryStateHavingSent(llvm::StringRef msgName,
          "directory message sending should map to a unique value");
   TransitionOp executedTransition =
       allSentMessages.at(0)->getParentOfType<TransitionOp>();
+  return executedTransition;
+}
+StateOp getDirectoryDestinationStateHavingSent(llvm::StringRef msgName,
+                                               MachineOp theDirectory) {
+  auto executedTransition =
+      getDirectoryTransitionHavingSent(msgName, theDirectory);
   assert(executedTransition.nextState().hasValue() &&
          "undecidable unless directory has known end state");
-  return theDirectory.lookupSymbol<StateOp>(executedTransition.nextStateAttr());
+
+  auto dst_state =
+      theDirectory.lookupSymbol<StateOp>(executedTransition.nextStateAttr());
+  if (!isTransientState(dst_state))
+    return dst_state;
+
+  // TODO - this is a bit of a hack
+  // else find what state it is assigned to
+  std::vector<UpdateOp> stateUpdates;
+  searchForIf(dst_state, stateUpdates, [](UpdateOp updateOp) {
+    return updateOp.variable().getType().isa<StateType>();
+  });
+  assert(stateUpdates.size() == 1 &&
+         "more than one state update occurs in the transition");
+  auto theConstOp = stateUpdates.at(0).value().getDefiningOp<ConstOp>();
+  assert(theConstOp != nullptr && "cast to ConstOp failed!");
+  auto theState = theDirectory.lookupSymbol<StateOp>(
+      theConstOp.value().cast<StringAttr>().getValue());
+  return theState;
 }
 
 llvm::Optional<StateOp> getDestinationState(StateOp startState,
@@ -156,51 +197,93 @@ llvm::Optional<StateOp> getDestinationState(StateOp startState,
   }
 }
 
+MessageOp getDirectoryResponseMessage(TransitionOp op) {
+
+  if (!op.getOps<fsm::CallOp>().empty()) {
+    auto callOps = op.getOps<fsm::CallOp>();
+    auto callOp = *callOps.begin();
+    auto calledTrans =
+        op->getParentOfType<StateOp>().lookupSymbol<TransitionOp>(
+            callOp.theTransition());
+    assert(calledTrans != nullptr &&
+           "could not find called transition in the current state");
+    op = calledTrans;
+  }
+  std::vector<MessageOp> dir_resps;
+  searchFor(op, dir_resps);
+  assert(dir_resps.size() == 1 && "accept only a single response from the dir");
+  return dir_resps.at(0);
+}
+
+LogicalResult handleDestinationStateExists(StateOp dstState, StateOp startState,
+                                           TransitionOp racingTransition,
+                                           PatternRewriter &rewriter) {
+  // create the transition to handle the racing message
+  rewriter.setInsertionPointToEnd(&startState.transitions().front());
+  TransitionOp handleRaceTrans = rewriter.create<TransitionOp>(
+      startState.getLoc(), racingTransition.sym_name(),
+      racingTransition.getType(),
+      /* nextState */ rewriter.getSymbolRefAttr(dstState));
+
+  // inline
+  if (failed(inlineTransition(racingTransition, handleRaceTrans, rewriter)))
+    return failure();
+
+  // check the directory for reinterpretations
+  auto prev_msg_sent = getLastMessageSent(startState);
+
+  // what state will the directory be when it's received?
+  MachineOp theDirectory =
+      startState->getParentOfType<ModuleOp>().lookupSymbol<MachineOp>(
+          "directory");
+  StateOp dir_state_when_received = getDirectoryDestinationStateHavingSent(
+      racingTransition.sym_name(), theDirectory);
+
+  emitRemark(handleRaceTrans.getLoc(),
+             "Optimized (" + startState.sym_name() + ", " +
+                 handleRaceTrans.sym_name() + ") -> " +
+                 handleRaceTrans.nextStateAttr().getLeafReference());
+  // can the directory handle this message
+  if (dir_state_when_received.lookupSymbol<TransitionOp>(
+          prev_msg_sent.msgName()) != nullptr)
+    return success();
+
+  // the directory should re-interpret this message
+  auto dir_expected_msg = getLastMessageSent(dstState);
+  auto dirHandler = dir_state_when_received.lookupSymbol<TransitionOp>(
+      dir_expected_msg.msgName());
+  assert(dirHandler != nullptr && "could not resolve the directory handler");
+
+  rewriter.setInsertionPointAfter(dirHandler);
+  auto reinterpretedDirMsg = rewriter.create<TransitionOp>(
+      dirHandler.getLoc(), prev_msg_sent.msgName(), dirHandler.getType(),
+      dirHandler.nextStateAttr());
+  // call the correct handler
+  auto RIDMBlock = reinterpretedDirMsg.addEntryBlock();
+  rewriter.setInsertionPointToStart(RIDMBlock);
+  rewriter.create<fsm::CallOp>(reinterpretedDirMsg.getLoc(),
+                               rewriter.getSymbolRefAttr(dirHandler.sym_name()),
+                               RIDMBlock->getArgument(0));
+  emitRemark(reinterpretedDirMsg.getLoc(),
+             "Added Reinterpretation at directory (" +
+                 dir_state_when_received.sym_name() + ", " +
+                 reinterpretedDirMsg.sym_name() + ")");
+  return success();
+}
+
 LogicalResult optimizeStateTransitionV2(StateOp startState,
                                         TransitionOp racingTransition,
                                         PatternRewriter &rewriter) {
   //  auto theCache = startState->getParentOfType<MachineOp>();
   auto theDirectory =
-      startState->getParentOfType<ModuleOp>().lookupSymbol<MachineOp>("directory");
+      startState->getParentOfType<ModuleOp>().lookupSymbol<MachineOp>(
+          "directory");
 
   // if a dst state exists already
   auto dst_state = getDestinationState(startState, racingTransition);
   if (dst_state.hasValue()) {
-    // create the transition
-    rewriter.setInsertionPointToEnd(startState->getBlock());
-    TransitionOp handleRaceTrans = rewriter.create<TransitionOp>(
-        startState.getLoc(), racingTransition.sym_name(),
-        racingTransition.getType(),
-        /*nextState*/ rewriter.getSymbolRefAttr(dst_state->sym_name()));
-
-    // inline ops from the racing transition
-    if (failed(inlineTransition(racingTransition, handleRaceTrans, rewriter)))
-      return mlir::failure();
-
-    // check the directory for reinterpretations
-    auto prev_msg_sent = getLastMessageSent(startState);
-    // what state will the directory be when it's received?
-    StateOp dir_state_when_received =
-        getDirectoryStateHavingSent(racingTransition.sym_name(), theDirectory);
-
-    // can the directory handle this message
-    if(dir_state_when_received.lookupSymbol<TransitionOp>(prev_msg_sent.msgName()) != nullptr)
-      return success();
-
-    // the directory should re-interpret this message
-    auto dir_expected_msg = getLastMessageSent(dst_state.getValue());
-    auto dirHandler = dir_state_when_received.lookupSymbol<TransitionOp>(dir_expected_msg.msgName());
-    assert(dirHandler != nullptr && "could not resolve the directory handler");
-
-    rewriter.setInsertionPointAfter(dirHandler);
-    auto reinterpretedDirMsg = rewriter.create<TransitionOp>(
-        dirHandler.getLoc(), prev_msg_sent.msgName(),
-        dirHandler.getType(), dirHandler.nextStateAttr()
-        );
-    // inline correctly
-    if(failed(inlineTransition(dirHandler, reinterpretedDirMsg, rewriter)))
-      return failure();
-    return success();
+    return handleDestinationStateExists(dst_state.getValue(), startState,
+                                        racingTransition, rewriter);
   }
 
   // if the dst_state does not exist, i.e. in the M_evict -> Fwd_GetM case
@@ -214,6 +297,7 @@ LogicalResult optimizeStateTransitionV2(StateOp startState,
                        prev_msg_sent.msgName());
 
   // we need to create the race handling transition
+  rewriter.setInsertionPointToEnd(&startState.transitions().front());
   TransitionOp handleRaceTrans = rewriter.create<TransitionOp>(
       startState.getLoc(), racingTransition.sym_name(),
       racingTransition.getType(),
@@ -222,6 +306,11 @@ LogicalResult optimizeStateTransitionV2(StateOp startState,
   // inline ops from the racing transition
   if (failed(inlineTransition(racingTransition, handleRaceTrans, rewriter)))
     return mlir::failure();
+
+  emitRemark(handleRaceTrans.getLoc(),
+             "Optimized: (" + startState.sym_name() + ", " +
+                 racingTransition.sym_name() + ") -> " +
+                 handleRaceTrans.nextStateAttr().getLeafReference());
 
   // create the needed new state
   rewriter.setInsertionPointAfter(startState);
@@ -235,38 +324,37 @@ LogicalResult optimizeStateTransitionV2(StateOp startState,
   MessageOp last_msg_sent = getLastMessageSent(startState);
 
   // what state will the directory be when it's received?
-  StateOp dir_state_when_received =
-      getDirectoryStateHavingSent(racingTransition.sym_name(), theDirectory);
+  StateOp dir_state_when_received = getDirectoryDestinationStateHavingSent(
+      racingTransition.sym_name(), theDirectory);
+  assert(dir_state_when_received != nullptr && "couldn't find dir state");
 
   // can the directory handle the message we sent in this state?
   TransitionOp dir_handling_trans =
       dir_state_when_received.lookupSymbol<TransitionOp>(
           last_msg_sent.msgName());
-  if (dir_handling_trans == nullptr)
+  if (dir_handling_trans == nullptr) {
+    // the directory does not have a handler for this message in the current
+    // state
     assert(0 && "currently we do not handle this case!");
+  }
 
   // what message will the directory respond with?
-  std::vector<MessageOp> dir_resps;
-  searchFor(dir_handling_trans, dir_resps);
-  assert(dir_resps.size() == 1 && "accept only a single response from the dir");
-
+  auto dir_resp = getDirectoryResponseMessage(dir_handling_trans);
   // in the new state we now create the new transition to accept this message
   auto nsEntry = nextState.addEntryBlock();
   rewriter.setInsertionPointToStart(nsEntry);
   TransitionOp handle_dir_resp = rewriter.create<TransitionOp>(
       racingTransition->getLoc(),
-      /*action*/ dir_resps.at(0).msgName(),
+      /*action*/ dir_resp.msgName(),
       /*type*/
       rewriter.getFunctionType({MsgType::get(rewriter.getContext())}, {}),
       /*nextState*/ racingTransition.nextStateAttr());
 
   TransitionOp dir_resp_src_ops =
-      startState.lookupSymbol<TransitionOp>(dir_resps.at(0).msgName());
+      startState.lookupSymbol<TransitionOp>(dir_resp.msgName());
 
   // inline the ops
   return inlineTransition(dir_resp_src_ops, handle_dir_resp, rewriter);
-
-  return success();
 }
 
 LogicalResult optimizeStateTransition(StateOp startState,
@@ -313,8 +401,8 @@ LogicalResult optimizeStateTransition(StateOp startState,
   MessageOp last_msg_sent = getLastMessageSent(startState);
 
   // what state will the directory be when it's received?
-  StateOp dir_state_when_received =
-      getDirectoryStateHavingSent(racingTransition.sym_name(), theDirectory);
+  StateOp dir_state_when_received = getDirectoryDestinationStateHavingSent(
+      racingTransition.sym_name(), theDirectory);
 
   // can the directory handle the message we sent in this state?
   TransitionOp dir_handling_trans =

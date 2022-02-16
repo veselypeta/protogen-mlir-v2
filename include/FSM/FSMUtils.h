@@ -61,6 +61,8 @@ LogicalResult optimizeStateTransition(StateOp startState,
 LogicalResult optimizeStateTransitionV2(StateOp startState,
                                       TransitionOp racingTransition,
                                       PatternRewriter &rewriter);
+StateOp getDirectoryDestinationStateHavingSent(llvm::StringRef msgName,
+                                    MachineOp theDirectory);
 
 template <class CallableT>
 WalkResult runOnEachTransientState(MachineOp machine, PatternRewriter &rewriter,

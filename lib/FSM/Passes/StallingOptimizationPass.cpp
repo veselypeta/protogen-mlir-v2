@@ -4,10 +4,10 @@
 #include "FSM/FSMUtils.h"
 #include "FSM/Passes/Passes.h"
 #include "PassDetail.h"
+#include "ProtoGenRewriter.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/PassManager.h"
 #include <mlir/IR/BlockAndValueMapping.h>
-#include "ProtoGenRewriter.h"
 
 using namespace mlir;
 using namespace mlir::fsm;
@@ -41,28 +41,30 @@ void StallingOptimizationPass::runOnOperation() {
 
     // walk every action in the logical start state
     // since they can be a racing event
-    auto racingResult = logicalStartState.walk([&](TransitionOp
-                                                       racingTransaction) {
-      // skip if we can already handle this message in the current state
-      // or is a cpu event
-      llvm::StringRef racingEvent = racingTransaction.sym_name();
-      if (startState.lookupSymbol<TransitionOp>(racingEvent) ||
-          isCpuEvent(racingEvent)) {
-        emitRemark(startState.getLoc(), "Skipping: (" + startState.sym_name() +
-                                            ", " + racingEvent + ")");
-        return WalkResult::advance();
-      }
+    auto racingResult =
+        logicalStartState.walk([&](TransitionOp racingTransaction) {
+          // skip if we can already handle this message in the current state
+          // or is a cpu event
+          llvm::StringRef racingEvent = racingTransaction.sym_name();
+          if (startState.lookupSymbol<TransitionOp>(racingEvent) ||
+              isCpuEvent(racingEvent)) {
+            emitRemark(startState.getLoc(), "Skipping: (" +
+                                                startState.sym_name() + ", " +
+                                                racingEvent + ")");
+            return WalkResult::advance();
+          }
 
-      emitRemark(startState.getLoc(),
-                 "Optimizing: (" + startState.sym_name() + ", " + racingEvent);
+          emitRemark(startState.getLoc(), "Optimizing: (" +
+                                              startState.sym_name() + ", " +
+                                              racingEvent + ")");
 
-      assert(succeeded(optimizeStateTransitionV2(startState, racingTransaction,
-                                               rewriter)) &&
-             "failed to optimize protocol");
+          assert(succeeded(optimizeStateTransitionV2(
+                     startState, racingTransaction, rewriter)) &&
+                 "failed to optimize protocol");
 
-      // advance to next transition
-      return WalkResult::advance();
-    });
+          // advance to next transition
+          return WalkResult::advance();
+        });
 
     if (racingResult.wasInterrupted())
       signalPassFailure();

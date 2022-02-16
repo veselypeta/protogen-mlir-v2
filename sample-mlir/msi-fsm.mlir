@@ -190,10 +190,10 @@ fsm.machine @cache(){
     } // end M
 
     fsm.state @M_evict {prevTransition=@M::@evict} transitions {
-        fsm.transition @PutAck(%msg : !fsm.msg) attributes {nextState = @I}{
+        fsm.transition @Put_Ack(%msg : !fsm.msg) attributes {nextState = @I}{
             fsm.nop
         }
-    }
+    } // end M_evict
 }
 
 fsm.machine @directory(){
@@ -288,7 +288,7 @@ fsm.machine @directory(){
             fsm.set_add %cache, %owner : !fsm.set<!fsm.id, 3>, !fsm.id
         }
 
-        fsm.transition @GetM(%msg : !fsm.msg) {
+        fsm.transition @GetM(%msg : !fsm.msg) attributes {nextState=@M}{
             %GetMSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
             %Fwd_GetM = fsm.message @Request "Fwd_GetM" %GetMSrc, %owner : !fsm.id, !fsm.id -> !fsm.msg
             fsm.send %fwd %msg
@@ -310,6 +310,10 @@ fsm.machine @directory(){
                 %I_state = fsm.constant {value = "I"} : !fsm.state
                 fsm.update %State, %I_state : !fsm.state, !fsm.state
             }
+        }
+
+        fsm.transition @PutS(%msg : !fsm.msg) attributes {nextState=@M} {
+            fsm.call @PutM(%msg)
         }
 
     } // end M

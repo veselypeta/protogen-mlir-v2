@@ -384,6 +384,15 @@ def SetClear : FSMOp<"set_clear">{
     let verifier = [{return ::verify$cppClass(*this); }];
 }
 
+def CallOp : FSMOp<"call">{
+    let summary = "calls a transition handler in the state machine";
+    let description = [{}];
+    let arguments = (ins SymbolRefAttr:$theTransition, MsgType:$message);
+    let assemblyFormat = [{
+        attr-dict $theTransition `(` $message `)`
+    }];
+}
+
 
 
 
