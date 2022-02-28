@@ -165,8 +165,8 @@ private:
             detail::ss_cache_val_t, {0, detail::c_val_cnt_t}});
   }
 
-  void assembleSetTypes(nlohmann::json &data){
-    for(nlohmann::json &set : interpreter.getSetTypes()){
+  void assembleSetTypes(nlohmann::json &data) {
+    for (nlohmann::json &set : interpreter.getSetTypes()) {
       data["decls"]["type_decls"].emplace_back(set);
     }
   }
@@ -316,17 +316,20 @@ private:
     }
   }
 
-  void assembleNetworkMulticastFunctions(nlohmann::json &data){
-    for(std::pair<std::string, std::string> &network : interpreter.getNetworks()){
-      auto netID = network.first;
-      data["proc_decls"].push_back(
-          detail::MulticastSend{netID, detail::Set{detail::e_machines_t, interpreter.getCacheSetSize()}}
-          );
+  void assembleNetworkMulticastFunctions(nlohmann::json &data) {
+    if (interpreter.isMulticastEnabled()) {
+      for (std::pair<std::string, std::string> &network :
+           interpreter.getNetworks()) {
+        auto netID = network.first;
+        data["proc_decls"].push_back(detail::MulticastSend{
+            netID,
+            detail::Set{detail::e_machines_t, interpreter.getCacheSetSize()}});
+      }
     }
   }
 
-  void assembleSetHelperFunction(nlohmann::json &data){
-    for(nlohmann::json &func : interpreter.getSetOperationImpl()){
+  void assembleSetHelperFunction(nlohmann::json &data) {
+    for (nlohmann::json &func : interpreter.getSetOperationImpl()) {
       data["proc_decls"].push_back(func);
     }
   }

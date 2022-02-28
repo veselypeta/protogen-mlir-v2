@@ -79,6 +79,8 @@ public:
   nlohmann::json getCacheStartState();
   nlohmann::json getDirectoryStartState();
 
+  bool isMulticastEnabled();
+
 private:
   mlir::ModuleOp theModule;
   std::set<std::pair<std::string, std::string>> mTypeElems;

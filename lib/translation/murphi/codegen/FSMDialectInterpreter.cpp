@@ -107,9 +107,8 @@ json FSMDialectInterpreter::getMurphiDirectoryStatements(
 
 std::vector<std::string> FSMDialectInterpreter::getMessageNames() {
   std::set<std::string> messageNames;
-  theModule.walk([&](MessageOp op){
-    messageNames.insert(op.msgName().str());
-  });
+  theModule.walk(
+      [&](MessageOp op) { messageNames.insert(op.msgName().str()); });
   return {std::begin(messageNames), std::end(messageNames)};
 }
 
@@ -255,7 +254,7 @@ json FSMDialectInterpreter::getSetTypes() {
 
 nlohmann::json FSMDialectInterpreter::getSetOperationImpl() {
   json data = json::array();
-  for(auto &elem : setTypeMap){
+  for (auto &elem : setTypeMap) {
     auto theSet = elem.second;
     // .add()
     data.push_back(detail::SetAdd{theSet});
@@ -350,6 +349,12 @@ nlohmann::json FSMDialectInterpreter::getCacheStartState() {
 nlohmann::json FSMDialectInterpreter::getDirectoryStartState() {
   return compute_mach_ss("directory",
                          theModule.lookupSymbol<MachineOp>("directory"));
+}
+
+bool FSMDialectInterpreter::isMulticastEnabled() {
+  std::vector<MulticastOp> mcastOps;
+  utils::searchFor(theModule.getOperation(), mcastOps);
+  return !mcastOps.empty();
 }
 
 } // namespace murphi
