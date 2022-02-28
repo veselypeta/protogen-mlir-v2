@@ -41,7 +41,12 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::TransitionOp op) {
     json convertedOp = convert(&nestedOp);
     if (convertedOp == nullptr)
       continue;
-    data.push_back(std::move(convertedOp));
+    if(convertedOp.is_array()){
+      for(auto &calledOp : convertedOp)
+        data.push_back(std::move(calledOp));
+    } else {
+      data.push_back(std::move(convertedOp));
+    }
   }
 
   // if has end state attr
@@ -95,6 +100,8 @@ nlohmann::json FSMOperationConverter::convert(mlir::Operation *op) {
     return convert(setClear);
   if(auto multicastOp = dyn_cast<MulticastOp>(op))
     return convert(multicastOp);
+  if(auto callOp = dyn_cast<mlir::fsm::CallOp>(op))
+    return convert(callOp);
   return nullptr;
 }
 
@@ -268,6 +275,12 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::MulticastOp op) {
           detail::ExprID{symbolTable.lookup(op.theSet())}
       }
   };
+}
+
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::CallOp op) {
+  StateOp parentState = op->getParentOfType<StateOp>();
+  TransitionOp linkedTransition = parentState.lookupSymbol<TransitionOp>(op.theTransition());
+  return convert(linkedTransition);
 }
 
 std::string FSMConvertType(Type type) {

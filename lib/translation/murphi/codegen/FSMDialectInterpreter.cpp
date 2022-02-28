@@ -328,7 +328,7 @@ nlohmann::json compute_mach_ss(const std::string &machId, MachineOp theMach) {
   for (auto varOp : theMach.getOps<VariableOp>()) {
     Type varOpType = varOp.getType();
     // dont instantiate {id types or sets of id types} types
-    if (!varOpType.isa<IDType>()) {
+    if (!(varOpType.isa<IDType>() || varOpType.isa<SetType>())) {
       auto lhs = common_start; // copy the common_start
       lhs.indexes.emplace_back(
           detail::Indexer{"object", detail::ExprID{varOp.name().str()}});

@@ -34,6 +34,7 @@ private:
   nlohmann::json convert(mlir::fsm::SendOp op);
   nlohmann::json convert(mlir::fsm::IfOp op);
   nlohmann::json convert(mlir::fsm::MulticastOp op);
+  nlohmann::json convert(mlir::fsm::CallOp op);
   nlohmann::json convert(mlir::Operation *op);
   void setupSymbolTable(mlir::fsm::TransitionOp op);
 

@@ -33,12 +33,14 @@ fsm.machine @cache(){
             %src = fsm.ref @cache
             %dst = fsm.ref @directory
             %msg = fsm.message @Request "GetS" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %req %msg
         }
 
         fsm.transition @store() attributes {nextState=@I_store} {
             %src = fsm.ref @cache
             %dst = fsm.ref @directory
             %msg = fsm.message @Request "GetM" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %req %msg
             %n_cnt = fsm.constant {value = "0"} : i64
             fsm.update %acksReceived, %n_cnt : !fsm.range<0, 3>, i64
         }
@@ -61,9 +63,18 @@ fsm.machine @cache(){
             fsm.update %cl, %n_cl : !fsm.data, !fsm.data
         }
 
-        fsm.transition @GetM_Ack_AD(%msg : !fsm.msg) attributes {nextState=@I_store_GetM_Ack_AD}{
+        fsm.transition @GetM_Ack_AD(%msg : !fsm.msg) {
             %e_ack = fsm.access {memberId = "acksExpected"} %msg : !fsm.msg -> !fsm.range<0,3>
             fsm.update %acksExpected, %e_ack : !fsm.range<0,3>, !fsm.range<0,3>
+
+            %is_eq = fsm.comp "=" %acksExpected, %acksReceived : !fsm.range<0,3>, !fsm.range<0,3>
+            fsm.if %is_eq {
+                %m_state = fsm.constant {value="M"} : !fsm.state
+                fsm.update %State, %m_state : !fsm.state, !fsm.state
+            } else {
+                %n_state = fsm.constant {value="I_store_GetM_Ack_AD"} : !fsm.state
+                fsm.update %State, %n_state : !fsm.state, !fsm.state
+            }
         }
 
         fsm.transition @Inv_Ack() attributes {nextState=@I_store}{
@@ -103,6 +114,7 @@ fsm.machine @cache(){
             %src = fsm.ref @cache
             %dst = fsm.ref @directory
             %msg = fsm.message @Request "PutS" %src, %dst : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %req %msg
         }
         fsm.transition @Inv(%msg : !fsm.msg) attributes {nextState=@I}{
             %src = fsm.ref @cache
@@ -114,12 +126,15 @@ fsm.machine @cache(){
 
     fsm.state @S_store {prevTransition=@S::@store} transitions {
 
-        fsm.transition @GetM_Ack_AD(%msg : !fsm.msg) attributes {nextState=@S_store_GetM_Ack_AD} {
+        fsm.transition @GetM_Ack_AD(%msg : !fsm.msg) {
             %r_acks = fsm.access {memberId = "acksExpected"} %msg : !fsm.msg -> !fsm.range<0,3>
             fsm.update %acksExpected, %r_acks : !fsm.range<0,3>,!fsm.range<0,3>
             %is_eq = fsm.comp "=" %acksExpected, %acksReceived : !fsm.range<0,3>, !fsm.range<0,3>
             fsm.if %is_eq {
                 %n_state = fsm.constant {value = "M"} : !fsm.state
+                fsm.update %State, %n_state : !fsm.state, !fsm.state
+            } else {
+                %n_state = fsm.constant {value = "S_store_GetM_Ack_AD"} : !fsm.state
                 fsm.update %State, %n_state : !fsm.state, !fsm.state
             }
         }
@@ -217,6 +232,7 @@ fsm.machine @directory(){
             %m_dst = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
             %m_cnt = fsm.set_count %cache : !fsm.set<!fsm.id, 3>
             %n_msg = fsm.message @RespAck "GetM_Ack_AD" %m_src, %m_dst, %cl, %m_cnt : !fsm.id, !fsm.id, !fsm.data, i64 -> !fsm.msg
+            fsm.send %resp %n_msg
 
             %n_own = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
             fsm.update %owner, %n_own : !fsm.id, !fsm.id
@@ -284,6 +300,7 @@ fsm.machine @directory(){
         fsm.transition @GetS(%msg : !fsm.msg) attributes {nextState=@M_GetS}{
             %GetSSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
             %Fwd_GetS = fsm.message @Request "Fwd_GetS" %GetSSrc, %owner : !fsm.id, !fsm.id -> !fsm.msg
+            fsm.send %fwd %Fwd_GetS
             fsm.set_add %cache, %GetSSrc : !fsm.set<!fsm.id, 3>, !fsm.id
             fsm.set_add %cache, %owner : !fsm.set<!fsm.id, 3>, !fsm.id
         }
@@ -291,7 +308,7 @@ fsm.machine @directory(){
         fsm.transition @GetM(%msg : !fsm.msg) attributes {nextState=@M}{
             %GetMSrc = fsm.access {memberId = "src"} %msg : !fsm.msg -> !fsm.id
             %Fwd_GetM = fsm.message @Request "Fwd_GetM" %GetMSrc, %owner : !fsm.id, !fsm.id -> !fsm.msg
-            fsm.send %fwd %msg
+            fsm.send %fwd %Fwd_GetM
             fsm.update %owner, %GetMSrc : !fsm.id, !fsm.id
         }
 
