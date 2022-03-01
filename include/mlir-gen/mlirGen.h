@@ -16,4 +16,10 @@ mlir::ModuleOp mlirGen(mlir::MLIRContext &mlirCtx,
                        std::string filename = "");
 
 } // namespace pcc
+
+namespace fsm {
+mlir::ModuleOp mlirGen(mlir::MLIRContext &mlirCtx,
+                       ProtoCCParser::DocumentContext *docCtx,
+                       std::string filename = "");
+}
 } // namespace mlir

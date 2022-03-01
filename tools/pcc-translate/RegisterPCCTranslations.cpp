@@ -53,20 +53,13 @@ void registerPCCToPCCDialectTranslation() {
 }
 
 void registerPCCToFSMDialectTranslation() {
-  // TODO - implement fsm gen correctly here
-  auto fake_impl = [](mlir::MLIRContext &mlirCtx,
-                      ProtoCCParser::DocumentContext *,
-                      const std::string& = "") -> ModuleOp {
-    return ModuleOp::create(UnknownLoc::get(&mlirCtx));
-  };
-
   mlir::TranslateToMLIRRegistration(
       "pcc-to-fsm-dialect",
       [&](llvm::SourceMgr &manager, mlir::MLIRContext *ctx) -> ModuleOp {
         ctx->getOrLoadDialect<mlir::StandardOpsDialect>();
         ctx->getOrLoadDialect<mlir::fsm::FSMDialect>();
         return generateMLIR(manager.getMemoryBuffer(manager.getMainFileID()),
-                            ctx, fake_impl);
+                            ctx, mlir::fsm::mlirGen);
       });
 }
 } // namespace mlir

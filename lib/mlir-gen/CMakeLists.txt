@@ -8,6 +8,7 @@ get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 add_mlir_dialect_library(
         mlir-gen
         mlirGen.cpp
+        fsmMlirGen.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${PROJECT_SOURCE_DIR}/include/PCC
