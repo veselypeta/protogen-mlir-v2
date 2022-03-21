@@ -86,6 +86,42 @@ static void print(TransitionOp op, OpAsmPrinter &p) {
 }
 
 //===----------------------------------------------------------------------===//
+// AwaitOp
+//===----------------------------------------------------------------------===//
+void WhenOp::build(::mlir::OpBuilder &odsBuilder,
+                    ::mlir::OperationState &odsState, StringRef name,
+                    FunctionType type, ArrayRef<NamedAttribute> attrs,
+                    ArrayRef<DictionaryAttr> argAttrs) {
+  odsState.addAttribute(::mlir::SymbolTable::getSymbolAttrName(),
+                        odsBuilder.getStringAttr(name));
+  odsState.addAttribute(getTypeAttrName(), TypeAttr::get(type));
+
+  odsState.attributes.append(std::begin(attrs), std::end(attrs));
+  odsState.addRegion();
+  if (argAttrs.empty())
+    return;
+  assert(type.getNumInputs() == argAttrs.size());
+  function_like_impl::addArgAndResultAttrs(odsBuilder, odsState, argAttrs,
+                                           /*resultAttrs*/ llvm::None);
+}
+
+static ParseResult parseWhenOp(OpAsmParser &parser, OperationState &result) {
+  auto buildFunctionType =
+      [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
+         function_like_impl::VariadicFlag, std::string &) -> FunctionType {
+    return builder.getFunctionType(argTypes, results);
+  };
+  return function_like_impl::parseFunctionLikeOp(parser, result, false,
+                                                 buildFunctionType);
+}
+
+static void print(WhenOp op, OpAsmPrinter &p) {
+  FunctionType fnType = op.getType();
+  function_like_impl::printFunctionLikeOp(p, op, fnType.getInputs(), false,
+                                          fnType.getResults());
+}
+
+//===----------------------------------------------------------------------===//
 // VariableOp
 //===----------------------------------------------------------------------===//
 void VariableOp::getAsmResultNames(
@@ -242,26 +278,25 @@ void MessageVariable::getAsmResultNames(
 //===----------------------------------------------------------------------===//
 // Multicast Op
 //===----------------------------------------------------------------------===//
-static LogicalResult verifyMulticastOp(MulticastOp op){
-  if(!op.theSet().getType().isa<SetType>())
+static LogicalResult verifyMulticastOp(MulticastOp op) {
+  if (!op.theSet().getType().isa<SetType>())
     return op.emitOpError("operand is not of set type");
   auto setType = op.theSet().getType().cast<SetType>();
-  if(!setType.getElementType().isa<IDType>())
+  if (!setType.getElementType().isa<IDType>())
     return op.emitOpError("the element type of the set is not ID");
-  if(op.network().getDefiningOp<NetworkOp>().ordering() != "ordered")
+  if (op.network().getDefiningOp<NetworkOp>().ordering() != "ordered")
     op.emitOpError("can only multicast to ordered networks");
   return success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // Set Add Op
 //===----------------------------------------------------------------------===//
-static LogicalResult verifySetAdd(SetAdd op){
-  if(!op.theSet().getType().isa<SetType>())
+static LogicalResult verifySetAdd(SetAdd op) {
+  if (!op.theSet().getType().isa<SetType>())
     return op.emitOpError("The first parameter must be a set");
   auto setType = op.theSet().getType().cast<SetType>();
-  if(setType.getElementType().getTypeID() != op.value().getType().getTypeID())
+  if (setType.getElementType().getTypeID() != op.value().getType().getTypeID())
     return op.emitOpError("value operand type must match set element type");
   return success();
 }
@@ -269,11 +304,11 @@ static LogicalResult verifySetAdd(SetAdd op){
 //===----------------------------------------------------------------------===//
 // Set Contains Op
 //===----------------------------------------------------------------------===//
-static LogicalResult verifySetContains(SetContains op){
-  if(!op.theSet().getType().isa<SetType>())
+static LogicalResult verifySetContains(SetContains op) {
+  if (!op.theSet().getType().isa<SetType>())
     return op.emitOpError("The first parameter must be a set");
   auto setType = op.theSet().getType().cast<SetType>();
-  if(setType.getElementType().getTypeID() != op.value().getType().getTypeID())
+  if (setType.getElementType().getTypeID() != op.value().getType().getTypeID())
     return op.emitOpError("value operand type must match set element type");
   return success();
 }
@@ -281,11 +316,11 @@ static LogicalResult verifySetContains(SetContains op){
 //===----------------------------------------------------------------------===//
 // Set Delete Op
 //===----------------------------------------------------------------------===//
-static LogicalResult verifySetDelete(SetDelete op){
-  if(!op.theSet().getType().isa<SetType>())
+static LogicalResult verifySetDelete(SetDelete op) {
+  if (!op.theSet().getType().isa<SetType>())
     return op.emitOpError("The first parameter must be a set");
   auto setType = op.theSet().getType().cast<SetType>();
-  if(setType.getElementType().getTypeID() != op.value().getType().getTypeID())
+  if (setType.getElementType().getTypeID() != op.value().getType().getTypeID())
     return op.emitOpError("value operand type must match set element type");
   return success();
 }
@@ -293,8 +328,8 @@ static LogicalResult verifySetDelete(SetDelete op){
 //===----------------------------------------------------------------------===//
 // Set Clear Op
 //===----------------------------------------------------------------------===//
-static LogicalResult verifySetClear(SetClear op){
-  if(!op.theSet().getType().isa<SetType>())
+static LogicalResult verifySetClear(SetClear op) {
+  if (!op.theSet().getType().isa<SetType>())
     return op.emitOpError("The set operand must be of type !fms.set");
   return success();
 }

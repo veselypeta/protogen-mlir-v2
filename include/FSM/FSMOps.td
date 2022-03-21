@@ -134,10 +134,6 @@ def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminat
 
     let regions = (region SizedRegion<1>:$body);
 
-    //let assemblyFormat = [{
-    //    attr-dict `action` $sym_name $body
-    //}];
-
     let builders = [
         OpBuilder<(ins
                         "StringRef":$name, "FunctionType":$type, "SymbolRefAttr":$nextState,
@@ -148,7 +144,7 @@ def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminat
     let extraClassDeclaration = [{
 
     /// This train needs access to the hooks defined below.
-    friend class OpTrait::FunctionLike<MachineOp>;
+    friend class OpTrait::FunctionLike<TransitionOp>;
 
     /// Returns the number of arguments. This is a hook for
     /// OpTrait::FunctionLike.
@@ -172,6 +168,67 @@ def TransitionOp : FSMOp<"transition", [HasParent<"StateOp">, Symbol, NoTerminat
     }];
     let parser = [{ return ::parse$cppClass(parser, result); }];
     let printer = [{ return ::print(*this, p); }];
+}
+
+def WhenOp : FSMOp<"when", [HasParent<"AwaitOp">, NoTerminator, FunctionLike]>{
+    let summary = "await for a message";
+    let description = [{}];
+    let arguments = (ins SymbolNameAttr:$sym_name, TypeAttr:$type);
+
+    let regions = (region SizedRegion<1>:$body);
+
+    let builders = [
+        OpBuilder<(ins
+                        "StringRef":$name, "FunctionType":$type,
+                        CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+                        CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)>
+    ];
+
+    let extraClassDeclaration = [{
+
+    /// This train needs access to the hooks defined below.
+    friend class OpTrait::FunctionLike<WhenOp>;
+
+    /// Returns the number of arguments. This is a hook for
+    /// OpTrait::FunctionLike.
+    unsigned getNumFuncArguments() { return getType().getInputs().size(); }
+
+    /// Return the number of results. This is a hook for OpTrait::FunctionLike.
+    unsigned getNumFuncResults() { return getType().getResults().size(); }
+
+    /// Hook for OpTrait::FunctionLike, called after verifying that the 'type'
+    /// attribute is present and checks if it holds a function type. Ensures
+    /// getType, getNumFuncArguments, and getNumFuncResults can be called
+    /// safely.
+    LogicalResult verifyType(){
+        auto type = getTypeAttr().getValue();
+        if(!type.isa<FunctionType>())
+            return emitOpError("requires '" + getTypeAttrName() +
+                "' attribute of function type");
+        return success();
+    }
+
+    }];
+    let parser = [{ return ::parse$cppClass(parser, result); }];
+    let printer = [{ return ::print(*this, p); }];
+}
+
+def AwaitOp : FSMOp<"await", [NoTerminator]>{
+    let summary = "await for events";
+    let description = [{}];
+    let regions = (region SizedRegion<1>:$body);
+    let assemblyFormat = [{
+        attr-dict `actions` $body
+    }];
+    let extraClassDeclaration = [{
+    public:
+    Block *addEntryBlock(){
+        assert(this->body().getBlocks().size() == 0 && "already added an entry block");
+        auto block = new Block();
+        this->body().push_back(block);
+        return block;
+    }
+    }];
 }
 
 def MessageOp : FSMOp<"message", []>{
@@ -327,6 +384,16 @@ def AddOp : FSMOp<"add">{
     let summary = "Add two values together";
     let description = [{ TODO }];
     let arguments = (ins AnyType:$lhs, AnyType:$rhs);
+    let results = (outs I64:$result);
+    let assemblyFormat = [{
+        attr-dict $lhs `,` $rhs `:` type($lhs) `,` type($rhs)
+    }];
+}
+
+def SubOp : FSMOp<"sub">{
+    let summary = "Subtract two values";
+    let description = [{}];
+    let arguments = (ins AnyType:$lhs, AnyType: $rhs);
     let results = (outs I64:$result);
     let assemblyFormat = [{
         attr-dict $lhs `,` $rhs `:` type($lhs) `,` type($rhs)

@@ -3,6 +3,7 @@
 #include "FSM/FSMOps.h"
 #include "mlir-gen/mlirGen.h"
 
+#include "ProtoCCBaseVisitor.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -30,16 +31,20 @@ private:
   std::string filename;
   std::set<std::string> identStorage;
   std::string curMach;
+  std::set<std::string> stableStates;
 
   llvm::ScopedHashTable<llvm::StringRef, mlir::Value> symbolTable;
   using SymbolTableScopeT =
       llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value>;
+
+  std::map<std::string, std::string> msgNameTypeMap;
 
 public:
   MLIRGenImpl(MLIRContext *ctx, std::string fileName)
       : builder(ctx), filename(std::move(fileName)) {}
 
   ModuleOp generate(ProtoCCParser::DocumentContext *ctx) {
+    preprocessMsgNames(ctx);
     theModule = ModuleOp::create(builder.getUnknownLoc());
 
     builder.setInsertionPointToStart(theModule.getBody());
@@ -57,6 +62,24 @@ public:
   }
 
 private:
+  void preprocessMsgNames(ProtoCCParser::DocumentContext *ctx) {
+    class MsgConstructorVisitor : public ProtoCCBaseVisitor {
+    public:
+      antlrcpp::Any
+      visitMessage_constr(ProtoCCParser::Message_constrContext *ctx) override {
+        std::string msgName = ctx->message_expr().at(0)->getText();
+        std::string msgType = ctx->ID()->getText();
+        msgNameMap.insert({msgName, msgType});
+        return visitChildren(ctx);
+      }
+      std::map<std::string, std::string> msgNameMap;
+    };
+
+    MsgConstructorVisitor msgVisitor;
+    ctx->accept(&msgVisitor);
+    msgNameTypeMap = msgVisitor.msgNameMap;
+  }
+
   mlir::Location loc(const antlr4::Token &tok) const {
     return mlir::FileLineColLoc::get(
         mlir::Identifier::get(filename, builder.getContext()), tok.getLine(),
@@ -75,10 +98,10 @@ private:
     // find will always succeed because we have inserted into the storage class
     llvm::StringRef identRef = *identStorage.find(ident);
 
-    // shadowing not allowed!
-    if (symbolTable.count(identRef) > 0) {
-      assert(0 && "mlir value already declared in current scope!");
-    }
+    //    // shadowing not allowed!
+    //    if (symbolTable.count(identRef) > 0) {
+    //      assert(0 && "mlir value already declared in current scope!");
+    //    }
     symbolTable.insert(identRef, val);
     return mlir::success();
   }
@@ -91,20 +114,19 @@ private:
     return symbolTable.lookup(ident);
   }
 
-  mlir::Value lookupWithSymbols(const std::string &ident){
-    if(auto symbolTableLookup = lookup(ident))
+  mlir::Value lookupWithSymbols(const std::string &ident) {
+    if (auto symbolTableLookup = lookup(ident))
       return symbolTableLookup;
 
     // could be referring to a variable
     auto machOp = theModule.lookupSymbol<MachineOp>(curMach);
-    for(auto varOp : machOp.getOps<VariableOp>())
-      if(varOp.name() == ident)
+    for (auto varOp : machOp.getOps<VariableOp>())
+      if (varOp.name() == ident)
         return varOp;
 
-
     // could be referring to a network
-    for(auto netOp : theModule.getOps<NetworkOp>())
-      if(netOp.sym_name().getLeafReference() == ident)
+    for (auto netOp : theModule.getOps<NetworkOp>())
+      if (netOp.sym_name().getLeafReference() == ident)
         return netOp;
 
     return nullptr;
@@ -118,6 +140,20 @@ private:
       ConstOp defOp = constRef.getDefiningOp<ConstOp>();
       return defOp.value().cast<IntegerAttr>().getInt();
     }
+  }
+
+  Value mlirGen(ProtoCCParser::Val_rangeContext *ctx) {
+    if (auto intCtx = ctx->INT()) {
+      return getIntegerConstant(intCtx);
+    } else {
+      return lookupWithSymbols(ctx->ID()->getText());
+    }
+  }
+
+  Value getIntegerConstant(antlr4::tree::TerminalNode *node) {
+    return builder.create<ConstOp>(loc(*node), builder.getI64Type(),
+                                   builder.getI64IntegerAttr(std::strtol(
+                                       node->getText().c_str(), nullptr, 10)));
   }
 
   LogicalResult mlirGen(ProtoCCParser::DocumentContext *ctx) {
@@ -137,11 +173,7 @@ private:
   }
 
   LogicalResult mlirGen(ProtoCCParser::Const_declContext *ctx) {
-    std::string value_str = ctx->INT()->getText();
-    long size = std::strtol(value_str.c_str(), nullptr, 10);
-    auto cOp = builder.create<ConstOp>(loc(*ctx->ID()), builder.getI64Type(),
-                                       builder.getI64IntegerAttr(size));
-    return declare(ctx->ID()->getText(), cOp);
+    return declare(ctx->ID()->getText(), getIntegerConstant(ctx->INT()));
   }
 
   LogicalResult mlirGen(ProtoCCParser::Init_hwContext *ctx) {
@@ -279,6 +311,10 @@ private:
 
   LogicalResult mlirGen(ProtoCCParser::Arch_blockContext *ctx) {
     curMach = ctx->ID()->getText() == "cache" ? cache : directory;
+    // add stable states
+    for (auto ss : ctx->arch_body()->stable_def()->ID())
+      stableStates.insert(ss->getText());
+
     for (auto procBlock : ctx->arch_body()->process_block())
       if (failed(mlirGen(procBlock)))
         return failure();
@@ -300,6 +336,7 @@ private:
       return success();
 
     // lookup the current machine
+    SymbolTableScopeT proc_scope(symbolTable);
     MachineOp curMachOp = theModule.lookupSymbol<MachineOp>(curMach);
     builder.setInsertionPointToEnd(&curMachOp.getBody().front());
 
@@ -331,7 +368,12 @@ private:
     Location procLoc = loc(*procTransCtx->ID());
     auto theTrans =
         builder.create<TransitionOp>(procLoc, action, transType, nextStateAttr);
-    theTrans.addEntryBlock();
+    builder.setInsertionPointToStart(theTrans.addEntryBlock());
+
+    // add the msg param to the scope
+    if (theTrans.getNumFuncArguments() == 1)
+      assert(succeeded(declare(action, theTrans.getArgument(0))) &&
+             "failed to add msg param to scope");
 
     // create the nested ops
     for (auto expr : ctx->process_expr())
@@ -344,38 +386,245 @@ private:
   LogicalResult mlirGen(ProtoCCParser::Process_exprContext *ctx) {
     if (auto exprCtx = ctx->expressions())
       if (failed(mlirGen(exprCtx)))
-          return failure();
+        return failure();
+    if (auto transCtx = ctx->transaction())
+      if (failed(mlirGen(transCtx)))
+        return failure();
     return success();
   }
 
-  LogicalResult mlirGen(ProtoCCParser::ExpressionsContext *ctx){
-    if(auto assignCtx = ctx->assignment())
+  LogicalResult mlirGen(ProtoCCParser::ExpressionsContext *ctx) {
+    if (auto assignCtx = ctx->assignment())
       return mlirGen(assignCtx);
     return success();
   }
 
-  LogicalResult mlirGen(ProtoCCParser::AssignmentContext *ctx){
-    // assignment is only used in two cases
-    // 1 - for message construction i.e. msg = Request(...);
-    // 2 = for updating the cache state cl=GetM_Ack_D.cl;
-    auto lhsIdent = ctx->process_finalident()->getText();
-    // case 2
-    if(auto lhsValue = lookupWithSymbols(lhsIdent)){
+  LogicalResult mlirGen(ProtoCCParser::TransactionContext *ctx) {
+    auto awaitOp = builder.create<AwaitOp>(loc(*ctx->AWAIT()));
+    builder.setInsertionPointToStart(awaitOp.addEntryBlock());
+    for (auto transCtx : ctx->trans()) {
+      if (failed(mlirGen(transCtx)))
+        return failure();
+    }
+    builder.setInsertionPointAfter(awaitOp);
+    return success();
+  }
 
-    } else {
-      assert(ctx->assign_types()->message_constr() != nullptr && "assignment must be to a message constructor");
-      auto msgCtr = ctx->assign_types()->message_constr();
-      Location msgLoc = loc(*msgCtr->ID());
-      std::string msgType = msgCtr->ID()->getText();
-      std::string msgName = msgCtr->message_expr(0)->object_expr()->getText();
-      builder.create<MessageOp>(msgLoc,
-                                MsgType::get(builder.getContext()),
-                                builder.getSymbolRefAttr(msgType),
-                                msgName,
-                                llvm::None
-                                );
+  LogicalResult mlirGen(ProtoCCParser::TransContext *ctx) {
+    auto msgName = ctx->ID();
+    auto location = loc(*msgName);
+    auto whenOp = builder.create<WhenOp>(
+        location, msgName->getText(),
+        builder.getFunctionType({MsgType::get(builder.getContext())}, {}));
+
+    builder.setInsertionPointToStart(whenOp.addEntryBlock());
+
+    assert(succeeded(declare(msgName->getText(), whenOp.getArgument(0))));
+
+    for (auto tBodyCtx : ctx->trans_body())
+      if (failed(mlirGen(tBodyCtx)))
+        return failure();
+    builder.setInsertionPointAfter(whenOp);
+    return success();
+  }
+
+  LogicalResult mlirGen(ProtoCCParser::Trans_bodyContext *ctx) {
+    if (auto expr = ctx->expressions())
+      return mlirGen(expr);
+    return success();
+  }
+
+  Value findVariableOp(const std::string &ident) {
+    auto theMach = theModule.lookupSymbol<MachineOp>(curMach);
+    for (auto var : theMach.body().getOps<VariableOp>())
+      if (var.name() == ident)
+        return var;
+    return nullptr;
+  }
+
+  LogicalResult mlirGen(ProtoCCParser::AssignmentContext *ctx) {
+    // assignment is only used in two cases
+    // 1 = for updating the cache state cl=GetM_Ack_D.cl;
+    // 2 - assigning to a local variable
+    auto lhsIdent = ctx->process_finalident()->getText();
+    // case 1 - update
+    if (auto lhsValue = findVariableOp(lhsIdent)) {
+      Type internalStateType = lhsValue.getType();
+      Value rhs = mlirGen(ctx->assign_types());
+      assert(rhs != nullptr);
+
+      if (failed(areTypesCompatible(rhs.getType(), internalStateType)) &&
+          rhs.getType() != internalStateType) {
+        emitError(loc(*ctx->EQUALSIGN()), "Types do not match");
+        return failure();
+      }
+      builder.create<UpdateOp>(loc(*ctx->process_finalident()->getStart()),
+                               lhsValue, rhs);
+
+    }
+    // Case 2 - local var
+    else {
+      return declare(lhsIdent, mlirGen(ctx->assign_types()));
     }
     return success();
+  }
+
+  Value mlirGen(ProtoCCParser::Assign_typesContext *ctx) {
+    // INT
+    if (auto intCtx = ctx->INT())
+      return builder.create<ConstOp>(
+          loc(*intCtx), builder.getI64Type(),
+          builder.getI64IntegerAttr(
+              std::strtol(intCtx->getText().c_str(), nullptr, 10)));
+    // BOOL
+    if (auto boolCtx = ctx->BOOL())
+      return builder.create<ConstOp>(
+          loc(*ctx->BOOL()), builder.getI1Type(),
+          builder.getBoolAttr(boolCtx->getText() == "true"));
+
+    // Obj_expr
+    if (auto objExprCtx = ctx->object_expr())
+      return mlirGen(objExprCtx);
+
+    // message_constructor
+    if (auto msgCtrCtx = ctx->message_constr())
+      return mlirGen(msgCtrCtx);
+
+    // math op
+    if (auto mathOpCtx = ctx->math_op()) {
+      auto lhs = mlirGen(mathOpCtx->val_range(0));
+      auto rhs = mlirGen(mathOpCtx->val_range(1));
+      if (mathOpCtx->PLUS()) {
+        return builder.create<fsm::AddOp>(loc(*mathOpCtx->PLUS()),
+                                          builder.getI64Type(), lhs, rhs);
+      } else {
+        return builder.create<fsm::SubOp>(loc(*mathOpCtx->PLUS()),
+                                          builder.getI64Type(), lhs, rhs);
+      }
+    }
+
+    // set_func
+    if (auto setFnCtx = ctx->set_func())
+      return mlirGen(setFnCtx);
+
+    return nullptr;
+  }
+
+  Value mlirGen(ProtoCCParser::Object_exprContext *ctx) {
+    if (auto objIdCtx = ctx->object_id()) {
+      auto ident = objIdCtx->getText();
+      // If State
+      if (stableStates.find(ident) != stableStates.end()) {
+        return builder.create<ConstOp>(loc(*objIdCtx->ID()),
+                                       StateType::get(builder.getContext()),
+                                       builder.getStringAttr(ident));
+      } else {
+        return lookupWithSymbols(ident);
+      }
+    }
+
+    if (auto objFnCtx = ctx->object_func()) {
+      auto objId = objFnCtx->ID();
+      Location location = loc(*objId);
+      // if referencing directory
+      if (objFnCtx->object_idres()->NID())
+        return builder.create<ReferenceOp>(
+            location, IDType::get(builder.getContext()),
+            builder.getSymbolRefAttr(objId->getText()));
+
+      auto object = lookupWithSymbols(objId->getText()).cast<BlockArgument>();
+      assert(object != nullptr && "failed to find msg");
+      auto address = objFnCtx->object_idres()->ID()->getText();
+      assert(object.getType().isa<MsgType>() && "only msg types allowed");
+
+      // get the type of the index
+      Type resultingType;
+      if (address == "src" || address == "dst")
+        resultingType = IDType::get(builder.getContext());
+      else {
+        auto parentOp = object.getOwner()->getParentOp();
+        if (auto awaitPar = dyn_cast<WhenOp>(parentOp)) {
+          auto declname = msgNameTypeMap.find(awaitPar.sym_name().str());
+          assert(declname != msgNameTypeMap.end());
+          auto msgDecl = theModule.lookupSymbol<MessageDecl>(declname->second);
+          resultingType =
+              msgDecl.lookupSymbol<MessageVariable>(address).getType();
+        } else {
+          auto procPar = dyn_cast<TransitionOp>(parentOp);
+          auto declname = msgNameTypeMap.find(procPar.sym_name().str());
+          assert(declname != msgNameTypeMap.end());
+          auto msgDecl = theModule.lookupSymbol<MessageDecl>(declname->second);
+          resultingType =
+              msgDecl.lookupSymbol<MessageVariable>(address).getType();
+        }
+      }
+      return builder.create<AccessOp>(location, resultingType, object, address);
+    }
+    assert(0 && "invalid obj expr");
+  }
+
+  Value mlirGen(ProtoCCParser::Message_constrContext *ctx) {
+    Location msgLoc = loc(*ctx->ID());
+    auto msgType = ctx->ID()->getText();
+    auto msgName = ctx->message_expr(0)->getText();
+    std::vector<Value> operands;
+    for (size_t i = 1; i < ctx->message_expr().size(); i++) {
+      operands.push_back(mlirGen(ctx->message_expr(i)));
+    }
+    return builder.create<MessageOp>(msgLoc, MsgType::get(builder.getContext()),
+                                     builder.getSymbolRefAttr(msgType),
+                                     builder.getStringAttr(msgName), operands);
+  }
+
+  Value mlirGen(ProtoCCParser::Message_exprContext *ctx) {
+    // obj_expr
+    if (auto objExprCtx = ctx->object_expr())
+      return mlirGen(objExprCtx);
+    // set_fn
+    if (auto setFnCtx = ctx->set_func())
+      return mlirGen(setFnCtx);
+
+    if (auto nidCtx = ctx->NID())
+      return builder.create<ReferenceOp>(loc(*nidCtx),
+                                         IDType::get(builder.getContext()),
+                                         builder.getSymbolRefAttr(curMach));
+    return nullptr;
+  }
+
+  Value mlirGen(ProtoCCParser::Set_funcContext *ctx) {
+    auto setId = ctx->ID()->getText();
+    Location location = loc(*ctx->ID());
+    Value theSet = lookupWithSymbols(setId);
+    auto fnType = ctx->set_function_types()->getText();
+
+    if (fnType == "add") {
+      builder.create<SetAdd>(location, theSet, mlirGen(ctx->set_nest(0)));
+      return nullptr;
+    }
+    if (fnType == "count")
+      return builder.create<SetCount>(location, builder.getI64Type(), theSet);
+
+    if (fnType == "contains")
+      return builder.create<SetContains>(location, builder.getI1Type(), theSet,
+                                         mlirGen(ctx->set_nest(0)));
+
+    if (fnType == "del") {
+      builder.create<SetDelete>(location, theSet, mlirGen(ctx->set_nest(0)));
+      return nullptr;
+    }
+
+    if (fnType == "clear") {
+      builder.create<SetClear>(location, theSet);
+    }
+    assert(0 && "invalid set fn");
+  }
+
+  Value mlirGen(ProtoCCParser::Set_nestContext *ctx) {
+    if (auto setFnCtx = ctx->set_func())
+      return mlirGen(setFnCtx);
+    if (auto objExprCtx = ctx->object_expr())
+      return mlirGen(objExprCtx);
+    assert(0 && "invalid");
   }
 };
 
