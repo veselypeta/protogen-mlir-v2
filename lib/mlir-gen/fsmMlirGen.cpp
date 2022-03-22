@@ -195,8 +195,10 @@ private:
       std::string netId = network->ID()->getText();
       std::string netOrd = network->element_type()->getText();
       std::transform(netOrd.begin(), netOrd.end(), netOrd.begin(), ::tolower);
-      builder.create<NetworkOp>(netLoc, NetworkType::get(builder.getContext()),
-                                netOrd, builder.getSymbolRefAttr(netId));
+      auto networkOp = builder.create<NetworkOp>(
+          netLoc, NetworkType::get(builder.getContext()), netOrd,
+          builder.getSymbolRefAttr(netId));
+      assert(succeeded(declare(netId, networkOp)));
     }
     return success();
   }
@@ -390,6 +392,35 @@ private:
     if (auto transCtx = ctx->transaction())
       if (failed(mlirGen(transCtx)))
         return failure();
+    if (auto sendCtx = ctx->network_send())
+      return mlirGen(sendCtx);
+
+    if (auto mcastCtx = ctx->network_mcast())
+      return mlirGen(mcastCtx);
+
+    return success();
+  }
+
+  LogicalResult mlirGen(ProtoCCParser::Network_sendContext *ctx) {
+    Location location = loc(*ctx->ID(0));
+    auto netId = ctx->ID(0)->getText();
+    auto msgIdent = ctx->ID(1)->getText();
+    auto network = lookup(netId);
+    auto msg = lookup(msgIdent);
+    builder.create<SendOp>(location, network, msg);
+    return success();
+  }
+
+  LogicalResult mlirGen(ProtoCCParser::Network_mcastContext *ctx) {
+    Location l = loc(*ctx->ID(0));
+    auto netId = ctx->ID(0)->getText();
+    auto msgId = ctx->ID(1)->getText();
+    auto setId = ctx->ID(2)->getText();
+
+    auto network = lookup(netId);
+    auto msg = lookup(msgId);
+    auto set = lookupWithSymbols(setId);
+    builder.create<MulticastOp>(l, network, msg, set);
     return success();
   }
 
