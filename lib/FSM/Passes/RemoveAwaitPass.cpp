@@ -8,6 +8,8 @@
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/PassManager.h"
 #include <mlir/IR/BlockAndValueMapping.h>
+#include "iostream"
+
 
 using namespace mlir;
 using namespace mlir::fsm;
@@ -19,41 +21,53 @@ public:
 
 void RemoveAwaitPass::runOnOperation() {
   ModuleOp theModule = OperationPass<ModuleOp>::getOperation();
+  bool change = false;
 
-  auto result = theModule.walk([&](AwaitOp awaitOp) -> WalkResult {
+  auto handler = [&](AwaitOp awaitOp) -> WalkResult {
     auto parentOp = awaitOp->getParentOp();
     ProtoGenRewriter rewriter(&getContext());
 
+    // only consider awaits which have parent Transition
     if (!llvm::isa<TransitionOp>(parentOp))
       return WalkResult::advance();
-    auto parentTrans = dyn_cast<TransitionOp>(parentOp);
-    auto parentState = parentTrans->getParentOfType<StateOp>();
-    rewriter.setInsertionPointAfter(parentState);
 
-    auto parentStateName = parentState.sym_name();
-    auto transStateName = parentStateName + "_" + parentTrans.sym_name();
-    auto newTransState = rewriter.create<StateOp>(awaitOp.getLoc(), transStateName.str());
-    parentTrans.nextStateAttr(rewriter.getSymbolRefAttr(newTransState));
+    auto parentTransOp = dyn_cast<TransitionOp>(parentOp);
+    auto parentStateOp = parentTransOp->getParentOfType<StateOp>();
+    rewriter.setInsertionPointAfter(parentStateOp);
+
+    auto parentStateName = parentStateOp.sym_name().str();
+    auto transStateName = parentStateName + "_" + parentTransOp.sym_name().str();
+    auto newTransState = rewriter.create<StateOp>(
+        awaitOp.getLoc(), transStateName, rewriter.getBoolAttr(true),
+        rewriter.getSymbolRefAttr(
+            parentStateOp.sym_name(),
+            {rewriter.getSymbolRefAttr(parentTransOp.sym_name())}));
+    parentTransOp.nextStateAttr(rewriter.getSymbolRefAttr(newTransState));
 
     rewriter.setInsertionPointToStart(newTransState.addEntryBlock());
 
-    auto whenResult = awaitOp.walk([&](WhenOp whenOp)->WalkResult{
-      auto tFnType = rewriter.getFunctionType({MsgType::get(&getContext())}, {});
-      auto nTransition = rewriter.create<TransitionOp>(whenOp->getLoc(),
-                                                       whenOp.sym_name(), tFnType, nullptr);
-      assert(succeeded(utils::inlineWhenIntoTrans(whenOp, nTransition, rewriter)));
-      rewriter.eraseOp(whenOp);
-      return WalkResult::advance();
-    });
-    if (whenResult.wasInterrupted())
-      return WalkResult::interrupt();
-
+    for(auto whenOp : awaitOp.body().getOps<WhenOp>()){
+      auto tFnType =
+          rewriter.getFunctionType({MsgType::get(&getContext())}, {});
+      auto nTransition = rewriter.create<TransitionOp>(
+          whenOp->getLoc(), whenOp.sym_name(), tFnType, nullptr);
+      assert(
+          succeeded(utils::inlineWhenIntoTrans(whenOp, nTransition, rewriter)));
+      rewriter.setInsertionPointAfter(nTransition);
+    }
+    change = true;
     rewriter.eraseOp(awaitOp);
     return WalkResult::advance();
-  });
+  };
 
-  if (result.wasInterrupted())
-    return signalPassFailure();
+  do{
+    change = false;
+    auto result = theModule.walk(handler);
+    if (result.wasInterrupted())
+      return signalPassFailure();
+  } while(change);
+
+
 }
 
 } // namespace
