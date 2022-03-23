@@ -22,4 +22,11 @@ def NonStallingOptimizationPass : Pass<"fsm-non-stalling-optimization", "ModuleO
     let dependentDialects = ["mlir::fsm::FSMDialect"];
 }
 
+def RemoveAwaitPass : Pass<"remove-await-pass", "ModuleOp">{
+    let summary = "Removes await syntax and generates necessary transient states";
+    let description = [{ TODO }];
+    let constructor = "mlir::fsm::createRemoveAwaitPass()";
+    let dependentDialects = ["mlir::fsm::FSMDialect"];
+}
+
 #endif // FSM_DIALECT_PASSES

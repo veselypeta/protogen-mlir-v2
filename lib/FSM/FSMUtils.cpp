@@ -131,6 +131,32 @@ LogicalResult inlineTransition(TransitionOp from, TransitionOp to,
   return result;
 }
 
+LogicalResult inlineWhenIntoTrans(WhenOp from, TransitionOp to, PatternRewriter &rewriter){
+  Block *toEntry = to.addEntryBlock();
+  rewriter.setInsertionPointToStart(toEntry);
+  auto inlinePoint = rewriter.create<NOPOp>(rewriter.getUnknownLoc());
+
+  rewriter.setInsertionPointToEnd(&from.body().front());
+  auto fromTerminator = rewriter.create<BreakOp>(rewriter.getUnknownLoc());
+
+  InlinerInterface inliner(rewriter.getContext());
+  BlockAndValueMapping mapping;
+  mapping.map(from.getArgument(0), to.getArgument(0));
+
+  LogicalResult result = inlineRegion(
+      inliner,
+      &from.getRegion(),
+      inlinePoint,
+      mapping,
+      {},
+      {}
+      );
+  assert(succeeded(result) && "failed to inline when op into transition");
+  rewriter.eraseOp(inlinePoint);
+  rewriter.eraseOp(fromTerminator);
+  return result;
+}
+
 std::string getNextStateName(llvm::StringRef destinationState,
                              llvm::StringRef actionPerformed) {
   std::string newState = destinationState.str() + "_" + actionPerformed.str();

@@ -54,15 +54,18 @@ TransitionOp findDirectoryWinningTransition(TransitionOp racingTransition);
 LogicalResult inlineTransition(TransitionOp from, TransitionOp to,
                                PatternRewriter &rewriter);
 
+LogicalResult inlineWhenIntoTrans(WhenOp from, TransitionOp to,
+                                  PatternRewriter &rewriter);
+
 LogicalResult optimizeStateTransition(StateOp startState,
                                       TransitionOp racingTransition,
                                       PatternRewriter &rewriter);
 
 LogicalResult optimizeStateTransitionV2(StateOp startState,
-                                      TransitionOp racingTransition,
-                                      PatternRewriter &rewriter);
+                                        TransitionOp racingTransition,
+                                        PatternRewriter &rewriter);
 StateOp getDirectoryDestinationStateHavingSent(llvm::StringRef msgName,
-                                    MachineOp theDirectory);
+                                               MachineOp theDirectory);
 
 template <class CallableT>
 WalkResult runOnEachTransientState(MachineOp machine, PatternRewriter &rewriter,

@@ -378,6 +378,9 @@ private:
              "failed to add msg param to scope");
 
     // create the nested ops
+    if(ctx->process_expr().empty()){
+      builder.create<NOPOp>(builder.getUnknownLoc());
+    }
     for (auto expr : ctx->process_expr())
       if (failed(mlirGen(expr)))
         return failure();

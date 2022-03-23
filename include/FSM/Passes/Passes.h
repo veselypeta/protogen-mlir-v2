@@ -7,6 +7,7 @@ namespace fsm {
 
 std::unique_ptr<OperationPass<ModuleOp>> createStallingOptimizationPass();
 std::unique_ptr<OperationPass<ModuleOp>> createNonStallingOptimizationPass();
+std::unique_ptr<OperationPass<ModuleOp>> createRemoveAwaitPass();
 
 void registerAllFSMPasses();
 void registerAllFSMPipelines();
