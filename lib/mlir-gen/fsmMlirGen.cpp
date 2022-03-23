@@ -425,9 +425,167 @@ private:
   }
 
   LogicalResult mlirGen(ProtoCCParser::ExpressionsContext *ctx) {
+    // assignment
     if (auto assignCtx = ctx->assignment())
       return mlirGen(assignCtx);
+
+    // conditional
+    if (auto condCtx = ctx->conditional())
+      return mlirGen(condCtx);
+
+    // object_block
+    if (auto objBlockCtx = ctx->object_block()) {
+      mlirGen(objBlockCtx->object_expr());
+      return success();
+    }
+
+    // set_block
+    if (auto setCtx = ctx->set_block()) {
+      mlirGen(setCtx->set_func());
+      return success();
+    }
+
+    // internal_event_block - unsupported
+    if (ctx->internal_event_block() != nullptr)
+      assert(0 && "internal event blocks are unsupported");
     return success();
+  }
+
+  LogicalResult mlirGen(ProtoCCParser::ConditionalContext *ctx) {
+    if (auto ifCtx = ctx->if_stmt()) {
+      auto conditional = mlirGen(ifCtx->cond_comb());
+      auto elseRegion = ifCtx->else_expression() != nullptr;
+      auto ifOp = builder.create<IfOp>(loc(*ifCtx->getStart()), conditional,
+                                       elseRegion);
+      builder.setInsertionPointToStart(ifOp.thenBlock());
+      for (auto ifExpr : ifCtx->if_expression()->exprwbreak())
+        if (failed(mlirGen(ifExpr)))
+          return failure();
+      if (elseRegion) {
+        builder.setInsertionPointToStart(ifOp.elseBlock());
+        for (auto elseExpr : ifCtx->else_expression()->exprwbreak())
+          if (failed(mlirGen(elseExpr)))
+            return failure();
+      }
+      builder.setInsertionPointAfter(ifOp);
+      return success();
+    }
+    if(auto ifnotCtx = ctx->ifnot_stmt()){
+      auto conditional = mlirGen(ifnotCtx->cond_comb());
+      // remember to negate the result
+      conditional = builder.create<fsm::NegOp>(conditional.getLoc(), builder.getI1Type(), conditional);
+      auto elseRegion = ifnotCtx->else_expression() != nullptr;
+      auto ifOp = builder.create<IfOp>(loc(*ifnotCtx->getStart()), conditional,
+                                       elseRegion);
+      builder.setInsertionPointToStart(ifOp.thenBlock());
+      for (auto ifExpr : ifnotCtx->if_expression()->exprwbreak())
+        if (failed(mlirGen(ifExpr)))
+          return failure();
+      if (elseRegion) {
+        builder.setInsertionPointToStart(ifOp.elseBlock());
+        for (auto elseExpr : ifnotCtx->else_expression()->exprwbreak())
+          if (failed(mlirGen(elseExpr)))
+            return failure();
+      }
+      builder.setInsertionPointAfter(ifOp);
+      return success();
+    }
+    return failure();
+  }
+
+  Value mlirGen(ProtoCCParser::Cond_combContext *ctx) {
+    Value lhs = mlirGen(ctx->cond_rel(0));
+    for (size_t i = 1; i < ctx->cond_rel().size(); i++) {
+      auto oper = ctx->combinatorial_operator(i - 1)->getText();
+      auto rhs = mlirGen(ctx->cond_rel(i));
+      // TODO - implement AND/OR ops in FSM
+      if (oper == "&")
+        lhs = builder.create<AndOp>(loc(*ctx->getStart()), builder.getI1Type(),
+                                    lhs, rhs);
+      else
+        lhs = builder.create<OrOp>(loc(*ctx->getStart()), builder.getI1Type(),
+                                   lhs, rhs);
+    }
+    return lhs;
+  }
+
+  Value mlirGen(ProtoCCParser::Cond_relContext *ctx) {
+    auto condSel = ctx->cond_sel();
+    auto lhs = mlirGen(condSel->cond_type_expr(0));
+    for (size_t i = 1; i < condSel->cond_type_expr().size(); i++) {
+      auto oper = condSel->relational_operator(i - 1);
+      auto rhs = mlirGen(condSel->cond_type_expr(i));
+      lhs =
+          builder.create<CompareOp>(loc(*ctx->getStart()), builder.getI1Type(),
+                                    lhs, rhs, oper->getText());
+    }
+    return lhs;
+  }
+
+  Value mlirGen(ProtoCCParser::Cond_type_exprContext *ctx) {
+    auto condType = ctx->cond_types(0);
+    auto lhs = mlirGen(condType);
+    for (size_t i = 1; i < ctx->cond_types().size(); i++) {
+      auto rhsCtx = ctx->cond_types(i);
+      auto indvMathOp = ctx->indv_math_op(i - 1);
+      auto rhs = mlirGen(rhsCtx);
+      if (indvMathOp->PLUS() != nullptr)
+        lhs = builder.create<fsm::AddOp>(loc(*indvMathOp->PLUS()),
+                                         builder.getI64Type(), lhs, rhs);
+      else if (indvMathOp->MINUS())
+        lhs = builder.create<fsm::SubOp>(loc(*indvMathOp->MINUS()),
+                                         builder.getI64Type(), lhs, rhs);
+      else
+        assert(0 && "Multiply not yet supported!");
+    }
+    return lhs;
+  }
+
+  Value mlirGen(ProtoCCParser::Cond_typesContext *ctx) {
+    if (auto objExprCtx = ctx->object_expr())
+      return mlirGen(objExprCtx);
+    if (auto setFn = ctx->set_func())
+      return mlirGen(setFn);
+    if (auto intCtx = ctx->INT())
+      return builder.create<ConstOp>(
+          loc(*intCtx), builder.getI64Type(),
+          builder.getI64IntegerAttr(
+              std::strtol(intCtx->getText().c_str(), nullptr, 10)));
+    if (auto boolCtx = ctx->BOOL())
+      return builder.create<ConstOp>(
+          loc(*ctx->BOOL()), builder.getI1Type(),
+          builder.getBoolAttr(boolCtx->getText() == "true"));
+
+    if (auto nidCtx = ctx->NID())
+      return builder.create<ReferenceOp>(loc(*nidCtx),
+                                         IDType::get(builder.getContext()),
+                                         builder.getSymbolRefAttr(curMach));
+
+    assert(0 && "Invalid cond type expr");
+  }
+
+  LogicalResult mlirGen(ProtoCCParser::ExprwbreakContext *ctx) {
+    // expression
+    if (auto exprCtx = ctx->expressions())
+      return mlirGen(exprCtx);
+
+    // network send
+    if (auto netSend = ctx->network_send())
+      return mlirGen(netSend);
+
+    // net mcast
+    if (auto netMcast = ctx->network_mcast())
+      return mlirGen(netMcast);
+
+    // transaction
+    if (auto transaction = ctx->transaction())
+      return mlirGen(transaction);
+
+    if (auto nextBreak = ctx->next_break()) {
+      builder.create<BreakOp>(loc(*nextBreak->BREAK()));
+      return success();
+    }
+    return failure();
   }
 
   LogicalResult mlirGen(ProtoCCParser::TransactionContext *ctx) {
@@ -460,8 +618,23 @@ private:
   }
 
   LogicalResult mlirGen(ProtoCCParser::Trans_bodyContext *ctx) {
+    // expression
     if (auto expr = ctx->expressions())
       return mlirGen(expr);
+    // break
+    if (auto nextBreakCtx = ctx->next_break())
+      builder.create<BreakOp>(loc(*nextBreakCtx->BREAK()));
+    // transaction
+    if (auto transactionCtx = ctx->transaction())
+      return mlirGen(transactionCtx);
+    // net send
+    if (auto netSendCtx = ctx->network_send())
+      return mlirGen(netSendCtx);
+    // net mcast
+    if (auto netmcastCtx = ctx->network_mcast())
+      return mlirGen(netmcastCtx);
+
+    // TODO - support next_trans & net_bcast
     return success();
   }
 
@@ -538,7 +711,7 @@ private:
     if (auto setFnCtx = ctx->set_func())
       return mlirGen(setFnCtx);
 
-    return nullptr;
+    assert(0 && "Invalid Assign Types Value");
   }
 
   Value mlirGen(ProtoCCParser::Object_exprContext *ctx) {
@@ -570,7 +743,8 @@ private:
 
       // get the type of the index
       Type resultingType;
-      if (address == "src" || address == "dst")
+      if (address == "src" ||
+          address == "dst") // src & dst are fixed and always must be type ID
         resultingType = IDType::get(builder.getContext());
       else {
         auto parentOp = object.getOwner()->getParentOp();
@@ -615,11 +789,26 @@ private:
     if (auto setFnCtx = ctx->set_func())
       return mlirGen(setFnCtx);
 
+    // NID
     if (auto nidCtx = ctx->NID())
       return builder.create<ReferenceOp>(loc(*nidCtx),
                                          IDType::get(builder.getContext()),
                                          builder.getSymbolRefAttr(curMach));
-    return nullptr;
+
+    // INT
+    if (auto intCtx = ctx->INT())
+      return builder.create<ConstOp>(
+          loc(*intCtx), builder.getI64Type(),
+          builder.getI64IntegerAttr(
+              std::strtol(intCtx->getText().c_str(), nullptr, 10)));
+
+    // BOOL
+    if (auto boolCtx = ctx->BOOL())
+      return builder.create<ConstOp>(
+          loc(*boolCtx), builder.getI1Type(),
+          builder.getBoolAttr(
+              std::strtol(boolCtx->getText().c_str(), nullptr, 10)));
+    assert(0 && "Invalid Message Expression");
   }
 
   Value mlirGen(ProtoCCParser::Set_funcContext *ctx) {
@@ -646,6 +835,7 @@ private:
 
     if (fnType == "clear") {
       builder.create<SetClear>(location, theSet);
+      return nullptr;
     }
     assert(0 && "invalid set fn");
   }

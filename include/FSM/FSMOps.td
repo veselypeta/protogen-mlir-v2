@@ -400,6 +400,16 @@ def SubOp : FSMOp<"sub">{
     }];
 }
 
+def NegOp : FSMOp<"neg">{
+    let summary = "Negates the input Operand";
+    let description = [{}];
+    let arguments = (ins I1:$input);
+    let results = (outs I1:$output);
+    let assemblyFormat = [{
+        attr-dict $input
+    }];
+}
+
 def SetAdd : FSMOp<"set_add">{
     let summary = "add an element to a set";
     let description = [{ TODO }];
