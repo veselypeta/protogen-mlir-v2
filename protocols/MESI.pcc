@@ -55,7 +55,7 @@ Architecture cache {
     }
 
     Process(I, store, State){
-        msg = Request(GetM, cl, directory.ID);
+        msg = Request(GetM, ID, directory.ID);
         req.send(msg);
         acksReceived = 0;
 
