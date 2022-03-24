@@ -794,31 +794,42 @@ private:
         msgTypeVariablesIt.begin(), msgTypeVariablesIt.end()};
 
     /// Verify length arguments
-    if (operands.size() != 2 + msgTypeVariablesVec.size())
+    if (operands.size() != 2 + msgTypeVariablesVec.size()) {
       emitError(msgLoc, "Incorrect number of arguments in '" + msgType +
                             "' constructor : Expected '" +
                             std::to_string(msgTypeVariablesVec.size() + 2 + 1) +
                             "' got '" + std::to_string(operands.size() + 1) +
                             "'");
+      return nullptr;
+    }
 
-    auto checkTypes = [](Type expected, Type actual,
-                         Location location) -> void {
+    auto checkTypes = [](Type expected, Type actual, Location location,
+                         const std::string &paramName) -> LogicalResult {
       if (failed(areTypesCompatible(expected, actual)) && actual != expected) {
         emitError(location, "Invalid type: Expected type '" +
-                                utils::getTypeString(expected) + "' but got '" +
+                                utils::getTypeString(expected) +
+                                "' for param '" + paramName + "' but got '" +
                                 utils::getTypeString(actual) + "'");
+        return failure();
       }
+      return success();
     };
     /// Verify types of arguments
     for (size_t i = 0; i < operands.size(); i++) {
       auto operand = operands.at(i);
       auto operandType = operand.getType();
+      auto paramLoc = loc(*ctx->message_expr(i + 1)->getStart());
       // dst and src are ID Types
       if (i < 2) {
-        checkTypes(IDType::get(builder.getContext()), operandType, operand.getLoc());
+        std::string paramName = i == 0 ? "src" : "dst";
+        if(failed(checkTypes(IDType::get(builder.getContext()), operandType, paramLoc,
+                   paramName)))
+          return nullptr;
       } else {
-        auto expectedType = msgTypeVariablesVec.at(i-2).getType();
-        checkTypes(expectedType, operandType, operand.getLoc());
+        auto expectedType = msgTypeVariablesVec.at(i - 2).getType();
+        auto paramName = msgTypeVariablesVec.at(i - 2).sym_name().str();
+        if(failed(checkTypes(expectedType, operandType, paramLoc, paramName)))
+          return nullptr;
       }
     }
     return builder.create<MessageOp>(msgLoc, MsgType::get(builder.getContext()),
