@@ -492,6 +492,13 @@ llvm::Optional<StateOp> getNonStallingEndStateIfPossible(StateOp tState) {
   } while (isTransientState(nextState));
   return {nextState};
 }
+
+std::string getTypeString(Type type) {
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  type.print(sstream);
+  return str;
+}
 } // namespace utils
 } // namespace fsm
 } // namespace mlir

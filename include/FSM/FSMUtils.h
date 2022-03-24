@@ -80,6 +80,8 @@ WalkResult runOnEachTransientState(MachineOp machine, PatternRewriter &rewriter,
 
 llvm::Optional<StateOp> getNonStallingEndStateIfPossible(StateOp tState);
 
+std::string getTypeString(Type type);
+
 } // namespace utils
 } // namespace fsm
 } // namespace mlir

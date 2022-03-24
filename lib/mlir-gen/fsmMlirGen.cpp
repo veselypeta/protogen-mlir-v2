@@ -3,6 +3,7 @@
 #include "FSM/FSMOps.h"
 #include "mlir-gen/mlirGen.h"
 
+#include "FSM/FSMUtils.h"
 #include "ProtoCCBaseVisitor.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Attributes.h"
@@ -83,7 +84,7 @@ private:
   mlir::Location loc(const antlr4::Token &tok) const {
     return mlir::FileLineColLoc::get(
         mlir::Identifier::get(filename, builder.getContext()), tok.getLine(),
-        tok.getCharPositionInLine());
+        tok.getCharPositionInLine() + 1);
   }
 
   mlir::Location loc(antlr4::tree::TerminalNode &terminal) const {
@@ -378,7 +379,7 @@ private:
              "failed to add msg param to scope");
 
     // create the nested ops
-    if(ctx->process_expr().empty()){
+    if (ctx->process_expr().empty()) {
       builder.create<NOPOp>(builder.getUnknownLoc());
     }
     for (auto expr : ctx->process_expr())
@@ -473,10 +474,11 @@ private:
       builder.setInsertionPointAfter(ifOp);
       return success();
     }
-    if(auto ifnotCtx = ctx->ifnot_stmt()){
+    if (auto ifnotCtx = ctx->ifnot_stmt()) {
       auto conditional = mlirGen(ifnotCtx->cond_comb());
       // remember to negate the result
-      conditional = builder.create<fsm::NegOp>(conditional.getLoc(), builder.getI1Type(), conditional);
+      conditional = builder.create<fsm::NegOp>(
+          conditional.getLoc(), builder.getI1Type(), conditional);
       auto elseRegion = ifnotCtx->else_expression() != nullptr;
       auto ifOp = builder.create<IfOp>(loc(*ifnotCtx->getStart()), conditional,
                                        elseRegion);
@@ -662,7 +664,10 @@ private:
 
       if (failed(areTypesCompatible(rhs.getType(), internalStateType)) &&
           rhs.getType() != internalStateType) {
-        emitError(loc(*ctx->EQUALSIGN()), "Types do not match");
+
+        emitError(loc(*ctx->assign_types()->getStart()),
+                  "Cannot assign Type '" + utils::getTypeString(rhs.getType()) +
+                      "' to '" + utils::getTypeString(internalStateType) + "'");
         return failure();
       }
       builder.create<UpdateOp>(loc(*ctx->process_finalident()->getStart()),
@@ -778,6 +783,43 @@ private:
     std::vector<Value> operands;
     for (size_t i = 1; i < ctx->message_expr().size(); i++) {
       operands.push_back(mlirGen(ctx->message_expr(i)));
+    }
+
+    //// Validate that we are constructing the message correctly
+    // Lookup the request type
+    auto msgTypeDecl = theModule.lookupSymbol<MessageDecl>(msgType);
+    auto msgTypeVariablesIt =
+        msgTypeDecl.body().front().getOps<MessageVariable>();
+    std::vector<MessageVariable> msgTypeVariablesVec = {
+        msgTypeVariablesIt.begin(), msgTypeVariablesIt.end()};
+
+    /// Verify length arguments
+    if (operands.size() != 2 + msgTypeVariablesVec.size())
+      emitError(msgLoc, "Incorrect number of arguments in '" + msgType +
+                            "' constructor : Expected '" +
+                            std::to_string(msgTypeVariablesVec.size() + 2 + 1) +
+                            "' got '" + std::to_string(operands.size() + 1) +
+                            "'");
+
+    auto checkTypes = [](Type expected, Type actual,
+                         Location location) -> void {
+      if (failed(areTypesCompatible(expected, actual)) && actual != expected) {
+        emitError(location, "Invalid type: Expected type '" +
+                                utils::getTypeString(expected) + "' but got '" +
+                                utils::getTypeString(actual) + "'");
+      }
+    };
+    /// Verify types of arguments
+    for (size_t i = 0; i < operands.size(); i++) {
+      auto operand = operands.at(i);
+      auto operandType = operand.getType();
+      // dst and src are ID Types
+      if (i < 2) {
+        checkTypes(IDType::get(builder.getContext()), operandType, operand.getLoc());
+      } else {
+        auto expectedType = msgTypeVariablesVec.at(i-2).getType();
+        checkTypes(expectedType, operandType, operand.getLoc());
+      }
     }
     return builder.create<MessageOp>(msgLoc, MsgType::get(builder.getContext()),
                                      builder.getSymbolRefAttr(msgType),
