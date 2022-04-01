@@ -7,6 +7,11 @@ namespace murphi {
 namespace detail {
 
 /*
+ * Configuration Parameters
+ */
+constexpr bool atomic_compilation = true;
+
+/*
  * Some useful constants to have for compiling murphi
  */
 

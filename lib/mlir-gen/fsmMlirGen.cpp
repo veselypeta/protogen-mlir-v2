@@ -587,7 +587,7 @@ private:
       return mlirGen(transaction);
 
     if (auto nextBreak = ctx->next_break()) {
-      builder.create<BreakOp>(loc(*nextBreak->BREAK()));
+      builder.create<fsm::BreakOp>(loc(*nextBreak->BREAK()));
       return success();
     }
     return failure();
@@ -628,7 +628,7 @@ private:
       return mlirGen(expr);
     // break
     if (auto nextBreakCtx = ctx->next_break())
-      builder.create<BreakOp>(loc(*nextBreakCtx->BREAK()));
+      builder.create<fsm::BreakOp>(loc(*nextBreakCtx->BREAK()));
     // transaction
     if (auto transactionCtx = ctx->transaction())
       return mlirGen(transactionCtx);

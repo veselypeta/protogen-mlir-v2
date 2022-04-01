@@ -242,12 +242,12 @@ void IfOp::build(::mlir::OpBuilder &odsBuilder,
     odsBuilder.createBlock(elseRegion);
 }
 
-Block *IfOp::thenBlock() { return &thenRegion().back(); }
+Block *IfOp::thenBlock() { return &thenRegion().front(); }
 Block *IfOp::elseBlock() {
   Region &r = elseRegion();
   if (r.empty())
     return nullptr;
-  return &r.back();
+  return &r.front();
 }
 
 //===----------------------------------------------------------------------===//

@@ -443,6 +443,13 @@ struct GenericMurphiFunction {
 
 void to_json(nlohmann::json &j, const GenericMurphiFunction &gmf);
 
+/// --- Mutex Function --- ///
+struct MutexFunction{
+  bool is_acquire;
+};
+
+void to_json(nlohmann::json &j, const MutexFunction &mf);
+
 /// -- Ordered Send Function -- ///
 struct OrderedSendFunction {
   std::string netId;
@@ -485,6 +492,7 @@ void to_json(nlohmann::json &j, const CacheRuleHandler &crh);
 struct CPUEventRule {
   std::string state;
   std::string event;
+  bool atomic;
 };
 void to_json(nlohmann::json &j, const CPUEventRule &er);
 

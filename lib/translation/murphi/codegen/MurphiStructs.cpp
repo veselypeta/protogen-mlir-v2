@@ -131,6 +131,21 @@ void to_json(json &j, const GenericMurphiFunction &gmf) {
          {"statements", gmf.statements}}}};
 }
 
+void to_json(json &j, const MutexFunction &mf){
+  auto statement = Assignment<Designator, ExprID>{
+      {cl_mutex_v, {Indexer{"array", ExprID{adr_a}}}},
+      {{mf.is_acquire ? "true" : "false"}}
+    };
+  j = {
+      {"procType", "procedure"},
+      {"def", {
+                  {"id", mf.is_acquire ? aq_mut_f : rel_mut_f},
+                  {"params", {Formal<ID>{adr_a, {{ss_address_t}}}}},
+                  {"statements", {statement}}
+              }}
+  };
+}
+
 void to_json(json &j, const OrderedSendFunction &usf) {
   constexpr char msg_p[] = "msg";
   // Line 1 -> Assert Statement (for too many messages in queue)
@@ -445,10 +460,22 @@ void to_json(json &j, const CPUEventRule &er) {
   auto ruleDesc = er.state + "_" + er.event;
   auto ruleExpr = BinaryExpr<Designator, ExprID>{
       {cle_a, {Indexer{"object", ExprID{c_state}}}}, {er.state}, BinaryOps.eq};
-  auto ruleStatement =
-      ProcCall{cpu_action_pref_f + ruleDesc, {ExprID{adr_a}, ExprID{c_mach}}};
+  if (er.atomic) {
+    auto mut_check = BinaryExpr<Designator, ExprID> {
+      {cl_mutex_v, {Indexer{"array", ExprID{adr_a}}}}, {"false"}, BinaryOps.eq
+    };
+    auto ruleExprWithMut = BinaryExpr<decltype(ruleExpr), decltype(mut_check)>{ruleExpr, mut_check, BinaryOps.logic_and};
+    auto acq_mut = ProcCall{detail::aq_mut_f, {detail::ExprID{adr_a}}};
+    auto ruleStatement =
+        ProcCall{cpu_action_pref_f + ruleDesc, {ExprID{adr_a}, ExprID{c_mach}}};
 
-  j = SimpleRule{ruleDesc, ruleExpr, {}, {ruleStatement}};
+    j = SimpleRule{ruleDesc, ruleExprWithMut, {}, {acq_mut, ruleStatement}};
+  } else {
+    auto ruleStatement =
+        ProcCall{cpu_action_pref_f + ruleDesc, {ExprID{adr_a}, ExprID{c_mach}}};
+
+    j = SimpleRule{ruleDesc, ruleExpr, {}, {ruleStatement}};
+  }
 }
 
 // *** OrderedRuleset *** //
@@ -580,14 +607,9 @@ void to_json(json &j, const MulticastSend &ms) {
   constexpr auto elem_idx = "iSV";
 
   auto change_dst = Assignment<Designator, ExprID>{
-      {c_msg, {Indexer{"object", ExprID{c_dst}}}},
-      {elem_idx}
-  };
+      {c_msg, {Indexer{"object", ExprID{c_dst}}}}, {elem_idx}};
 
-  auto send_msg = ProcCall{
-      send_pref_f + ms.netId,
-      {ExprID{c_msg}}
-  };
+  auto send_msg = ProcCall{send_pref_f + ms.netId, {ExprID{c_msg}}};
 
   auto if_ms_count = IfStmt<BinaryExpr<MultisetCount, ExprID>>{
       {{"i", ExprID{c_dst},

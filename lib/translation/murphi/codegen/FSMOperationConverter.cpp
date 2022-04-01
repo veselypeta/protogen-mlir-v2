@@ -102,6 +102,8 @@ nlohmann::json FSMOperationConverter::convert(mlir::Operation *op) {
     return convert(multicastOp);
   if(auto callOp = dyn_cast<mlir::fsm::CallOp>(op))
     return convert(callOp);
+  if(auto breakOp = dyn_cast<mlir::fsm::BreakOp>(op))
+    return convert(breakOp);
   return nullptr;
 }
 
@@ -159,6 +161,10 @@ void FSMOperationConverter::convert(mlir::ConstantOp op) {
   Attribute valAttr = op.value();
   if (auto boolAttr = valAttr.dyn_cast<BoolAttr>())
     symbolTable.insert(op, boolAttr.getValue() ? "true" : "false");
+  if(auto intAttr = valAttr.dyn_cast<IntegerAttr>())
+    symbolTable.insert(op, std::to_string(intAttr.getInt()));
+  if (auto stringAttr = valAttr.dyn_cast<StringAttr>())
+    symbolTable.insert(op, stringAttr.getValue().str());
 }
 
 void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
@@ -175,6 +181,9 @@ void FSMOperationConverter::convert(mlir::fsm::ConstOp op) {
       symbolTable.insert(op, strAttr.getValue().str());
     }
   }
+
+  if(auto intAttr = valAttr.dyn_cast<IntegerAttr>())
+    symbolTable.insert(op, std::to_string(intAttr.getInt()));
 }
 
 void FSMOperationConverter::convert(mlir::fsm::CompareOp op) {
@@ -281,6 +290,10 @@ nlohmann::json FSMOperationConverter::convert(mlir::fsm::CallOp op) {
   StateOp parentState = op->getParentOfType<StateOp>();
   TransitionOp linkedTransition = parentState.lookupSymbol<TransitionOp>(op.theTransition());
   return convert(linkedTransition);
+}
+
+nlohmann::json FSMOperationConverter::convert(mlir::fsm::BreakOp op) {
+  return detail::ProcCall{detail::rel_mut_f, {detail::ExprID{detail::adr_a}}};
 }
 
 std::string FSMConvertType(Type type) {

@@ -230,6 +230,13 @@ private:
     }
   }
 
+  void assembleMutexes(nlohmann::json &data) {
+    nlohmann::json mutex =
+        detail::TypeDecl<detail::Array<detail::ID, detail::ID>>{
+            detail::a_cl_mutex_t, {{detail::ss_address_t}, {detail::bool_t}}};
+    data["decls"]["type_decls"].push_back(std::move(mutex));
+  }
+
   void assembleTypes(nlohmann::json &data) {
     assembleEnums(data);
     // assemble setup types
@@ -250,6 +257,9 @@ private:
 
     // Assemble Network Objects
     assembleNetworkObjects(data);
+
+    // Assemble CL Mutex
+    assembleMutexes(data);
   }
 
   void assembleMachineVars(nlohmann::json &data) {
@@ -285,9 +295,18 @@ private:
     }
   }
 
+  void assembleMutexVars(nlohmann::json &data){
+    auto mutexVar = detail::VarDecl<detail::ID>{
+      detail::cl_mutex_v,
+        {detail::a_cl_mutex_t}
+    };
+    data["decls"]["var_decls"].push_back(std::move(mutexVar));
+  }
+
   void assembleVariables(nlohmann::json &data) {
     assembleMachineVars(data);
     assembleNetworkVars(data);
+    assembleMutexVars(data);
   }
 
   void assembleDecls(nlohmann::json &data) {
@@ -407,6 +426,11 @@ private:
     }
   }
 
+  void assembleMutexFunctions(nlohmann::json &data){
+    data["proc_decls"].push_back(detail::MutexFunction{true});
+    data["proc_decls"].push_back(detail::MutexFunction{false});
+  }
+
   void assembleProcedures(nlohmann::json &data) {
     assembleMessageFactories(data);
     assembleNetworkSendFunctions(data);
@@ -415,6 +439,7 @@ private:
     assembleCacheController(data);
     assembleDirectoryController(data);
     assembleStartStateFunctions(data);
+    assembleMutexFunctions(data);
   }
 
   void assembleRules(nlohmann::json &data) {
@@ -428,12 +453,8 @@ private:
     murphi::detail::CacheRuleHandler cacheRuleset;
     for (std::string &stableState : interpreter.getCacheStableStateNames()) {
       for (llvm::StringRef cpu_event : murphi::detail::cpu_events) {
-        nlohmann::json stmts =
-            interpreter.getMurphiCacheStatements(stableState, cpu_event);
-        if (stmts == nullptr)
-          continue;
         cacheRuleset.rules.emplace_back(
-            murphi::detail::CPUEventRule{stableState, cpu_event.str()});
+            murphi::detail::CPUEventRule{stableState, cpu_event.str(), detail::atomic_compilation});
       }
     }
     data["rules"].emplace_back(std::move(cacheRuleset));

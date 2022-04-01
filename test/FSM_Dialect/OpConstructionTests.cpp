@@ -1708,3 +1708,47 @@ TEST(OpConstructionTests, CallOpParse) {
     EXPECT_EQ(call.theTransition().getLeafReference(), "PutAck");
   });
 }
+
+TEST(OpConstructionTests, IfOpWithBreak){
+  OpHelper helper;
+  Location unknLoc = helper.builder.getUnknownLoc();
+
+  auto cache = helper.builder.create<MachineOp>(
+      unknLoc, "cache", helper.builder.getFunctionType({}, {}));
+  Block *cacheEntry = cache.addEntryBlock();
+  helper.builder.setInsertionPointToStart(cacheEntry);
+
+  // create a basic state
+  auto state1 = helper.builder.create<StateOp>(unknLoc, "s1");
+  Block *s1Entry = state1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(s1Entry);
+
+  // create a transition with a msg param
+  FunctionType t1Type =
+      helper.builder.getFunctionType({MsgType::get(&helper.ctx)}, {});
+  auto trans1 =
+      helper.builder.create<TransitionOp>(unknLoc, "t1", t1Type, nullptr);
+  Block *t1Entry = trans1.addEntryBlock();
+  helper.builder.setInsertionPointToStart(t1Entry);
+
+  auto trueConst = helper.builder.create<ConstOp>(unknLoc, helper.builder.getI1Type(), helper.builder.getBoolAttr(true));
+
+  auto ifOp = helper.builder.create<IfOp>(unknLoc, trueConst, false);
+  helper.builder.setInsertionPointToStart(ifOp.thenBlock());
+
+  helper.builder.create<fsm::NOPOp>(unknLoc);
+  helper.builder.create<fsm::BreakOp>(unknLoc);
+
+
+  // print out the result
+  std::string str;
+  llvm::raw_string_ostream sstream(str);
+  helper.module.print(sstream);
+
+  auto result = parseSourceString(str, &helper.ctx);
+  ASSERT_NE(*result, nullptr);
+
+  result->walk([](IfOp ifOp){
+    ASSERT_FALSE(ifOp.thenBlock()->getOps<BreakOp>().empty());
+  });
+}
